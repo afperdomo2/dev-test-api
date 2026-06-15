@@ -1,10 +1,90 @@
 basePath: /
+definitions:
+  apierr.APIError:
+    properties:
+      detail:
+        type: string
+      instance:
+        type: string
+      status:
+        type: integer
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  response.Meta:
+    properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  users.AuthResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/users.UserResponse'
+    type: object
+  users.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      is_admin:
+        type: boolean
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  users.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 1
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  users.SetupRequest:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  users.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_admin:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
     email: felipe@example.com
     name: Felipe
-  description: REST API con Go + Gin.
+  description: REST API con Go + Gin · Auth JWT · PostgreSQL · Swagger
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -12,6 +92,196 @@ info:
   title: dev-test-api
   version: "1.0"
 paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica un usuario y devuelve un token JWT
+      parameters:
+      - description: Credenciales de login
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/users.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      summary: Iniciar sesión
+      tags:
+      - auth
+  /api/v1/auth/setup:
+    post:
+      consumes:
+      - application/json
+      description: Crea el primer usuario admin del sistema. Solo funciona si no hay
+        usuarios creados.
+      parameters:
+      - description: Credenciales del admin inicial
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/users.SetupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/users.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "409":
+          description: System Already Initialized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      summary: Inicializar sistema (primer usuario admin)
+      tags:
+      - auth
+  /api/v1/users:
+    get:
+      description: Lista todos los usuarios (solo admin)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de usuarios
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Listar usuarios
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo usuario (solo admin)
+      parameters:
+      - description: Datos del usuario
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/users.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/users.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Crear usuario
+      tags:
+      - users
+  /api/v1/users/{id}:
+    delete:
+      description: Soft-delete de un usuario (solo admin)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Eliminar usuario
+      tags:
+      - users
+    get:
+      description: Obtiene un usuario por ID (admin o el propio usuario)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Obtener usuario
+      tags:
+      - users
   /health:
     get:
       description: Verifica que el servidor esté corriendo
@@ -29,4 +299,10 @@ paths:
       - health
 schemes:
 - http
+securityDefinitions:
+  BearerAuth:
+    description: 'JWT token. Prefix with "Bearer ". Example: "Bearer eyJhbG..."'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

@@ -4,7 +4,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/felipe/dev-test-api/config"
+	"github.com/felipe/dev-test-api/database"
 	_ "github.com/felipe/dev-test-api/docs"
+	"github.com/felipe/dev-test-api/internal/auth"
+	"github.com/felipe/dev-test-api/internal/questions"
+	"github.com/felipe/dev-test-api/internal/users"
 	"github.com/felipe/dev-test-api/middleware"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -13,7 +18,7 @@ import (
 
 // @title           dev-test-api
 // @version         1.0
-// @description     REST API con Go + Gin.
+// @description     REST API con Go + Gin · Auth JWT · PostgreSQL · Swagger
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name   Felipe
@@ -25,18 +30,43 @@ import (
 // @host      localhost:8080
 // @BasePath  /
 
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 JWT token. Prefix with "Bearer ". Example: "Bearer eyJhbG..."
+
 // @schemes  http
 func main() {
+	cfg := config.Load()
+	db := database.Connect(cfg)
+
+	userStore := users.NewStore(db)
+	userService := users.NewService(userStore)
+	userHandler := users.NewHandler(userService)
+
+	authService := auth.NewService(userStore, cfg.JWT.SecretBytes(), cfg.JWT.ExpiryHrs)
+	authHandler := auth.NewHandler(authService)
+
 	r := gin.Default()
 
 	r.Use(middleware.Logger())
 
 	r.GET("/health", healthCheck)
-
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	log.Println("Server starting on :8080")
-	if err := r.Run(":8080"); err != nil {
+	api := r.Group("/api/v1")
+
+	auth.RegisterRoutes(api, authHandler)
+
+	protected := api.Group("")
+	protected.Use(middleware.Auth(cfg.JWT.SecretBytes()))
+	{
+		users.RegisterRoutes(protected, userHandler)
+		questions.RegisterRoutes(protected, nil)
+	}
+
+	log.Println("Server starting on :" + cfg.Port)
+	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("failed to run server: %v", err)
 	}
 }

@@ -141,8 +141,10 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+.env
+
 # IA
-.agents/
+.agents/skills/
 .kiro/
 
 # End of https://www.toptal.com/developers/gitignore/api/go,visualstudiocode,windows,linux,macos,cmake
