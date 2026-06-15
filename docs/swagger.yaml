@@ -1,0 +1,32 @@
+basePath: /
+host: localhost:8080
+info:
+  contact:
+    email: felipe@example.com
+    name: Felipe
+  description: REST API con Go + Gin.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: dev-test-api
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Verifica que el servidor esté corriendo
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - health
+schemes:
+- http
+swagger: "2.0"
