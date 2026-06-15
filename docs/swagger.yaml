@@ -43,6 +43,159 @@ definitions:
     - email
     - password
     type: object
+  questions.CodeChallengeResponse:
+    properties:
+      expected_output:
+        type: string
+      id:
+        type: string
+      language:
+        type: string
+      starter_code:
+        type: string
+      test_cases:
+        type: string
+    type: object
+  questions.CreateOptionReq:
+    properties:
+      content:
+        type: string
+      is_correct:
+        type: boolean
+      order_index:
+        type: integer
+    required:
+    - content
+    type: object
+  questions.CreateQuestionRequest:
+    properties:
+      content:
+        type: string
+      difficulty:
+        enum:
+        - beginner
+        - intermediate
+        - advanced
+        type: string
+      expected_output:
+        type: string
+      explanation:
+        type: string
+      language:
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/questions.CreateOptionReq'
+        type: array
+      source:
+        enum:
+        - ai_generated
+        - manual
+        - imported
+        type: string
+      starter_code:
+        type: string
+      test_cases:
+        type: string
+      topic_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      type:
+        enum:
+        - single_choice
+        - multiple_choice
+        - code_completion
+        type: string
+    required:
+    - content
+    - difficulty
+    - topic_ids
+    - type
+    type: object
+  questions.OptionResponse:
+    properties:
+      content:
+        type: string
+      id:
+        type: string
+      is_correct:
+        type: boolean
+      order_index:
+        type: integer
+    type: object
+  questions.QuestionResponse:
+    properties:
+      code_challenge:
+        $ref: '#/definitions/questions.CodeChallengeResponse'
+      content:
+        type: string
+      created_at:
+        type: string
+      difficulty:
+        type: string
+      explanation:
+        type: string
+      id:
+        type: string
+      is_public:
+        type: boolean
+      options:
+        items:
+          $ref: '#/definitions/questions.OptionResponse'
+        type: array
+      source:
+        type: string
+      topics:
+        items:
+          $ref: '#/definitions/questions.TopicInfo'
+        type: array
+      type:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  questions.TopicInfo:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  questions.UpdateQuestionRequest:
+    properties:
+      content:
+        type: string
+      difficulty:
+        enum:
+        - beginner
+        - intermediate
+        - advanced
+        type: string
+      expected_output:
+        type: string
+      explanation:
+        type: string
+      language:
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/questions.CreateOptionReq'
+        type: array
+      starter_code:
+        type: string
+      test_cases:
+        type: string
+      topic_ids:
+        items:
+          type: string
+        type: array
+    type: object
   response.Meta:
     properties:
       page:
@@ -219,6 +372,185 @@ paths:
       summary: Obtener perfil
       tags:
       - profile
+  /api/v1/questions:
+    get:
+      description: Lista todas las preguntas disponibles, con filtros opcionales
+      parameters:
+      - description: 'Número de página (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Elementos por página (default: 20)'
+        in: query
+        name: per_page
+        type: integer
+      - description: Filtrar por tipo (single_choice, multiple_choice, code_completion)
+        in: query
+        name: type
+        type: string
+      - description: Filtrar por dificultad (beginner, intermediate, advanced)
+        in: query
+        name: difficulty
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de preguntas
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Listar preguntas
+      tags:
+      - questions
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva pregunta con opciones o código
+      parameters:
+      - description: Datos de la pregunta
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/questions.CreateQuestionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/questions.QuestionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Crear pregunta (Admin)
+      tags:
+      - questions
+  /api/v1/questions/{id}:
+    delete:
+      description: Elimina una pregunta (soft delete)
+      parameters:
+      - description: Question ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Eliminar pregunta (Admin)
+      tags:
+      - questions
+    get:
+      description: Obtiene una pregunta por ID con todos sus detalles (opciones, código,
+        temas)
+      parameters:
+      - description: Question ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/questions.QuestionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Obtener pregunta
+      tags:
+      - questions
+    put:
+      consumes:
+      - application/json
+      description: Actualiza una pregunta existente
+      parameters:
+      - description: Question ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/questions.UpdateQuestionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/questions.QuestionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Actualizar pregunta (Admin)
+      tags:
+      - questions
   /api/v1/topics:
     get:
       description: Lista todos los temas disponibles

@@ -22,6 +22,10 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	topicService := topics.NewService(topicStore)
 	topicHandler := topics.NewHandler(topicService)
 
+	questionStore := questions.NewStore(db)
+	questionService := questions.NewService(questionStore)
+	questionHandler := questions.NewHandler(questionService)
+
 	userStore := users.NewStore(db)
 	userService := users.NewService(userStore)
 	userHandler := users.NewHandler(userService)
@@ -42,7 +46,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	protected := api.Group("")
 	protected.Use(middleware.Auth(cfg.JWT.SecretBytes()))
 	{
-		questions.RegisterRoutes(protected, nil)
+		questions.RegisterRoutes(protected, questionHandler)
 		topics.RegisterRoutes(protected, topicHandler)
 		users.RegisterRoutes(protected, userHandler)
 
@@ -51,6 +55,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		{
 			users.RegisterAdminRoutes(admin, userHandler)
 			topics.RegisterAdminRoutes(admin, topicHandler)
+			questions.RegisterAdminRoutes(admin, questionHandler)
 		}
 	}
 

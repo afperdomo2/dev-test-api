@@ -12,7 +12,6 @@ type QuestionOption struct {
 	QuestionID uuid.UUID `gorm:"type:uuid;not null;index" json:"question_id"`
 	Content    string    `gorm:"not null;type:text" json:"content"`
 	IsCorrect  bool      `gorm:"not null;default:false" json:"is_correct"`
-	OrderIndex int       `gorm:"not null;default:0" json:"order_index"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
