@@ -6,6 +6,10 @@ import (
 	"github.com/google/uuid"
 )
 
+func (UserQuestionProgress) TableName() string {
+	return "user_question_progress"
+}
+
 type UserQuestionProgress struct {
 	UserID         uuid.UUID  `gorm:"type:uuid;primaryKey" json:"user_id"`
 	QuestionID     uuid.UUID  `gorm:"type:uuid;primaryKey" json:"question_id"`

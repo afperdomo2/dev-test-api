@@ -16,7 +16,7 @@ type SessionAnswer struct {
 	User            *User     `gorm:"foreignKey:UserID" json:"-"`
 	Question        *Question `gorm:"foreignKey:QuestionID" json:"-"`
 	AnswerText      string    `gorm:"type:text" json:"answer_text,omitempty"`
-	SelectedOptions string    `gorm:"type:jsonb;default:'[]'::jsonb" json:"selected_options,omitempty"`
+	SelectedOptions string    `gorm:"type:jsonb" json:"selected_options,omitempty"`
 	IsCorrect       bool      `gorm:"not null;default:false" json:"is_correct"`
 	AiFeedback      string    `gorm:"type:text" json:"ai_feedback,omitempty"`
 	ResponseTimeMs  int       `json:"response_time_ms,omitempty"`
@@ -26,6 +26,9 @@ type SessionAnswer struct {
 func (a *SessionAnswer) BeforeCreate(tx *gorm.DB) error {
 	if a.ID == uuid.Nil {
 		a.ID = uuid.New()
+	}
+	if a.SelectedOptions == "" {
+		a.SelectedOptions = "[]"
 	}
 	return nil
 }
