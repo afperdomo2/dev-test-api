@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/felipe/dev-test-api/config"
-	"github.com/felipe/dev-test-api/database"
+	"github.com/felipe/dev-test-api/internal/config"
+	"github.com/felipe/dev-test-api/internal/database"
 	_ "github.com/felipe/dev-test-api/docs"
 	"github.com/felipe/dev-test-api/internal/server"
 )

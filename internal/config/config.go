@@ -24,8 +24,8 @@ type DBConfig struct {
 }
 
 type JWTConfig struct {
-	Secret     string
-	ExpiryHrs  string
+	Secret    string
+	ExpiryHrs string
 }
 
 func (d DBConfig) DSN() string {

@@ -4,11 +4,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/felipe/dev-test-api/config"
+	"github.com/felipe/dev-test-api/internal/config"
 	"github.com/felipe/dev-test-api/internal/modules/auth"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
 	"github.com/felipe/dev-test-api/internal/modules/users"
-	"github.com/felipe/dev-test-api/middleware"
+	"github.com/felipe/dev-test-api/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 

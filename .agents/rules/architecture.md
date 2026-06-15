@@ -8,9 +8,9 @@
 | `internal/modules/<module>/` | Business modules (auth, users, questions) | Yes — add features here |
 | `internal/server/server.go` | Gin engine + middleware + DI wiring + Run() | Yes — register new modules here |
 | `main.go` | Server entrypoint (config.Load + db.Connect + server.Run) | Rarely |
-| `config/` | Env var loading | Rarely — add new env vars only |
-| `database/` | GORM connection + AutoMigrate | Rarely — register new models here |
-| `middleware/` | Cross-cutting: JWT auth, logging | Rarely |
+| `internal/config/config.go` | Env var loading | Rarely — add new env vars only |
+| `internal/database/database.go` | GORM connection + AutoMigrate | Rarely — register new models here |
+| `internal/middleware/` | Cross-cutting: JWT auth, logging | Rarely |
 | `pkg/` | Shared utilities: response, apierr | Rarely |
 | `docs/` | Swagger auto-generated | **NEVER** — use `make swagger` |
 | `tmp/` | Air build output | **NEVER** |
@@ -71,7 +71,7 @@ Always create stores first, then services, then handlers. Modules that depend on
 
 ## GORM AutoMigrate
 
-All models must be registered in `database/database.go` → `db.AutoMigrate()`. Tables are created/updated on every server start.
+All models must be registered in `internal/database/database.go` → `db.AutoMigrate()`. Tables are created/updated on every server start.
 
 ## Swagger
 

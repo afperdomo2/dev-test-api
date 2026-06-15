@@ -3,7 +3,7 @@ package database
 import (
 	"log"
 
-	"github.com/felipe/dev-test-api/config"
+	"github.com/felipe/dev-test-api/internal/config"
 	"github.com/felipe/dev-test-api/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

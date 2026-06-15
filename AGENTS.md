@@ -28,6 +28,13 @@ The project follows a **vertical-slice module** pattern. Business modules live i
 
 ```
 internal/
+├── config/                 # Env var loading → Config struct
+│   └── config.go
+├── database/               # GORM connection + AutoMigrate
+│   └── database.go
+├── middleware/              # Cross-cutting: JWT auth, logging
+│   ├── auth.go
+│   └── logger.go
 ├── models/                 # GORM structs (pure DB schema)
 │   ├── user.go
 │   └── question.go
