@@ -227,6 +227,128 @@ definitions:
       total:
         type: integer
     type: object
+  sessions.AnswerRequest:
+    properties:
+      answer_text:
+        type: string
+      is_correct:
+        type: boolean
+      question_id:
+        type: string
+      response_time_ms:
+        type: integer
+      selected_options:
+        items:
+          type: string
+        type: array
+    required:
+    - question_id
+    type: object
+  sessions.CreateSessionRequest:
+    properties:
+      difficulty:
+        enum:
+        - beginner
+        - intermediate
+        - advanced
+        type: string
+      mode:
+        enum:
+        - generate
+        - review
+        type: string
+      name:
+        maxLength: 200
+        minLength: 1
+        type: string
+      topic_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - difficulty
+    - mode
+    - name
+    - topic_ids
+    type: object
+  sessions.NextQuestionResponse:
+    properties:
+      question:
+        $ref: '#/definitions/questions.QuestionResponse'
+    type: object
+  sessions.SessionAnswerResponse:
+    properties:
+      ai_feedback:
+        type: string
+      answer_text:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_correct:
+        type: boolean
+      question:
+        $ref: '#/definitions/questions.QuestionResponse'
+      question_id:
+        type: string
+      response_time_ms:
+        type: integer
+      selected_options:
+        items:
+          type: string
+        type: array
+    type: object
+  sessions.SessionDetailResponse:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/sessions.SessionAnswerResponse'
+        type: array
+      session:
+        $ref: '#/definitions/sessions.SessionResponse'
+    type: object
+  sessions.SessionResponse:
+    properties:
+      answer_count:
+        type: integer
+      created_at:
+        type: string
+      difficulty:
+        type: string
+      finished_at:
+        type: string
+      id:
+        type: string
+      mode:
+        type: string
+      name:
+        type: string
+      score:
+        type: number
+      started_at:
+        type: string
+      status:
+        type: string
+      topics:
+        items:
+          $ref: '#/definitions/sessions.TopicInfo'
+        type: array
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  sessions.TopicInfo:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
   topics.CreateTopicRequest:
     properties:
       category:
@@ -697,6 +819,197 @@ paths:
       summary: Actualizar pregunta (Admin)
       tags:
       - questions
+  /api/v1/sessions:
+    get:
+      description: Lista las sesiones de estudio del usuario autenticado
+      parameters:
+      - description: 'Número de página (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Elementos por página (default: 20)'
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de sesiones
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Listar sesiones
+      tags:
+      - sessions
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva sesión de estudio
+      parameters:
+      - description: Datos de la sesión
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/sessions.CreateSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/sessions.SessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Crear sesión
+      tags:
+      - sessions
+  /api/v1/sessions/{id}:
+    get:
+      description: Obtiene el detalle de una sesión con sus respuestas
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sessions.SessionDetailResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Obtener sesión
+      tags:
+      - sessions
+  /api/v1/sessions/{id}/answer:
+    post:
+      consumes:
+      - application/json
+      description: Registra la respuesta del usuario y actualiza el progreso SM-2
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Respuesta
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/sessions.AnswerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sessions.SessionAnswerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Responder pregunta
+      tags:
+      - sessions
+  /api/v1/sessions/{id}/finish:
+    put:
+      description: Finaliza una sesión — el score se calcula automáticamente
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sessions.SessionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Finalizar sesión
+      tags:
+      - sessions
+  /api/v1/sessions/{id}/next:
+    get:
+      description: Obtiene la siguiente pregunta sin responder en la sesión
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sessions.NextQuestionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Siguiente pregunta
+      tags:
+      - sessions
   /api/v1/topics:
     get:
       description: Lista todos los temas disponibles

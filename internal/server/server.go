@@ -9,6 +9,7 @@ import (
 	"github.com/felipe/dev-test-api/internal/modules/auth"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
+	"github.com/felipe/dev-test-api/internal/modules/sessions"
 	"github.com/felipe/dev-test-api/internal/modules/topics"
 	"github.com/felipe/dev-test-api/internal/modules/users"
 	"github.com/gin-gonic/gin"
@@ -35,6 +36,10 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	userService := users.NewService(userStore)
 	userHandler := users.NewHandler(userService)
 
+	sessionStore := sessions.NewStore(db)
+	sessionService := sessions.NewService(sessionStore, progressService)
+	sessionHandler := sessions.NewHandler(sessionService)
+
 	authService := auth.NewService(userStore, cfg.JWT.SecretBytes(), cfg.JWT.ExpiryHrs)
 	authHandler := auth.NewHandler(authService)
 
@@ -55,6 +60,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		topics.RegisterRoutes(protected, topicHandler)
 		users.RegisterRoutes(protected, userHandler)
 		progress.RegisterRoutes(protected, progressHandler)
+		sessions.RegisterRoutes(protected, sessionHandler)
 
 		admin := protected.Group("")
 		admin.Use(middleware.AdminOnly())

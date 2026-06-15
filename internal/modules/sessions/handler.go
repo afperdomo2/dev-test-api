@@ -1,0 +1,239 @@
+package sessions
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/felipe/dev-test-api/pkg/apierr"
+	"github.com/felipe/dev-test-api/pkg/response"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+)
+
+type Handler struct {
+	service Service
+}
+
+func NewHandler(service Service) *Handler {
+	return &Handler{service: service}
+}
+
+// @Summary      Listar sesiones
+// @Description  Lista las sesiones de estudio del usuario autenticado
+// @Tags         sessions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        page      query  int  false  "Número de página (default: 1)"
+// @Param        per_page  query  int  false  "Elementos por página (default: 20)"
+// @Success      200  {object}  response.Meta  "Lista de sesiones"
+// @Failure      401  {object}  apierr.APIError
+// @Router       /api/v1/sessions [get]
+func (h *Handler) List(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	sessions, total, err := h.service.List(userID, page, perPage)
+	if err != nil {
+		response.Problem(c, err.(*apierr.APIError))
+		return
+	}
+
+	response.Paginated(c, http.StatusOK, sessions, response.Meta{Total: total, Page: page, PerPage: perPage})
+}
+
+// @Summary      Crear sesión
+// @Description  Crea una nueva sesión de estudio
+// @Tags         sessions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  CreateSessionRequest  true  "Datos de la sesión"
+// @Success      201   {object}  SessionResponse
+// @Failure      400   {object}  apierr.APIError
+// @Failure      401   {object}  apierr.APIError
+// @Router       /api/v1/sessions [post]
+func (h *Handler) Create(c *gin.Context) {
+	var req CreateSessionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ValidationError(c, err.Error(), c.Request.URL.Path)
+		return
+	}
+
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	session, err := h.service.Create(userID, req)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusCreated, session)
+}
+
+// @Summary      Obtener sesión
+// @Description  Obtiene el detalle de una sesión con sus respuestas
+// @Tags         sessions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path  string  true  "Session ID"
+// @Success      200  {object}  SessionDetailResponse
+// @Failure      401  {object}  apierr.APIError
+// @Failure      404  {object}  apierr.APIError
+// @Router       /api/v1/sessions/{id} [get]
+func (h *Handler) Get(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.NotFound(c, "Sesion", c.Request.URL.Path)
+		return
+	}
+
+	session, err := h.service.GetByID(id)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, session)
+}
+
+// @Summary      Finalizar sesión
+// @Description  Finaliza una sesión — el score se calcula automáticamente
+// @Tags         sessions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path  string  true  "Session ID"
+// @Success      200  {object}  SessionResponse
+// @Failure      401  {object}  apierr.APIError
+// @Failure      404  {object}  apierr.APIError
+// @Failure      409  {object}  apierr.APIError
+// @Router       /api/v1/sessions/{id}/finish [put]
+func (h *Handler) Finish(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.NotFound(c, "Sesion", c.Request.URL.Path)
+		return
+	}
+
+	session, err := h.service.Finish(id)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, session)
+}
+
+// @Summary      Siguiente pregunta
+// @Description  Obtiene la siguiente pregunta sin responder en la sesión
+// @Tags         sessions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path  string  true  "Session ID"
+// @Success      200  {object}  NextQuestionResponse
+// @Failure      401  {object}  apierr.APIError
+// @Failure      404  {object}  apierr.APIError
+// @Router       /api/v1/sessions/{id}/next [get]
+func (h *Handler) NextQuestion(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.NotFound(c, "Sesion", c.Request.URL.Path)
+		return
+	}
+
+	next, err := h.service.NextQuestion(id)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, next)
+}
+
+// @Summary      Responder pregunta
+// @Description  Registra la respuesta del usuario y actualiza el progreso SM-2
+// @Tags         sessions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id    path  string         true  "Session ID"
+// @Param        body  body  AnswerRequest  true  "Respuesta"
+// @Success      200  {object}  SessionAnswerResponse
+// @Failure      400  {object}  apierr.APIError
+// @Failure      401  {object}  apierr.APIError
+// @Failure      404  {object}  apierr.APIError
+// @Router       /api/v1/sessions/{id}/answer [post]
+func (h *Handler) Answer(c *gin.Context) {
+	sessionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.NotFound(c, "Sesion", c.Request.URL.Path)
+		return
+	}
+
+	var req AnswerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ValidationError(c, err.Error(), c.Request.URL.Path)
+		return
+	}
+
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	resp, err := h.service.Answer(sessionID, userID, req)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
+func getUserID(c *gin.Context) (uuid.UUID, *apierr.APIError) {
+	claims, exists := c.Get("user_claims")
+	if !exists {
+		return uuid.Nil, apierr.ErrUnauthorized("Usuario no autenticado", "")
+	}
+
+	mapClaims, ok := claims.(*jwt.MapClaims)
+	if !ok {
+		return uuid.Nil, apierr.ErrInternal("Error al obtener los claims del usuario", "")
+	}
+
+	sub, ok := (*mapClaims)["sub"].(string)
+	if !ok {
+		return uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
+	}
+
+	id, err := uuid.Parse(sub)
+	if err != nil {
+		return uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
+	}
+
+	return id, nil
+}

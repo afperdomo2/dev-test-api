@@ -616,6 +616,308 @@
                 }
             }
         },
+        "/api/v1/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista las sesiones de estudio del usuario autenticado",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Listar sesiones",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Número de página (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Elementos por página (default: 20)",
+                        "name": "per_page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de sesiones",
+                        "schema": {
+                            "$ref": "#/definitions/response.Meta"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea una nueva sesión de estudio",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Crear sesión",
+                "parameters": [
+                    {
+                        "description": "Datos de la sesión",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/sessions.CreateSessionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/sessions.SessionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sessions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene el detalle de una sesión con sus respuestas",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Obtener sesión",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sessions.SessionDetailResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sessions/{id}/answer": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Registra la respuesta del usuario y actualiza el progreso SM-2",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Responder pregunta",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Respuesta",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/sessions.AnswerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sessions.SessionAnswerResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sessions/{id}/finish": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Finaliza una sesión — el score se calcula automáticamente",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Finalizar sesión",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sessions.SessionResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sessions/{id}/next": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene la siguiente pregunta sin responder en la sesión",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Siguiente pregunta",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sessions.NextQuestionResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/topics": {
             "get": {
                 "security": [
@@ -1467,6 +1769,188 @@
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "sessions.AnswerRequest": {
+            "type": "object",
+            "required": [
+                "question_id"
+            ],
+            "properties": {
+                "answer_text": {
+                    "type": "string"
+                },
+                "is_correct": {
+                    "type": "boolean"
+                },
+                "question_id": {
+                    "type": "string"
+                },
+                "response_time_ms": {
+                    "type": "integer"
+                },
+                "selected_options": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "sessions.CreateSessionRequest": {
+            "type": "object",
+            "required": [
+                "difficulty",
+                "mode",
+                "name",
+                "topic_ids"
+            ],
+            "properties": {
+                "difficulty": {
+                    "type": "string",
+                    "enum": [
+                        "beginner",
+                        "intermediate",
+                        "advanced"
+                    ]
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "generate",
+                        "review"
+                    ]
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 1
+                },
+                "topic_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "sessions.NextQuestionResponse": {
+            "type": "object",
+            "properties": {
+                "question": {
+                    "$ref": "#/definitions/questions.QuestionResponse"
+                }
+            }
+        },
+        "sessions.SessionAnswerResponse": {
+            "type": "object",
+            "properties": {
+                "ai_feedback": {
+                    "type": "string"
+                },
+                "answer_text": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_correct": {
+                    "type": "boolean"
+                },
+                "question": {
+                    "$ref": "#/definitions/questions.QuestionResponse"
+                },
+                "question_id": {
+                    "type": "string"
+                },
+                "response_time_ms": {
+                    "type": "integer"
+                },
+                "selected_options": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "sessions.SessionDetailResponse": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sessions.SessionAnswerResponse"
+                    }
+                },
+                "session": {
+                    "$ref": "#/definitions/sessions.SessionResponse"
+                }
+            }
+        },
+        "sessions.SessionResponse": {
+            "type": "object",
+            "properties": {
+                "answer_count": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "difficulty": {
+                    "type": "string"
+                },
+                "finished_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "number"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sessions.TopicInfo"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "sessions.TopicInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
                 }
             }
         },
