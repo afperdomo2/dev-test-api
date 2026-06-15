@@ -43,6 +43,32 @@ definitions:
     - email
     - password
     type: object
+  progress.AnswerRequest:
+    properties:
+      is_correct:
+        type: boolean
+    required:
+    - is_correct
+    type: object
+  progress.ProgressResponse:
+    properties:
+      ease_factor:
+        type: number
+      interval_days:
+        type: integer
+      is_mastered:
+        type: boolean
+      is_saved:
+        type: boolean
+      last_reviewed_at:
+        type: string
+      next_review_at:
+        type: string
+      question_id:
+        type: string
+      repetitions:
+        type: integer
+    type: object
   questions.CodeChallengeResponse:
     properties:
       expected_output:
@@ -62,8 +88,6 @@ definitions:
         type: string
       is_correct:
         type: boolean
-      order_index:
-        type: integer
     required:
     - content
     type: object
@@ -122,8 +146,6 @@ definitions:
         type: string
       is_correct:
         type: boolean
-      order_index:
-        type: integer
     type: object
   questions.QuestionResponse:
     properties:
@@ -372,6 +394,130 @@ paths:
       summary: Obtener perfil
       tags:
       - profile
+  /api/v1/progress/{question_id}/answer:
+    post:
+      consumes:
+      - application/json
+      description: Registra una respuesta correcta/incorrecta y actualiza el progreso
+        SM-2
+      parameters:
+      - description: Question ID
+        in: path
+        name: question_id
+        required: true
+        type: string
+      - description: Respuesta
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/progress.AnswerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/progress.ProgressResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Responder pregunta
+      tags:
+      - progress
+  /api/v1/progress/{question_id}/toggle-save:
+    post:
+      description: Alterna el estado is_saved de una pregunta para el usuario
+      parameters:
+      - description: Question ID
+        in: path
+        name: question_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/progress.ProgressResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Marcar/desmarcar pregunta
+      tags:
+      - progress
+  /api/v1/progress/saved:
+    get:
+      description: Lista todas las preguntas que el usuario ha guardado para repasar
+      parameters:
+      - description: 'Número de página (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Elementos por página (default: 20)'
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Preguntas guardadas
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Preguntas guardadas
+      tags:
+      - progress
+  /api/v1/progress/upcoming:
+    get:
+      description: Lista las preguntas marcadas para repasar cuyo próximo repaso es
+        hoy
+      parameters:
+      - description: 'Número de página (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Elementos por página (default: 20)'
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Preguntas pendientes
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Preguntas pendientes
+      tags:
+      - progress
   /api/v1/questions:
     get:
       description: Lista todas las preguntas disponibles, con filtros opcionales
