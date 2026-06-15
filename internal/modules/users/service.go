@@ -78,7 +78,7 @@ func (s *userService) Update(id uuid.UUID, email, password string, isAdmin *bool
 
 	if email != "" {
 		if existing, _ := s.store.FindByEmail(email); existing != nil && existing.ID != id {
-		return nil, apierr.ErrConflict("Email Already Exists", "Ya existe un usuario con este email", "")
+			return nil, apierr.ErrConflict("Email Already Exists", "Ya existe un usuario con este email", "")
 		}
 		user.Email = email
 	}
@@ -86,7 +86,7 @@ func (s *userService) Update(id uuid.UUID, email, password string, isAdmin *bool
 	if password != "" {
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
-		return nil, apierr.ErrInternal("Error al generar el hash de la contraseña", "")
+			return nil, apierr.ErrInternal("Error al generar el hash de la contraseña", "")
 		}
 		user.PasswordHash = string(hash)
 	}

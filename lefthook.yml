@@ -1,0 +1,7 @@
+pre-commit:
+  parallel: false
+  commands:
+    fmt:
+      run: test -z "$(gofmt -l .)" || { echo "Unformatted files:"; gofmt -l .; exit 1; }
+    vet:
+      run: go vet ./...

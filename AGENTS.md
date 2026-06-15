@@ -12,13 +12,18 @@ Modular Go + Gin API with JWT auth, PostgreSQL/GORM, Swagger docs, and Air live 
 | `make run` | `go run main.go` on `:8080` |
 | `make swagger` | Regenerate `docs/` from annotations |
 | `make clean` | Remove `tmp/` and `docs/` |
+| `make fmt` | `go fmt ./...` — format all Go files |
+| `make vet` | `go vet ./...` — static analysis |
+| `make check` | Run `fmt` then `vet` |
+| `make setup` | Install lefthook git hooks (run once after clone) |
 
 ## Key facts
 
 - **`internal/` is Go-private** — the compiler enforces that no external module can import `internal/*` packages. This protects module boundaries.
 - **`docs/` and `tmp/` are auto-generated and gitignored** — never edit them manually.
-- **Air is a project tool** declared in `go.mod` (`tool github.com/air-verse/air`). Invoke via `go tool air` or `make dev`. Not a global install.
-- **No tests, no linter, no CI yet** — no testing framework or CI config to break.
+- **Air** and **Lefthook** are project tools declared in `go.mod` (`tool github.com/air-verse/air`, `tool github.com/evilmartians/lefthook/v2`). Invoke via `go tool <name>` or their `make` targets. Not a global install.
+- **Pre-commit hooks** via lefthook: runs `gofmt -l` check and `go vet ./...` on every commit. Run `make setup` after clone to install.
+- **No tests, no CI yet** — no testing framework or CI config to break.
 - **Swagger UI** at `/swagger/index.html`.
 - **Context7 MCP** is available — use it to fetch current docs for Gin, GORM, jwt, swag, etc. rather than relying on training data. Always resolve library ID first, then query docs with the user's full question.
 

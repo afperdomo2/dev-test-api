@@ -1,4 +1,4 @@
-.PHONY: install dev build swagger clean run
+.PHONY: install dev build swagger clean run fmt vet check setup
 
 install:
 	@echo "📦 Installing dependencies..."
@@ -27,3 +27,19 @@ clean:
 	@echo "🧹 Cleaning..."
 	rm -rf tmp/ docs/
 	@echo "✅ Cleaned"
+
+fmt:
+	@echo "🔧 Formatting..."
+	go fmt ./...
+
+vet:
+	@echo "🔍 Vetting..."
+	go vet ./...
+
+check: fmt vet
+	@echo "✅ All checks passed"
+
+setup:
+	@echo "🔗 Installing git hooks..."
+	go tool lefthook install
+	@echo "✅ Hooks installed"
