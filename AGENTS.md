@@ -26,6 +26,8 @@ Modular Go + Gin API with JWT auth, PostgreSQL/GORM, Swagger docs, and Air live 
 - **Pre-commit hooks** via lefthook: runs `gofmt -l` check and `go vet ./...` on every commit. Run `make setup` after clone to install.
 - **CI**: GitHub Actions workflow in `.github/workflows/ci.yml` — runs `gofmt -l`, `go vet`, and `go build` on push to `main` and pull requests.
 - **No tests yet** — no testing framework to break.
+- **Secrets** — never hardcode API keys, JWT secrets, DB credentials, or any sensitive values. Always use environment variables via `.env` (loaded by `godotenv` in `internal/config/config.go`). If you see a hardcoded secret while coding, extract it to a new env var in `config.go`. Never commit `.env` files.
+- **Log icons** — always prefix `log.Println`, `log.Printf`, and `log.Fatal`/`log.Fatalf` calls with an emoji icon that best represents the context of the message. Choose the most descriptive icon for each case — don't reuse a generic one just because it was used elsewhere. The list below are examples already in the codebase, not a closed set: ❌ errors, ✅ success, 🚀 startup, 🛢️ database, 🌱 seed.
 - **Swagger UI** at `/swagger/index.html`.
 - **Context7 MCP** is available — use it to fetch current docs for Gin, GORM, jwt, swag, etc. rather than relying on training data. Always resolve library ID first, then query docs with the user's full question.
 

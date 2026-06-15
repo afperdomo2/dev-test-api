@@ -21,10 +21,10 @@ func Connect(cfg *config.Config) *gorm.DB {
 		DisableForeignKeyConstraintWhenMigrating: false,
 	})
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		log.Fatalf("❌ failed to connect to database: %v", err)
 	}
 
-	log.Println("Connected to PostgreSQL")
+	log.Println("🛢️ Connected to PostgreSQL")
 
 	if err := db.AutoMigrate(
 		&models.User{},
@@ -38,13 +38,13 @@ func Connect(cfg *config.Config) *gorm.DB {
 		&models.SessionTopic{},
 		&models.SessionAnswer{},
 	); err != nil {
-		log.Fatalf("failed to run auto-migration: %v", err)
+		log.Fatalf("❌ failed to run auto-migration: %v", err)
 	}
 
-	log.Println("Database migration completed")
+	log.Println("✅ Database migration completed")
 
 	if err := runDDL(db); err != nil {
-		log.Fatalf("failed to run DDL: %v", err)
+		log.Fatalf("❌ failed to run DDL: %v", err)
 	}
 
 	seedDefaultTopics(db)

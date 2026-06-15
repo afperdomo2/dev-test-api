@@ -81,5 +81,5 @@ func seedDefaultTopics(db *gorm.DB) {
 		}).FirstOrCreate(&models.Topic{})
 	}
 
-	log.Printf("Default topics seeded: %d available", len(topics))
+	log.Printf("🌱 Default topics seeded: %d available", len(topics))
 }

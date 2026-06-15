@@ -71,9 +71,9 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		}
 	}
 
-	log.Println("Server starting on :" + cfg.Port)
+	log.Println("🚀 Server starting on :" + cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {
-		log.Fatalf("failed to run server: %v", err)
+		log.Fatalf("❌ failed to run server: %v", err)
 	}
 }
 

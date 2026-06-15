@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -44,22 +45,29 @@ func Load() *Config {
 
 	cfg := &Config{
 		Port:    getEnv("PORT", "8080"),
-		GinMode: getEnv("GIN_MODE", "debug"),
+		GinMode: getEnv("GIN_MODE", "release"),
 		DB: DBConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnv("DB_PORT", "5432"),
 			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "secret"),
+			Password: getEnv("DB_PASSWORD", ""),
 			DBName:   getEnv("DB_NAME", "dev_test_api"),
 			SSLMode:  getEnv("DB_SSL_MODE", "disable"),
 		},
 		JWT: JWTConfig{
-			Secret:    getEnv("JWT_SECRET", "dev-secret-change-me"),
+			Secret:    getEnv("JWT_SECRET", ""),
 			ExpiryHrs: getEnv("JWT_EXPIRY_HOURS", "24"),
 		},
 	}
 
 	os.Setenv("GIN_MODE", cfg.GinMode)
+
+	if cfg.JWT.Secret == "" {
+		log.Fatal("❌ JWT_SECRET environment variable is required")
+	}
+	if cfg.DB.Password == "" {
+		log.Fatal("❌ DB_PASSWORD environment variable is required")
+	}
 
 	return cfg
 }
