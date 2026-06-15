@@ -24,22 +24,32 @@ Modular Go + Gin API with JWT auth, PostgreSQL/GORM, Swagger docs, and Air live 
 
 ## Architecture
 
-The project follows a **vertical-slice module** pattern. Each module in `internal/` owns everything it needs:
+The project follows a **vertical-slice module** pattern. Business modules live in `internal/modules/`, GORM models live in `internal/models/`, and server setup lives in `internal/server/`.
 
 ```
-internal/<module>/
-├── model.go      # GORM struct + request/response DTOs
-├── store.go      # interface Store + gormStore{} implementation
-├── service.go    # business logic, depends on Store interface
-├── handler.go    # Gin handlers, depend on Service interface
-└── routes.go     # RegisterRoutes(rg *gin.RouterGroup, ...)
+internal/
+├── models/                 # GORM structs (pure DB schema)
+│   ├── user.go
+│   └── question.go
+├── modules/                # Business modules
+│   ├── <module>/
+│   │   ├── dto.go          # Request + response DTOs
+│   │   ├── store.go        # interface Store + gormStore{} implementation
+│   │   ├── service.go      # business logic, depends on Store interface
+│   │   ├── handler.go      # Gin handlers, depend on Service interface
+│   │   └── routes.go       # RegisterRoutes(rg *gin.RouterGroup, ...)
+│   ├── auth/
+│   ├── questions/
+│   └── users/
+└── server/
+    └── server.go           # Gin engine + middleware + DI wiring + Run()
 ```
 
 **Layers** → `Handler → Service → Store → DB`. Each layer only knows the interface of the one below it.
 
-**Cross-module dependencies**: modules MAY import each other's `Store` interface and model types. For example, `auth` imports `users.Store` and `users.User`. This is intentional — no circular deps yet.
+**Cross-module dependencies**: modules MAY import each other's `Store` interface and DTO types. For example, `auth` imports `users.Store` and `users.UserResponse`. Models in `internal/models/` import nothing from modules.
 
-**Wiring**: dependency injection is **manual** in `main.go`. No DI framework. Create stores → services → handlers → register routes.
+**Wiring**: dependency injection is **manual** in `internal/server/server.go`. No DI framework. Create stores → services → handlers → register routes.
 
 **Response format**:
 - Success: `{ "data": ... }` via `response.Success()` / `response.Paginated()`
@@ -49,7 +59,7 @@ internal/<module>/
 
 1. Add handler function with Swagger annotations in the module's `handler.go`
 2. Run **`make swagger`** to regenerate `docs/`
-3. If the handler is in a new module: create the 5 files following the module pattern above, then wire it in `main.go`
+3. If the handler is in a new module: create the files following the module pattern above, then wire it in `internal/server/server.go`
 
 ## Rules files
 

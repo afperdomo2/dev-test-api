@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -8,10 +9,10 @@ import (
 )
 
 type Service interface {
-	Create(email, password string, isAdmin bool) (*User, error)
-	List() ([]User, error)
-	GetByID(id uuid.UUID) (*User, error)
-	Update(id uuid.UUID, email, password string, isAdmin *bool) (*User, error)
+	Create(email, password string, isAdmin bool) (*models.User, error)
+	List() ([]models.User, error)
+	GetByID(id uuid.UUID) (*models.User, error)
+	Update(id uuid.UUID, email, password string, isAdmin *bool) (*models.User, error)
 	Delete(id uuid.UUID) error
 }
 
@@ -23,7 +24,7 @@ func NewService(store Store) Service {
 	return &userService{store: store}
 }
 
-func (s *userService) Create(email, password string, isAdmin bool) (*User, error) {
+func (s *userService) Create(email, password string, isAdmin bool) (*models.User, error) {
 	existing, _ := s.store.FindByEmail(email)
 	if existing != nil {
 		return nil, apierr.ErrConflict("Email Already Exists", "a user with this email already exists", "")
@@ -34,7 +35,7 @@ func (s *userService) Create(email, password string, isAdmin bool) (*User, error
 		return nil, apierr.ErrInternal("failed to hash password", "")
 	}
 
-	user := &User{
+	user := &models.User{
 		Email:        email,
 		PasswordHash: string(hash),
 		IsAdmin:      isAdmin,
@@ -47,7 +48,7 @@ func (s *userService) Create(email, password string, isAdmin bool) (*User, error
 	return user, nil
 }
 
-func (s *userService) List() ([]User, error) {
+func (s *userService) List() ([]models.User, error) {
 	users, err := s.store.FindAll()
 	if err != nil {
 		return nil, apierr.ErrInternal("failed to list users", "")
@@ -55,7 +56,7 @@ func (s *userService) List() ([]User, error) {
 	return users, nil
 }
 
-func (s *userService) GetByID(id uuid.UUID) (*User, error) {
+func (s *userService) GetByID(id uuid.UUID) (*models.User, error) {
 	user, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -66,7 +67,7 @@ func (s *userService) GetByID(id uuid.UUID) (*User, error) {
 	return user, nil
 }
 
-func (s *userService) Update(id uuid.UUID, email, password string, isAdmin *bool) (*User, error) {
+func (s *userService) Update(id uuid.UUID, email, password string, isAdmin *bool) (*models.User, error) {
 	user, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {

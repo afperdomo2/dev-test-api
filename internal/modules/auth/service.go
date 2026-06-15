@@ -4,7 +4,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/felipe/dev-test-api/internal/users"
+	"github.com/felipe/dev-test-api/internal/models"
+	"github.com/felipe/dev-test-api/internal/modules/users"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -13,8 +14,8 @@ import (
 )
 
 type Service interface {
-	Setup(email, password string) (*users.AuthResponse, error)
-	Login(email, password string) (*users.AuthResponse, error)
+	Setup(email, password string) (*AuthResponse, error)
+	Login(email, password string) (*AuthResponse, error)
 }
 
 type authService struct {
@@ -35,7 +36,7 @@ func NewService(store users.Store, jwtSecret []byte, expiryHrsStr string) Servic
 	}
 }
 
-func (s *authService) Setup(email, password string) (*users.AuthResponse, error) {
+func (s *authService) Setup(email, password string) (*AuthResponse, error) {
 	count, err := s.store.Count()
 	if err != nil {
 		return nil, apierr.ErrInternal("failed to check users", "")
@@ -54,7 +55,7 @@ func (s *authService) Setup(email, password string) (*users.AuthResponse, error)
 		return nil, apierr.ErrInternal("failed to hash password", "")
 	}
 
-	user := &users.User{
+	user := &models.User{
 		Email:        email,
 		PasswordHash: string(hash),
 		IsAdmin:      true,
@@ -69,13 +70,13 @@ func (s *authService) Setup(email, password string) (*users.AuthResponse, error)
 		return nil, apierr.ErrInternal("failed to generate token", "")
 	}
 
-	return &users.AuthResponse{
+	return &AuthResponse{
 		Token: token,
-		User:  user.ToResponse(),
+		User:  users.ToUserResponse(*user),
 	}, nil
 }
 
-func (s *authService) Login(email, password string) (*users.AuthResponse, error) {
+func (s *authService) Login(email, password string) (*AuthResponse, error) {
 	user, err := s.store.FindByEmail(email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -93,13 +94,13 @@ func (s *authService) Login(email, password string) (*users.AuthResponse, error)
 		return nil, apierr.ErrInternal("failed to generate token", "")
 	}
 
-	return &users.AuthResponse{
+	return &AuthResponse{
 		Token: token,
-		User:  user.ToResponse(),
+		User:  users.ToUserResponse(*user),
 	}, nil
 }
 
-func (s *authService) generateToken(user *users.User) (string, error) {
+func (s *authService) generateToken(user *models.User) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":      user.ID.String(),
 		"email":    user.Email,

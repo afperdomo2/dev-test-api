@@ -43,7 +43,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/users.LoginRequest"
+                            "$ref": "#/definitions/auth.LoginRequest"
                         }
                     }
                 ],
@@ -51,7 +51,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/users.AuthResponse"
+                            "$ref": "#/definitions/auth.AuthResponse"
                         }
                     },
                     "400": {
@@ -89,7 +89,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/users.SetupRequest"
+                            "$ref": "#/definitions/auth.SetupRequest"
                         }
                     }
                 ],
@@ -97,7 +97,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/users.AuthResponse"
+                            "$ref": "#/definitions/auth.AuthResponse"
                         }
                     },
                     "400": {
@@ -363,21 +363,7 @@ const docTemplate = `{
                 }
             }
         },
-        "response.Meta": {
-            "type": "object",
-            "properties": {
-                "page": {
-                    "type": "integer"
-                },
-                "per_page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "users.AuthResponse": {
+        "auth.AuthResponse": {
             "type": "object",
             "properties": {
                 "token": {
@@ -388,27 +374,7 @@ const docTemplate = `{
                 }
             }
         },
-        "users.CreateUserRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "is_admin": {
-                    "type": "boolean"
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 72,
-                    "minLength": 8
-                }
-            }
-        },
-        "users.LoginRequest": {
+        "auth.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -424,7 +390,7 @@ const docTemplate = `{
                 }
             }
         },
-        "users.SetupRequest": {
+        "auth.SetupRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -433,6 +399,40 @@ const docTemplate = `{
             "properties": {
                 "email": {
                     "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                }
+            }
+        },
+        "response.Meta": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "users.CreateUserRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "is_admin": {
+                    "type": "boolean"
                 },
                 "password": {
                     "type": "string",

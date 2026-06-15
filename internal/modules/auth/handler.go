@@ -3,7 +3,6 @@ package auth
 import (
 	"net/http"
 
-	"github.com/felipe/dev-test-api/internal/users"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/felipe/dev-test-api/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -22,13 +21,13 @@ func NewHandler(service Service) *Handler {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        body  body  users.SetupRequest  true  "Credenciales del admin inicial"
-// @Success      201   {object}  users.AuthResponse
+// @Param        body  body  SetupRequest  true  "Credenciales del admin inicial"
+// @Success      201   {object}  AuthResponse
 // @Failure      400   {object}  apierr.APIError
 // @Failure      409   {object}  apierr.APIError  "System Already Initialized"
 // @Router       /api/v1/auth/setup [post]
 func (h *Handler) Setup(c *gin.Context) {
-	var req users.SetupRequest
+	var req SetupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error(), c.Request.URL.Path)
 		return
@@ -50,13 +49,13 @@ func (h *Handler) Setup(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        body  body  users.LoginRequest  true  "Credenciales de login"
-// @Success      200   {object}  users.AuthResponse
+// @Param        body  body  LoginRequest  true  "Credenciales de login"
+// @Success      200   {object}  AuthResponse
 // @Failure      400   {object}  apierr.APIError
 // @Failure      401   {object}  apierr.APIError
 // @Router       /api/v1/auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
-	var req users.LoginRequest
+	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error(), c.Request.URL.Path)
 		return

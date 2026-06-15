@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felipe/dev-test-api/internal/auth"
+	"github.com/felipe/dev-test-api/internal/modules/auth"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/felipe/dev-test-api/pkg/response"
 	"github.com/gin-gonic/gin"

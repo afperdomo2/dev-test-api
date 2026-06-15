@@ -13,37 +13,14 @@ definitions:
       type:
         type: string
     type: object
-  response.Meta:
-    properties:
-      page:
-        type: integer
-      per_page:
-        type: integer
-      total:
-        type: integer
-    type: object
-  users.AuthResponse:
+  auth.AuthResponse:
     properties:
       token:
         type: string
       user:
         $ref: '#/definitions/users.UserResponse'
     type: object
-  users.CreateUserRequest:
-    properties:
-      email:
-        type: string
-      is_admin:
-        type: boolean
-      password:
-        maxLength: 72
-        minLength: 8
-        type: string
-    required:
-    - email
-    - password
-    type: object
-  users.LoginRequest:
+  auth.LoginRequest:
     properties:
       email:
         type: string
@@ -54,10 +31,33 @@ definitions:
     - email
     - password
     type: object
-  users.SetupRequest:
+  auth.SetupRequest:
     properties:
       email:
         type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  response.Meta:
+    properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  users.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      is_admin:
+        type: boolean
       password:
         maxLength: 72
         minLength: 8
@@ -103,14 +103,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/users.LoginRequest'
+          $ref: '#/definitions/auth.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/users.AuthResponse'
+            $ref: '#/definitions/auth.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -134,14 +134,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/users.SetupRequest'
+          $ref: '#/definitions/auth.SetupRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/users.AuthResponse'
+            $ref: '#/definitions/auth.AuthResponse'
         "400":
           description: Bad Request
           schema:

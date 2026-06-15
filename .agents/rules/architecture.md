@@ -4,8 +4,10 @@
 
 | Path | Purpose | Editable? |
 |------|---------|-----------|
-| `internal/<module>/` | Business modules (auth, users, questions) | Yes — add features here |
-| `main.go` | Server entrypoint + manual DI wiring | Yes — register new modules here |
+| `internal/models/` | GORM structs (pure DB schema) | Yes — add new models here |
+| `internal/modules/<module>/` | Business modules (auth, users, questions) | Yes — add features here |
+| `internal/server/server.go` | Gin engine + middleware + DI wiring + Run() | Yes — register new modules here |
+| `main.go` | Server entrypoint (config.Load + db.Connect + server.Run) | Rarely |
 | `config/` | Env var loading | Rarely — add new env vars only |
 | `database/` | GORM connection + AutoMigrate | Rarely — register new models here |
 | `middleware/` | Cross-cutting: JWT auth, logging | Rarely |
@@ -17,11 +19,14 @@
 
 Every business module follows this structure:
 
-### `model.go`
-- GORM model struct (with `gorm:"..."` tags, `BeforeCreate` hook for UUID)
+### `dto.go`
 - Request DTOs (with `binding:"required,email"` validation tags)
 - Response DTOs (with `json:"..."` tags)
-- `ToResponse()` method on model for safe serialization (hides password hash, etc.)
+- Helper functions like `ToUserResponse(models.User) UserResponse` for safe serialization (hides password hash, etc.)
+
+### `internal/models/<model>.go`
+- GORM model struct (with `gorm:"..."` tags, `BeforeCreate` hook for UUID)
+- No DTOs, no business logic — pure DB schema
 
 ### `store.go`
 - Exported `Store` **interface** defining all DB operations
@@ -51,7 +56,7 @@ Every business module follows this structure:
 - Protected routes: called inside a `gin.RouterGroup` that already has `middleware.Auth()`
 - Public routes (auth): called on a group without auth middleware
 
-## Wiring in main.go
+## Wiring in internal/server/server.go
 
 Pattern for adding a new module:
 ```go

@@ -35,7 +35,7 @@ func (h *Handler) List(c *gin.Context) {
 
 	result := make([]UserResponse, len(users))
 	for i, u := range users {
-		result[i] = u.ToResponse()
+		result[i] = ToUserResponse(u)
 	}
 
 	response.Success(c, http.StatusOK, result)
@@ -69,7 +69,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusCreated, user.ToResponse())
+	response.Success(c, http.StatusCreated, ToUserResponse(*user))
 }
 
 // @Summary      Obtener usuario
@@ -98,7 +98,7 @@ func (h *Handler) Get(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, user.ToResponse())
+	response.Success(c, http.StatusOK, ToUserResponse(*user))
 }
 
 // @Summary      Eliminar usuario
