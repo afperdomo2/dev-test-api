@@ -39,20 +39,20 @@ func NewService(store users.Store, jwtSecret []byte, expiryHrsStr string) Servic
 func (s *authService) Setup(email, password string) (*AuthResponse, error) {
 	count, err := s.store.Count()
 	if err != nil {
-		return nil, apierr.ErrInternal("failed to check users", "")
+		return nil, apierr.ErrInternal("Error al verificar los usuarios", "")
 	}
 
 	if count > 0 {
 		return nil, apierr.ErrConflict(
 			"System Already Initialized",
-			"An admin user already exists. Use /auth/login",
+			"Ya existe un usuario administrador. Use /auth/login",
 			"",
 		)
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, apierr.ErrInternal("failed to hash password", "")
+		return nil, apierr.ErrInternal("Error al generar el hash de la contraseña", "")
 	}
 
 	user := &models.User{
@@ -62,12 +62,12 @@ func (s *authService) Setup(email, password string) (*AuthResponse, error) {
 	}
 
 	if err := s.store.Create(user); err != nil {
-		return nil, apierr.ErrInternal("failed to create user", "")
+		return nil, apierr.ErrInternal("Error al crear el usuario", "")
 	}
 
 	token, err := s.generateToken(user)
 	if err != nil {
-		return nil, apierr.ErrInternal("failed to generate token", "")
+		return nil, apierr.ErrInternal("Error al generar el token", "")
 	}
 
 	return &AuthResponse{
@@ -80,18 +80,18 @@ func (s *authService) Login(email, password string) (*AuthResponse, error) {
 	user, err := s.store.FindByEmail(email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, apierr.ErrUnauthorized("invalid email or password", "")
+			return nil, apierr.ErrUnauthorized("Email o contraseña inválidos", "")
 		}
-		return nil, apierr.ErrInternal("failed to find user", "")
+		return nil, apierr.ErrInternal("Error al buscar el usuario", "")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return nil, apierr.ErrUnauthorized("invalid email or password", "")
+		return nil, apierr.ErrUnauthorized("Email o contraseña inválidos", "")
 	}
 
 	token, err := s.generateToken(user)
 	if err != nil {
-		return nil, apierr.ErrInternal("failed to generate token", "")
+		return nil, apierr.ErrInternal("Error al generar el token", "")
 	}
 
 	return &AuthResponse{

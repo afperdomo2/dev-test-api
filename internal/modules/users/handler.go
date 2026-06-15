@@ -86,7 +86,7 @@ func (h *Handler) Create(c *gin.Context) {
 func (h *Handler) Get(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		response.NotFound(c, "user", c.Request.URL.Path)
+		response.NotFound(c, "Usuario", c.Request.URL.Path)
 		return
 	}
 
@@ -115,7 +115,7 @@ func (h *Handler) Get(c *gin.Context) {
 func (h *Handler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		response.NotFound(c, "user", c.Request.URL.Path)
+		response.NotFound(c, "Usuario", c.Request.URL.Path)
 		return
 	}
 
@@ -126,5 +126,5 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, gin.H{"message": "user deleted"})
+	response.Success(c, http.StatusOK, gin.H{"message": "Usuario eliminado"})
 }

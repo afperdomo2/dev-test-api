@@ -83,3 +83,28 @@ claims, exists := c.Get("user_claims")  // type *jwt.MapClaims
 Helper functions in `internal/auth/service.go`:
 - `auth.GetUserID(&claims)` → `(uuid.UUID, bool)`
 - `auth.IsAdmin(&claims)` → `bool`
+
+## Error language
+
+Error responses follow a bilingual convention: `title` is always in **English**, `detail` is always in **Spanish** with the first letter capitalized.
+
+**Rules:**
+
+| Field   | Language | Example |
+|---------|----------|---------|
+| `title` | English  | `"Not Found"`, `"Conflict"`, `"Unauthorized"` |
+| `detail` | Spanish (first letter caps) | `"Usuario no encontrado"`, `"Email o contraseña inválidos"` |
+
+**Template definitions** (`pkg/apierr/errors.go`):
+- `ErrNotFound(entity, instance)` → title `"Not Found"`, detail `entity + " no encontrado"`
+- `ErrValidation(detail, instance)` → title `"Validation Error"`, detail passed verbatim
+- `ErrConflict(title, detail, instance)` → both `title` and `detail` passed verbatim (title in English, detail in Spanish)
+- `ErrForbidden(detail, instance)` → title `"Forbidden"`, detail verbatim
+- `ErrUnauthorized(detail, instance)` → title `"Unauthorized"`, detail verbatim
+- `ErrInternal(detail, instance)` → title `"Internal Server Error"`, detail verbatim
+
+**When adding new errors:**
+- Pass the `title` in English (even for `ErrConflict` which accepts a custom title)
+- Pass the `detail` in Spanish, starting with a capital letter
+- Entity names follow the same rule: `apierr.ErrNotFound("Usuario", "")` → `"Usuario no encontrado"`
+- Keep Go-internal errors (like `fmt.Errorf` in middleware) in English — they never reach the client

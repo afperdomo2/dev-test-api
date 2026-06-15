@@ -27,12 +27,12 @@ func NewService(store Store) Service {
 func (s *userService) Create(email, password string, isAdmin bool) (*models.User, error) {
 	existing, _ := s.store.FindByEmail(email)
 	if existing != nil {
-		return nil, apierr.ErrConflict("Email Already Exists", "a user with this email already exists", "")
+		return nil, apierr.ErrConflict("Email Already Exists", "Ya existe un usuario con este email", "")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, apierr.ErrInternal("failed to hash password", "")
+		return nil, apierr.ErrInternal("Error al generar el hash de la contraseña", "")
 	}
 
 	user := &models.User{
@@ -42,7 +42,7 @@ func (s *userService) Create(email, password string, isAdmin bool) (*models.User
 	}
 
 	if err := s.store.Create(user); err != nil {
-		return nil, apierr.ErrInternal("failed to create user", "")
+		return nil, apierr.ErrInternal("Error al crear el usuario", "")
 	}
 
 	return user, nil
@@ -51,7 +51,7 @@ func (s *userService) Create(email, password string, isAdmin bool) (*models.User
 func (s *userService) List() ([]models.User, error) {
 	users, err := s.store.FindAll()
 	if err != nil {
-		return nil, apierr.ErrInternal("failed to list users", "")
+		return nil, apierr.ErrInternal("Error al listar los usuarios", "")
 	}
 	return users, nil
 }
@@ -60,9 +60,9 @@ func (s *userService) GetByID(id uuid.UUID) (*models.User, error) {
 	user, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, apierr.ErrNotFound("user", "")
+			return nil, apierr.ErrNotFound("Usuario", "")
 		}
-		return nil, apierr.ErrInternal("failed to get user", "")
+		return nil, apierr.ErrInternal("Error al obtener el usuario", "")
 	}
 	return user, nil
 }
@@ -71,14 +71,14 @@ func (s *userService) Update(id uuid.UUID, email, password string, isAdmin *bool
 	user, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, apierr.ErrNotFound("user", "")
+			return nil, apierr.ErrNotFound("Usuario", "")
 		}
-		return nil, apierr.ErrInternal("failed to get user", "")
+		return nil, apierr.ErrInternal("Error al obtener el usuario", "")
 	}
 
 	if email != "" {
 		if existing, _ := s.store.FindByEmail(email); existing != nil && existing.ID != id {
-			return nil, apierr.ErrConflict("Email Already Exists", "a user with this email already exists", "")
+		return nil, apierr.ErrConflict("Email Already Exists", "Ya existe un usuario con este email", "")
 		}
 		user.Email = email
 	}
@@ -86,7 +86,7 @@ func (s *userService) Update(id uuid.UUID, email, password string, isAdmin *bool
 	if password != "" {
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
-			return nil, apierr.ErrInternal("failed to hash password", "")
+		return nil, apierr.ErrInternal("Error al generar el hash de la contraseña", "")
 		}
 		user.PasswordHash = string(hash)
 	}
@@ -96,7 +96,7 @@ func (s *userService) Update(id uuid.UUID, email, password string, isAdmin *bool
 	}
 
 	if err := s.store.Update(user); err != nil {
-		return nil, apierr.ErrInternal("failed to update user", "")
+		return nil, apierr.ErrInternal("Error al actualizar el usuario", "")
 	}
 
 	return user, nil
@@ -106,13 +106,13 @@ func (s *userService) Delete(id uuid.UUID) error {
 	_, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return apierr.ErrNotFound("user", "")
+			return apierr.ErrNotFound("Usuario", "")
 		}
-		return apierr.ErrInternal("failed to get user", "")
+		return apierr.ErrInternal("Error al obtener el usuario", "")
 	}
 
 	if err := s.store.SoftDelete(id); err != nil {
-		return apierr.ErrInternal("failed to delete user", "")
+		return apierr.ErrInternal("Error al eliminar el usuario", "")
 	}
 
 	return nil

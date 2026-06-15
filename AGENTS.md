@@ -61,6 +61,7 @@ internal/
 **Response format**:
 - Success: `{ "data": ... }` via `response.Success()` / `response.Paginated()`
 - Errors: RFC 9457 via `response.Problem()` with typed errors from `pkg/apierr`
+- **Language**: `title` in **English**, `detail` in **Spanish** with first letter capitalized (see `.agents/rules/responses.md` → *Error language*)
 
 ## Adding a new endpoint
 

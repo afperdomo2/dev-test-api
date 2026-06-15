@@ -26,7 +26,7 @@ func NewAPIError(status int, title, detail, instance string) *APIError {
 
 // Predefined errors
 func ErrNotFound(entity string, instance string) *APIError {
-	return NewAPIError(http.StatusNotFound, "Not Found", entity+" not found", instance)
+	return NewAPIError(http.StatusNotFound, "Not Found", entity+" no encontrado", instance)
 }
 
 func ErrValidation(detail, instance string) *APIError {
