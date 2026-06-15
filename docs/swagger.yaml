@@ -222,15 +222,22 @@ paths:
   /api/v1/topics:
     get:
       description: Lista todos los temas disponibles
+      parameters:
+      - description: 'Número de página (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Elementos por página (default: 20)'
+        in: query
+        name: per_page
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Lista de temas
           schema:
-            items:
-              $ref: '#/definitions/topics.TopicResponse'
-            type: array
+            $ref: '#/definitions/response.Meta'
         "401":
           description: Unauthorized
           schema:
@@ -243,7 +250,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Crea un nuevo tema personalizado (solo admin)
+      description: Crea un nuevo tema personalizado
       parameters:
       - description: Datos del tema
         in: body
@@ -281,7 +288,7 @@ paths:
       - topics
   /api/v1/topics/{id}:
     delete:
-      description: Elimina un tema (solo admin)
+      description: Elimina un tema
       parameters:
       - description: Topic ID
         in: path
@@ -345,7 +352,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Actualiza un tema existente (solo admin)
+      description: Actualiza un tema existente
       parameters:
       - description: Topic ID
         in: path
@@ -388,7 +395,16 @@ paths:
       - topics
   /api/v1/users:
     get:
-      description: Lista todos los usuarios (solo admin)
+      description: Lista todos los usuarios
+      parameters:
+      - description: 'Número de página (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Elementos por página (default: 20)'
+        in: query
+        name: per_page
+        type: integer
       produces:
       - application/json
       responses:
@@ -412,7 +428,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Crea un nuevo usuario (solo admin)
+      description: Crea un nuevo usuario
       parameters:
       - description: Datos del usuario
         in: body
@@ -450,7 +466,7 @@ paths:
       - users
   /api/v1/users/{id}:
     delete:
-      description: Soft-delete de un usuario (solo admin)
+      description: Soft-delete de un usuario
       parameters:
       - description: User ID
         in: path
@@ -484,7 +500,7 @@ paths:
       tags:
       - users
     get:
-      description: Obtiene un usuario por ID (solo admin)
+      description: Obtiene un usuario por ID
       parameters:
       - description: User ID
         in: path

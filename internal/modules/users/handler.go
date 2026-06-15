@@ -2,6 +2,7 @@ package users
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/felipe/dev-test-api/pkg/response"
@@ -19,16 +20,21 @@ func NewHandler(service Service) *Handler {
 }
 
 // @Summary      Listar usuarios (Admin)
-// @Description  Lista todos los usuarios (solo admin)
+// @Description  Lista todos los usuarios
 // @Tags         users
 // @Security     BearerAuth
 // @Produce      json
+// @Param        page      query  int  false  "Número de página (default: 1)"
+// @Param        per_page  query  int  false  "Elementos por página (default: 20)"
 // @Success      200  {object}  response.Meta  "Lista de usuarios"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      403  {object}  apierr.APIError
 // @Router       /api/v1/users [get]
 func (h *Handler) List(c *gin.Context) {
-	users, err := h.service.List()
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+
+	users, total, err := h.service.List(page, perPage)
 	if err != nil {
 		response.Problem(c, err.(*apierr.APIError))
 		return
@@ -39,11 +45,11 @@ func (h *Handler) List(c *gin.Context) {
 		result[i] = ToUserResponse(u)
 	}
 
-	response.Success(c, http.StatusOK, result)
+	response.Paginated(c, http.StatusOK, result, response.Meta{Total: total, Page: page, PerPage: perPage})
 }
 
 // @Summary      Crear usuario (Admin)
-// @Description  Crea un nuevo usuario (solo admin)
+// @Description  Crea un nuevo usuario
 // @Tags         users
 // @Security     BearerAuth
 // @Accept       json
@@ -74,7 +80,7 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 // @Summary      Obtener usuario (Admin)
-// @Description  Obtiene un usuario por ID (solo admin)
+// @Description  Obtiene un usuario por ID
 // @Tags         users
 // @Security     BearerAuth
 // @Produce      json
@@ -103,7 +109,7 @@ func (h *Handler) Get(c *gin.Context) {
 }
 
 // @Summary      Eliminar usuario (Admin)
-// @Description  Soft-delete de un usuario (solo admin)
+// @Description  Soft-delete de un usuario
 // @Tags         users
 // @Security     BearerAuth
 // @Produce      json

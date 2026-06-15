@@ -70,6 +70,49 @@ internal/
 - Errors: RFC 9457 via `response.Problem()` with typed errors from `pkg/apierr`
 - **Language**: `title` in **English**, `detail` in **Spanish** with first letter capitalized (see `.agents/rules/responses.md` → *Error language*)
 
+## Pagination
+
+List endpoints that return many records MUST use pagination via `response.Paginated()`.
+
+**Query params** — read from `c.DefaultQuery()` in the handler:
+
+| Param | Default | Description |
+|-------|---------|-------------|
+| `page` | `1` | Page number |
+| `per_page` | `20` | Items per page |
+
+**Store** — keep both methods:
+
+```go
+FindAll() ([]Model, error)                               // sin paginación
+FindPage(page, perPage int) ([]Model, int64, error)      // paginado, retorna items + total
+```
+
+**Service** — expose paginated List for collection endpoints:
+
+```go
+List(page, perPage int) ([]Response, int64, error)
+```
+
+**Handler** — read query params, call service, respond with `response.Paginated()`:
+
+```go
+page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+
+items, total, err := h.service.List(page, perPage)
+response.Paginated(c, http.StatusOK, items, response.Meta{
+    Total: total, Page: page, PerPage: perPage,
+})
+```
+
+**Swagger** — add query params to paginated handlers:
+
+```go
+// @Param        page      query  int  false  "Número de página (default: 1)"
+// @Param        per_page  query  int  false  "Elementos por página (default: 20)"
+```
+
 ## Adding a new endpoint
 
 1. Add handler function with Swagger annotations in the module's `handler.go`

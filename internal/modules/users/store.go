@@ -9,6 +9,7 @@ import (
 type Store interface {
 	Create(user *models.User) error
 	FindAll() ([]models.User, error)
+	FindPage(page, perPage int) ([]models.User, int64, error)
 	FindByID(id uuid.UUID) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
 	Update(user *models.User) error
@@ -32,6 +33,14 @@ func (s *gormStore) FindAll() ([]models.User, error) {
 	var users []models.User
 	err := s.db.Order("created_at desc").Find(&users).Error
 	return users, err
+}
+
+func (s *gormStore) FindPage(page, perPage int) ([]models.User, int64, error) {
+	var users []models.User
+	var total int64
+	s.db.Model(&models.User{}).Count(&total)
+	err := s.db.Offset((page - 1) * perPage).Limit(perPage).Order("created_at desc").Find(&users).Error
+	return users, total, err
 }
 
 func (s *gormStore) FindByID(id uuid.UUID) (*models.User, error) {

@@ -2,6 +2,7 @@ package topics
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/felipe/dev-test-api/pkg/response"
@@ -23,17 +24,22 @@ func NewHandler(service Service) *Handler {
 // @Tags         topics
 // @Security     BearerAuth
 // @Produce      json
-// @Success      200  {array}   TopicResponse
+// @Param        page      query  int  false  "Número de página (default: 1)"
+// @Param        per_page  query  int  false  "Elementos por página (default: 20)"
+// @Success      200  {object}  response.Meta  "Lista de temas"
 // @Failure      401  {object}  apierr.APIError
 // @Router       /api/v1/topics [get]
 func (h *Handler) List(c *gin.Context) {
-	topics, err := h.service.List()
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+
+	topics, total, err := h.service.List(page, perPage)
 	if err != nil {
 		response.Problem(c, err.(*apierr.APIError))
 		return
 	}
 
-	response.Success(c, http.StatusOK, topics)
+	response.Paginated(c, http.StatusOK, topics, response.Meta{Total: total, Page: page, PerPage: perPage})
 }
 
 // @Summary      Obtener tema
@@ -65,7 +71,7 @@ func (h *Handler) Get(c *gin.Context) {
 }
 
 // @Summary      Crear tema (Admin)
-// @Description  Crea un nuevo tema personalizado (solo admin)
+// @Description  Crea un nuevo tema personalizado
 // @Tags         topics
 // @Security     BearerAuth
 // @Accept       json
@@ -103,7 +109,7 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 // @Summary      Actualizar tema (Admin)
-// @Description  Actualiza un tema existente (solo admin)
+// @Description  Actualiza un tema existente
 // @Tags         topics
 // @Security     BearerAuth
 // @Accept       json
@@ -141,7 +147,7 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 // @Summary      Eliminar tema (Admin)
-// @Description  Elimina un tema (solo admin)
+// @Description  Elimina un tema
 // @Tags         topics
 // @Security     BearerAuth
 // @Produce      json

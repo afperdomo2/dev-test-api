@@ -19,13 +19,16 @@ func Auth(jwtSecret []byte) gin.HandlerFunc {
 			return
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
-			response.Problem(c, apierr.ErrUnauthorized("Formato de cabecera de autorización inválido", c.Request.URL.Path))
-			return
+		tokenString := authHeader
+		if parts := strings.SplitN(authHeader, " ", 2); len(parts) == 2 {
+			if !strings.EqualFold(parts[0], "bearer") {
+				response.Problem(c, apierr.ErrUnauthorized("Formato de cabecera de autorización inválido", c.Request.URL.Path))
+				return
+			}
+			tokenString = parts[1]
 		}
 
-		token, err := jwt.Parse(parts[1], func(t *jwt.Token) (any, error) {
+		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 			}

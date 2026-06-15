@@ -8,6 +8,7 @@ import (
 
 type Store interface {
 	FindAll() ([]models.Topic, error)
+	FindPage(page, perPage int) ([]models.Topic, int64, error)
 	FindByID(id uuid.UUID) (*models.Topic, error)
 	FindBySlugAndUser(slug string, createdBy *uuid.UUID) (*models.Topic, error)
 	Create(topic *models.Topic) error
@@ -27,6 +28,14 @@ func (s *gormStore) FindAll() ([]models.Topic, error) {
 	var topics []models.Topic
 	err := s.db.Order("category, name").Find(&topics).Error
 	return topics, err
+}
+
+func (s *gormStore) FindPage(page, perPage int) ([]models.Topic, int64, error) {
+	var topics []models.Topic
+	var total int64
+	s.db.Model(&models.Topic{}).Count(&total)
+	err := s.db.Offset((page - 1) * perPage).Limit(perPage).Order("category, name").Find(&topics).Error
+	return topics, total, err
 }
 
 func (s *gormStore) FindByID(id uuid.UUID) (*models.Topic, error) {

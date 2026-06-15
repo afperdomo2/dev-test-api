@@ -161,14 +161,25 @@ const docTemplate = `{
                     "topics"
                 ],
                 "summary": "Listar temas",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Número de página (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Elementos por página (default: 20)",
+                        "name": "per_page",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Lista de temas",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/topics.TopicResponse"
-                            }
+                            "$ref": "#/definitions/response.Meta"
                         }
                     },
                     "401": {
@@ -185,7 +196,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo tema personalizado (solo admin)",
+                "description": "Crea un nuevo tema personalizado",
                 "consumes": [
                     "application/json"
                 ],
@@ -292,7 +303,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza un tema existente (solo admin)",
+                "description": "Actualiza un tema existente",
                 "consumes": [
                     "application/json"
                 ],
@@ -360,7 +371,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un tema (solo admin)",
+                "description": "Elimina un tema",
                 "produces": [
                     "application/json"
                 ],
@@ -415,7 +426,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista todos los usuarios (solo admin)",
+                "description": "Lista todos los usuarios",
                 "produces": [
                     "application/json"
                 ],
@@ -423,6 +434,20 @@ const docTemplate = `{
                     "users"
                 ],
                 "summary": "Listar usuarios (Admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Número de página (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Elementos por página (default: 20)",
+                        "name": "per_page",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Lista de usuarios",
@@ -450,7 +475,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo usuario (solo admin)",
+                "description": "Crea un nuevo usuario",
                 "consumes": [
                     "application/json"
                 ],
@@ -513,7 +538,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene un usuario por ID (solo admin)",
+                "description": "Obtiene un usuario por ID",
                 "produces": [
                     "application/json"
                 ],
@@ -563,7 +588,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Soft-delete de un usuario (solo admin)",
+                "description": "Soft-delete de un usuario",
                 "produces": [
                     "application/json"
                 ],
