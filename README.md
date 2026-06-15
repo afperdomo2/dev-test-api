@@ -1,13 +1,13 @@
 # dev-test-api
 
-> REST API con **Go** + **Gin** · documentada con **Swagger**
+> REST API con **Go** + **Gin** · documentada con **Swagger** · live reload con **Air**
 
 ## 📋 Requisitos
 
 | Herramienta | Versión |
 |------------|---------|
 | Go         | 1.26+   |
-| swag CLI   | latest  |
+| make       | —       |
 
 ## 📁 Estructura del proyecto
 
@@ -15,6 +15,8 @@
 dev-test-api/
 ├── main.go              # Punto de entrada, router y anotaciones Swagger
 ├── go.mod               # Módulo Go y dependencias
+├── Makefile             # Comandos: dev, build, swagger, clean
+├── .air.toml            # Configuración de live reload (Air)
 ├── middleware/
 │   └── logger.go        # Middleware de logging personalizado
 ├── docs/                # Documentación Swagger auto-generada
@@ -24,23 +26,38 @@ dev-test-api/
 └── README.md
 ```
 
-## ⚙️ Instalación
+## 🛠️ Scripts (Makefile)
+
+| Comando | Descripción |
+|---------|-------------|
+| `make install` | Instala dependencias (`go mod tidy`) |
+| `make dev` | Levanta el servidor con live reload (Air) |
+| `make build` | Compila el binario en `./tmp/main` |
+| `make run` | Corre el servidor directamente con `go run` |
+| `make swagger` | Genera/regenera la documentación Swagger |
+| `make clean` | Elimina `tmp/` y `docs/` |
+
+## 🔥 Live reload con Air
+
+El proyecto usa [Air](https://github.com/air-verse/air) para hot reload. Cuando guardás cambios en archivos `.go`, Air recompila y reinicia el servidor automáticamente.
+
+### Configuración
+
+`.air.toml` define qué archivos y carpetas monitorear, excluir y el comando de build. Ya viene pre-configurado para este proyecto.
+
+### Uso
 
 ```bash
-git clone <repo-url>
-cd dev-test-api
-go mod tidy
+make dev
 ```
 
-## 🔧 Instalar swag CLI
+Esto ejecuta `go tool air` y arranca el servidor con live reload.
+
+## 🚀 Ejecutar sin live reload
 
 ```bash
-go install github.com/swaggo/swag/cmd/swag@latest
-```
-
-## 🚀 Ejecutar
-
-```bash
+make run
+# o directo:
 go run main.go
 ```
 
@@ -53,6 +70,8 @@ Los endpoints se documentan mediante anotaciones en el código con [swaggo/swag]
 ### Generar docs
 
 ```bash
+make swagger
+# o directo:
 swag init -g main.go
 ```
 
@@ -80,17 +99,17 @@ func healthCheck(c *gin.Context) {
 }
 ```
 
-Después de agregar o modificar anotaciones, volvé a correr `swag init -g main.go` para regenerar la documentación.
+Después de agregar o modificar anotaciones, volvé a correr `make swagger` para regenerar la documentación.
 
 ## 📦 Dependencias
 
 | Paquete | Uso |
 |---------|-----|
 | `gin-gonic/gin` | Framework HTTP |
+| `air-verse/air` | Live reload (project tool) |
 | `swaggo/swag` | Generación de docs OpenAPI desde anotaciones |
 | `swaggo/gin-swagger` | Integración Swagger UI con Gin |
 | `swaggo/files` | Archivos estáticos de Swagger UI |
-| `google/uuid` | Generación de IDs únicos |
 
 ## 🧪 Health check
 
@@ -103,5 +122,6 @@ curl http://localhost:8080/health
 
 - Los endpoints se documentan exclusivamente con anotaciones Swagger. No se documentan manualmente en este README.
 - Gin incluye por defecto middleware de recovery (panic recovery) y logger.
-- `swag init` debe ejecutarse cada vez que se agregan o modifican anotaciones en los handlers.
+- `make swagger` debe ejecutarse cada vez que se agregan o modifican anotaciones en los handlers.
 - El paquete `docs/` es auto-generado y no debe editarse manualmente.
+- Air se instaló como project tool (`go get -tool`), no requiere instalación global.
