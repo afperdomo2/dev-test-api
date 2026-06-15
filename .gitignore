@@ -45,9 +45,6 @@ go.work
 # Air build output
 tmp/
 
-# Swagger generated docs
-docs/
-
 ### Linux ###
 *~
 

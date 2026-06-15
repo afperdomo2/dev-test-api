@@ -6,6 +6,7 @@ import (
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/felipe/dev-test-api/pkg/response"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -17,7 +18,7 @@ func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// @Summary      Listar usuarios
+// @Summary      Listar usuarios (Admin)
 // @Description  Lista todos los usuarios (solo admin)
 // @Tags         users
 // @Security     BearerAuth
@@ -41,7 +42,7 @@ func (h *Handler) List(c *gin.Context) {
 	response.Success(c, http.StatusOK, result)
 }
 
-// @Summary      Crear usuario
+// @Summary      Crear usuario (Admin)
 // @Description  Crea un nuevo usuario (solo admin)
 // @Tags         users
 // @Security     BearerAuth
@@ -72,8 +73,8 @@ func (h *Handler) Create(c *gin.Context) {
 	response.Success(c, http.StatusCreated, ToUserResponse(*user))
 }
 
-// @Summary      Obtener usuario
-// @Description  Obtiene un usuario por ID (admin o el propio usuario)
+// @Summary      Obtener usuario (Admin)
+// @Description  Obtiene un usuario por ID (solo admin)
 // @Tags         users
 // @Security     BearerAuth
 // @Produce      json
@@ -101,7 +102,7 @@ func (h *Handler) Get(c *gin.Context) {
 	response.Success(c, http.StatusOK, ToUserResponse(*user))
 }
 
-// @Summary      Eliminar usuario
+// @Summary      Eliminar usuario (Admin)
 // @Description  Soft-delete de un usuario (solo admin)
 // @Tags         users
 // @Security     BearerAuth
@@ -127,4 +128,55 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, gin.H{"message": "Usuario eliminado"})
+}
+
+// @Summary      Obtener perfil
+// @Description  Obtiene los datos del usuario autenticado
+// @Tags         profile
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  UserResponse
+// @Failure      401  {object}  apierr.APIError
+// @Router       /api/v1/profile [get]
+func (h *Handler) GetProfile(c *gin.Context) {
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	user, err := h.service.GetByID(userID)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, ToUserResponse(*user))
+}
+
+func getUserID(c *gin.Context) (uuid.UUID, *apierr.APIError) {
+	claims, exists := c.Get("user_claims")
+	if !exists {
+		return uuid.Nil, apierr.ErrUnauthorized("Usuario no autenticado", "")
+	}
+
+	mapClaims, ok := claims.(*jwt.MapClaims)
+	if !ok {
+		return uuid.Nil, apierr.ErrInternal("Error al obtener los claims del usuario", "")
+	}
+
+	sub, ok := (*mapClaims)["sub"].(string)
+	if !ok {
+		return uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
+	}
+
+	id, err := uuid.Parse(sub)
+	if err != nil {
+		return uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
+	}
+
+	return id, nil
 }

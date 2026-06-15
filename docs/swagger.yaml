@@ -52,6 +52,53 @@ definitions:
       total:
         type: integer
     type: object
+  topics.CreateTopicRequest:
+    properties:
+      category:
+        maxLength: 50
+        minLength: 1
+        type: string
+      name:
+        maxLength: 150
+        minLength: 1
+        type: string
+      slug:
+        maxLength: 100
+        minLength: 2
+        type: string
+    required:
+    - category
+    - name
+    - slug
+    type: object
+  topics.TopicResponse:
+    properties:
+      category:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_system:
+        type: boolean
+      name:
+        type: string
+      slug:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  topics.UpdateTopicRequest:
+    properties:
+      category:
+        maxLength: 50
+        minLength: 1
+        type: string
+      name:
+        maxLength: 150
+        minLength: 1
+        type: string
+    type: object
   users.CreateUserRequest:
     properties:
       email:
@@ -153,6 +200,192 @@ paths:
       summary: Inicializar sistema (primer usuario admin)
       tags:
       - auth
+  /api/v1/profile:
+    get:
+      description: Obtiene los datos del usuario autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Obtener perfil
+      tags:
+      - profile
+  /api/v1/topics:
+    get:
+      description: Lista todos los temas disponibles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/topics.TopicResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Listar temas
+      tags:
+      - topics
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo tema personalizado (solo admin)
+      parameters:
+      - description: Datos del tema
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/topics.CreateTopicRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/topics.TopicResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Crear tema (Admin)
+      tags:
+      - topics
+  /api/v1/topics/{id}:
+    delete:
+      description: Elimina un tema (solo admin)
+      parameters:
+      - description: Topic ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Eliminar tema (Admin)
+      tags:
+      - topics
+    get:
+      description: Obtiene un tema por ID
+      parameters:
+      - description: Topic ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/topics.TopicResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Obtener tema
+      tags:
+      - topics
+    put:
+      consumes:
+      - application/json
+      description: Actualiza un tema existente (solo admin)
+      parameters:
+      - description: Topic ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/topics.UpdateTopicRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/topics.TopicResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Actualizar tema (Admin)
+      tags:
+      - topics
   /api/v1/users:
     get:
       description: Lista todos los usuarios (solo admin)
@@ -173,7 +406,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Listar usuarios
+      summary: Listar usuarios (Admin)
       tags:
       - users
     post:
@@ -212,7 +445,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Crear usuario
+      summary: Crear usuario (Admin)
       tags:
       - users
   /api/v1/users/{id}:
@@ -247,11 +480,11 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Eliminar usuario
+      summary: Eliminar usuario (Admin)
       tags:
       - users
     get:
-      description: Obtiene un usuario por ID (admin o el propio usuario)
+      description: Obtiene un usuario por ID (solo admin)
       parameters:
       - description: User ID
         in: path
@@ -279,7 +512,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Obtener usuario
+      summary: Obtener usuario (Admin)
       tags:
       - users
   /health:

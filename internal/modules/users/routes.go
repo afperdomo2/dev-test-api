@@ -1,15 +1,17 @@
 package users
 
-import (
-	"github.com/gin-gonic/gin"
-)
+import "github.com/gin-gonic/gin"
 
-func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
+func RegisterRoutes(rg *gin.RouterGroup, h *Handler) {
+	rg.GET("/profile", h.GetProfile)
+}
+
+func RegisterAdminRoutes(rg *gin.RouterGroup, h *Handler) {
 	users := rg.Group("/users")
 	{
-		users.GET("", handler.List)
-		users.POST("", handler.Create)
-		users.GET("/:id", handler.Get)
-		users.DELETE("/:id", handler.Delete)
+		users.GET("", h.List)
+		users.POST("", h.Create)
+		users.GET("/:id", h.Get)
+		users.DELETE("/:id", h.Delete)
 	}
 }

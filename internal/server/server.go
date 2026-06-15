@@ -8,6 +8,7 @@ import (
 	"github.com/felipe/dev-test-api/internal/middleware"
 	"github.com/felipe/dev-test-api/internal/modules/auth"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
+	"github.com/felipe/dev-test-api/internal/modules/topics"
 	"github.com/felipe/dev-test-api/internal/modules/users"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -17,6 +18,10 @@ import (
 )
 
 func Run(cfg *config.Config, db *gorm.DB) {
+	topicStore := topics.NewStore(db)
+	topicService := topics.NewService(topicStore)
+	topicHandler := topics.NewHandler(topicService)
+
 	userStore := users.NewStore(db)
 	userService := users.NewService(userStore)
 	userHandler := users.NewHandler(userService)
@@ -37,8 +42,16 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	protected := api.Group("")
 	protected.Use(middleware.Auth(cfg.JWT.SecretBytes()))
 	{
-		users.RegisterRoutes(protected, userHandler)
 		questions.RegisterRoutes(protected, nil)
+		topics.RegisterRoutes(protected, topicHandler)
+		users.RegisterRoutes(protected, userHandler)
+
+		admin := protected.Group("")
+		admin.Use(middleware.AdminOnly())
+		{
+			users.RegisterAdminRoutes(admin, userHandler)
+			topics.RegisterAdminRoutes(admin, topicHandler)
+		}
 	}
 
 	log.Println("Server starting on :" + cfg.Port)
