@@ -19,11 +19,13 @@ Modular Go + Gin API with JWT auth, PostgreSQL/GORM, Swagger docs, and Air live 
 
 ## Key facts
 
+- **NEVER create commits** — commits are a manual user action. Only stage, diff, and suggest changes; the user decides when and what to commit.
 - **`internal/` is Go-private** — the compiler enforces that no external module can import `internal/*` packages. This protects module boundaries.
 - **`docs/` and `tmp/` are auto-generated and gitignored** — never edit them manually.
 - **Air** and **Lefthook** are project tools declared in `go.mod` (`tool github.com/air-verse/air`, `tool github.com/evilmartians/lefthook/v2`). Invoke via `go tool <name>` or their `make` targets. Not a global install.
 - **Pre-commit hooks** via lefthook: runs `gofmt -l` check and `go vet ./...` on every commit. Run `make setup` after clone to install.
-- **No tests, no CI yet** — no testing framework or CI config to break.
+- **CI**: GitHub Actions workflow in `.github/workflows/ci.yml` — runs `gofmt -l`, `go vet`, and `go build` on push to `main` and pull requests.
+- **No tests yet** — no testing framework to break.
 - **Swagger UI** at `/swagger/index.html`.
 - **Context7 MCP** is available — use it to fetch current docs for Gin, GORM, jwt, swag, etc. rather than relying on training data. Always resolve library ID first, then query docs with the user's full question.
 
