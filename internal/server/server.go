@@ -45,6 +45,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 
 	r := gin.Default()
 	r.Use(middleware.Logger())
+	r.Use(middleware.CORS(cfg.Cors.AllowedOrigins))
 
 	r.GET("/health", healthCheck)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

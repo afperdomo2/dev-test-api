@@ -8,11 +8,16 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type CorsConfig struct {
+	AllowedOrigins string
+}
+
 type Config struct {
 	Port    string
 	GinMode string
 	DB      DBConfig
 	JWT     JWTConfig
+	Cors    CorsConfig
 }
 
 type DBConfig struct {
@@ -57,6 +62,9 @@ func Load() *Config {
 		JWT: JWTConfig{
 			Secret:    getEnv("JWT_SECRET", ""),
 			ExpiryHrs: getEnv("JWT_EXPIRY_HOURS", "24"),
+		},
+		Cors: CorsConfig{
+			AllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
 		},
 	}
 
