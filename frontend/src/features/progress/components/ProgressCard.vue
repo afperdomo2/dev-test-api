@@ -48,8 +48,8 @@ const emit = defineEmits<{
     </v-card-item>
 
     <v-card-text>
-      <div v-if="question.next_review_at" class="text-caption text-medium-emphasis">
-        Próximo repaso: {{ formatDate(question.next_review_at) }}
+      <div v-if="question.nextReviewAt" class="text-caption text-medium-emphasis">
+        Próximo repaso: {{ formatDate(question.nextReviewAt) }}
       </div>
     </v-card-text>
 

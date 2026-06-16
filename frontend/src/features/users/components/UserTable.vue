@@ -15,8 +15,8 @@ const emit = defineEmits<{
 
 const headers = [
   { title: 'Email', key: 'email', sortable: false },
-  { title: 'Rol', key: 'is_admin', sortable: false },
-  { title: 'Creado', key: 'created_at', sortable: false },
+  { title: 'Rol', key: 'isAdmin', sortable: false },
+  { title: 'Creado', key: 'createdAt', sortable: false },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'end' as const },
 ]
 </script>
@@ -30,19 +30,19 @@ const headers = [
     loading-text="Cargando usuarios..."
     hover
   >
-    <template #[`item.is_admin`]="{ item }">
-      <v-chip :color="item.is_admin ? 'primary' : ''" size="small" variant="tonal">
-        {{ item.is_admin ? 'Admin' : 'Usuario' }}
+    <template #[`item.isAdmin`]="{ item }">
+      <v-chip :color="item.isAdmin ? 'primary' : ''" size="small" variant="tonal">
+        {{ item.isAdmin ? 'Admin' : 'Usuario' }}
       </v-chip>
     </template>
 
-    <template #[`item.created_at`]="{ item }">
-      {{ formatDateTime(item.created_at) }}
+    <template #[`item.createdAt`]="{ item }">
+      {{ formatDateTime(item.createdAt) }}
     </template>
 
     <template #[`item.actions`]="{ item }">
       <v-btn
-        v-if="!item.is_admin"
+        v-if="!item.isAdmin"
         icon="mdi-delete"
         variant="text"
         size="small"

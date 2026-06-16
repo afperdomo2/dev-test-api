@@ -51,7 +51,7 @@ defineProps<Props>()
         </div>
         <div>
           <span class="text-caption text-medium-emphasis">Respuestas</span>
-          <div class="text-body-2 font-weight-medium">{{ session.answer_count }}</div>
+          <div class="text-body-2 font-weight-medium">{{ session.answerCount }}</div>
         </div>
         <div v-if="session.topics.length">
           <span class="text-caption text-medium-emphasis">Temas</span>
@@ -63,7 +63,7 @@ defineProps<Props>()
     <v-card-actions>
       <v-spacer />
       <span class="text-caption text-medium-emphasis">
-        {{ formatDate(session.created_at) }}
+        {{ formatDate(session.createdAt) }}
       </span>
     </v-card-actions>
   </v-card>

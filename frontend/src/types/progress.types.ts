@@ -1,15 +1,15 @@
-export interface Progress {
-  question_id: string
-  repetitions: number
-  ease_factor: number
-  interval_days: number
-  next_review_at: string
-  last_reviewed_at: string
-  is_saved: boolean
-  is_mastered: boolean
-}
-
 import type { QuestionDifficulty, QuestionType } from './question.types'
+
+export interface Progress {
+  questionId: string
+  repetitions: number
+  easeFactor: number
+  intervalDays: number
+  nextReviewAt: string
+  lastReviewedAt: string
+  isSaved: boolean
+  isMastered: boolean
+}
 
 export interface UpcomingQuestion {
   id: string
@@ -17,5 +17,5 @@ export interface UpcomingQuestion {
   type: QuestionType
   difficulty: QuestionDifficulty
   topics: Array<{ id: string; slug: string; name: string }>
-  next_review_at: string
+  nextReviewAt: string
 }

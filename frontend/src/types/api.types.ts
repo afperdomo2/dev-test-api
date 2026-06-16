@@ -6,11 +6,6 @@ export interface ApiError {
   instance: string
 }
 
-export interface ApiValidationError {
-  field: string
-  message: string
-}
-
 export interface ApiResponse<T> {
   data: T
 }
@@ -18,7 +13,7 @@ export interface ApiResponse<T> {
 export interface PaginatedMeta {
   total: number
   page: number
-  per_page: number
+  perPage: number
 }
 
 export interface PaginatedResponse<T> {

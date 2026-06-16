@@ -8,31 +8,76 @@ The client automatically handles two concerns:
 
 Attaches `Authorization: Bearer <token>` from `localStorage` to every request. Tokens are managed via `utils/storage.ts` (`getToken`, `setToken`, `removeToken`).
 
-### Response interceptor — envelope unwrap (critical gotcha)
+### Response interceptor — processing order
 
-The backend wraps all success responses in `{ "data": ... }`. The interceptor unwraps this envelope automatically, **except** for paginated responses:
+The interceptor applies two transformations in sequence on every response:
 
-```ts
-// interceptor logic — simplified
-if ('data' in response.data && !('meta' in response.data)) {
-  response.data = response.data.data  // unwrap single/collection responses
-}
-// Paginated responses ({ data: [...], meta: {...} }) pass through unchanged
+```
+1. Envelope unwrap  →  { data: ... } extracted if not paginated
+2. snake→camel      →  all keys deep-transformed via snakeToCamel()
 ```
 
-| Backend returns | Interceptor → service receives |
-|---|---|
-| `{ data: { token: "...", user: {...} } }` | `{ token: "...", user: {...} }` |
-| `{ data: { id: "...", email: "..." } }` | `{ id: "...", email: "..." }` |
-| `{ data: [...], meta: { total: 1, ... } }` | `{ data: [...], meta: { total: 1, ... } }` |
+**Critical gotcha — paginated responses**: the unwrap step checks for `data` without `meta`. Paginated responses pass through step 1 unchanged, then get camelized in step 2 (including `meta.per_page` → `meta.perPage`).
 
-**Never** add a `meta` field to non-paginated backend responses — the unwrap logic would skip it and the frontend would receive the raw envelope instead of the unwrapped data.
+| Backend returns | After unwrap | After camelize |
+|---|---|---|
+| `{ data: { token: "...", user: { is_admin: true } } }` | `{ token: "...", user: { is_admin: true } }` | `{ token: "...", user: { isAdmin: true } }` |
+| `{ data: [...], meta: { total: 1, per_page: 20 } }` | `{ data: [...], meta: { total: 1, per_page: 20 } }` | `{ data: [...], meta: { total: 1, perPage: 20 } }` |
+
+**Never** add a `meta` field to non-paginated backend responses.
 
 ### Error interceptor
 
 - Transforms RFC 9457 errors into typed `ApiError` objects (`{ type, title, status, detail, instance }`)
 - On 401: auto-removes the token from localStorage (forcing re-login)
 - The rejected promise carries the `ApiError` object, not the raw Axios error
+
+## Naming convention: snake_case vs camelCase
+
+The backend (Go) uses `snake_case` in JSON (`is_admin`, `created_at`). The frontend (TypeScript/Vue) MUST use `camelCase` (`isAdmin`, `createdAt`).
+
+### Rule
+
+| Direction | Convention | Where |
+|-----------|-----------|-------|
+| **Response data** (API → frontend) | `camelCase` | All `types/*.types.ts` interfaces, all template bindings, all headers keys, all slot names |
+| **Request bodies** (frontend → API) | `snake_case` | POST/PUT data, query params, form submissions |
+
+### How it works
+
+The `snakeToCamel()` utility in `utils/transform.ts` runs inside the response interceptor (`api/client.ts`). It recursively converts all object keys from `snake_case` to `camelCase`. This happens automatically — services and components receive already-camelized data.
+
+Request bodies are NOT transformed. They are sent as-is to the backend, which expects `snake_case` JSON tags.
+
+### When adding a new type
+
+1. Define the **response type** with `camelCase` properties matching the camelized output of `snakeToCamel()`
+2. Define the **request type** with `snake_case` properties matching the backend's JSON tags
+3. Data table header `key` values use `camelCase` (they match response object keys)
+4. Template slot names for data table columns use `camelCase`: `#[`item.isAdmin`]`, `#[`item.createdAt`]`
+
+Example:
+```ts
+// Response type — camelCase
+export interface User {
+  id: string
+  isAdmin: boolean      // backend: is_admin
+  createdAt: string     // backend: created_at
+}
+
+// Request type — snake_case (sent to backend as-is)
+export interface CreateUserRequest {
+  email: string
+  password: string
+  is_admin?: boolean    // backend expects this key name
+}
+
+// Data table header — key matches response type
+{ title: 'Rol', key: 'isAdmin' }
+
+// Data table slot — name matches header key
+<template #[`item.isAdmin`]="{ item }">
+```
 
 ## Service functions
 

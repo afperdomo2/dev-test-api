@@ -42,7 +42,7 @@ const headers = [
   { title: 'Nombre', key: 'name', sortable: false },
   { title: 'Slug', key: 'slug', sortable: false },
   { title: 'Categoría', key: 'category', sortable: false },
-  { title: 'Tipo', key: 'is_system', sortable: false },
+  { title: 'Tipo', key: 'isSystem', sortable: false },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'end' as const },
 ]
 
@@ -79,7 +79,7 @@ async function executeDelete() {
 }
 
 function canModify(topic: Topic): boolean {
-  return authStore.isAdmin && !topic.is_system
+  return authStore.isAdmin && !topic.isSystem
 }
 </script>
 
@@ -103,13 +103,13 @@ function canModify(topic: Topic): boolean {
           loading-text="Cargando temas..."
           hover
         >
-          <template #[`item.is_system`]="{ item }">
+          <template #[`item.isSystem`]="{ item }">
             <v-chip
-              :color="item.is_system ? 'info' : 'success'"
+              :color="item.isSystem ? 'info' : 'success'"
               size="small"
               variant="tonal"
             >
-              {{ item.is_system ? 'Sistema' : 'Custom' }}
+              {{ item.isSystem ? 'Sistema' : 'Custom' }}
             </v-chip>
           </template>
 

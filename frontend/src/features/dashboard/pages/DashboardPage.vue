@@ -5,7 +5,7 @@ import { computed } from 'vue'
 const authStore = useAuthStore()
 
 const formattedDate = computed(() => {
-  const date = authStore.user?.created_at
+  const date = authStore.user?.createdAt
   if (!date) return ''
   return new Date(date).toLocaleDateString('es-CO', {
     year: 'numeric',

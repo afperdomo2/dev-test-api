@@ -52,7 +52,7 @@ function typeLabel(type: string): string {
             <v-chip size="small" variant="tonal" class="mr-2">
               {{ typeLabel(question.type) }}
             </v-chip>
-            <v-chip v-if="question.is_public" size="small" variant="text" color="success">
+            <v-chip v-if="question.isPublic" size="small" variant="text" color="success">
               Pública
             </v-chip>
           </v-card-subtitle>
@@ -69,7 +69,7 @@ function typeLabel(type: string): string {
               :key="option.id"
             >
               <template #prepend>
-                <v-icon v-if="option.is_correct" color="success" size="small">
+                <v-icon v-if="option.isCorrect" color="success" size="small">
                   mdi-check-circle
                 </v-icon>
                 <v-icon v-else color="grey" size="small">
@@ -83,15 +83,15 @@ function typeLabel(type: string): string {
       </v-card>
 
       <!-- Code Challenge -->
-      <v-card v-if="question.code_challenge" class="mb-4">
+      <v-card v-if="question.codeChallenge" class="mb-4">
         <v-card-title class="text-h6">Código</v-card-title>
         <v-card-text>
           <v-chip size="small" variant="tonal" class="mb-2">
-            {{ question.code_challenge.language }}
+            {{ question.codeChallenge.language }}
           </v-chip>
           <pre
             class="bg-grey-lighten-4 pa-4 rounded text-caption overflow-auto"
-          >{{ question.code_challenge.starter_code }}</pre>
+          >{{ question.codeChallenge.starterCode }}</pre>
         </v-card-text>
       </v-card>
 
@@ -124,7 +124,7 @@ function typeLabel(type: string): string {
       <!-- Metadata footer -->
       <v-card variant="text">
         <v-card-text class="text-caption text-medium-emphasis">
-          Creado: {{ formatDateTime(question.created_at) }}
+          Creado: {{ formatDateTime(question.createdAt) }}
         </v-card-text>
       </v-card>
     </template>

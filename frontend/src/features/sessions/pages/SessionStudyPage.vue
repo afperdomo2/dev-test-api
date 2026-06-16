@@ -77,7 +77,7 @@ function isSelected(optionId: string): boolean {
 
 function isCorrectOption(optionId: string): boolean {
   if (!currentQuestion.value) return false
-  return !!currentQuestion.value.options?.find((o) => o.id === optionId)?.is_correct
+  return !!currentQuestion.value.options?.find((o) => o.id === optionId)?.isCorrect
 }
 
 async function submitAnswer() {
@@ -238,17 +238,17 @@ async function finishSession() {
           <v-card-item>
             <template #prepend>
               <v-icon
-                :color="lastResult.is_correct ? 'success' : 'error'"
+                :color="lastResult.isCorrect ? 'success' : 'error'"
                 size="32"
               >
-                {{ lastResult.is_correct ? 'mdi-check-circle' : 'mdi-close-circle' }}
+                {{ lastResult.isCorrect ? 'mdi-check-circle' : 'mdi-close-circle' }}
               </v-icon>
             </template>
             <v-card-title>
-              {{ lastResult.is_correct ? '¡Correcto!' : 'Incorrecto' }}
+              {{ lastResult.isCorrect ? '¡Correcto!' : 'Incorrecto' }}
             </v-card-title>
-            <v-card-subtitle v-if="lastResult.ai_feedback">
-              {{ lastResult.ai_feedback }}
+            <v-card-subtitle v-if="lastResult.aiFeedback">
+              {{ lastResult.aiFeedback }}
             </v-card-subtitle>
           </v-card-item>
           <v-card-actions>

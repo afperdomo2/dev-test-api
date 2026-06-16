@@ -65,7 +65,7 @@ function truncate(text: string, max = 120): string {
     <v-card-actions>
       <v-spacer />
       <span class="text-caption text-medium-emphasis">
-        {{ formatDate(question.created_at) }}
+        {{ formatDate(question.createdAt) }}
       </span>
     </v-card-actions>
   </v-card>

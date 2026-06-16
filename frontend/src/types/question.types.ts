@@ -29,15 +29,15 @@ export const TYPE_ICONS: Record<QuestionType, string> = {
 export interface QuestionOption {
   id: string
   content: string
-  is_correct: boolean
+  isCorrect: boolean
 }
 
 export interface CodeChallenge {
   id: string
-  starter_code: string
-  expected_output: string
+  starterCode: string
+  expectedOutput: string
   language: string
-  test_cases: string
+  testCases: string
 }
 
 export interface QuestionTopic {
@@ -48,16 +48,16 @@ export interface QuestionTopic {
 
 export interface Question {
   id: string
-  user_id: string
+  userId: string
   type: QuestionType
   content: string
   explanation: string
   difficulty: QuestionDifficulty
-  is_public: boolean
+  isPublic: boolean
   source: QuestionSource
   options: Array<QuestionOption>
-  code_challenge: CodeChallenge | null
+  codeChallenge: CodeChallenge | null
   topics: Array<QuestionTopic>
-  created_at: string
-  updated_at: string
+  createdAt: string
+  updatedAt: string
 }
