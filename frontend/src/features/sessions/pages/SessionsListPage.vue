@@ -101,7 +101,13 @@ async function handleCreate() {
     await createMut.mutateAsync(createForm.value)
     queryClient.invalidateQueries({ queryKey: ['sessions', 'list'] })
     createDialog.value = false
-    createForm.value = { name: '', mode: 'generate', difficulty: 'beginner', topic_ids: [], question_limit: undefined }
+    createForm.value = {
+      name: '',
+      mode: 'generate',
+      difficulty: 'beginner',
+      topic_ids: [],
+      question_limit: undefined,
+    }
     appStore.showSnackbar('Sesión creada')
   } catch (err: unknown) {
     const detail =
