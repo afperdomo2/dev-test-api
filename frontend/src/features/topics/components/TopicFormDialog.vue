@@ -159,7 +159,7 @@ function close() {
             persistent-hint
           />
 
-          <v-select
+          <v-combobox
             v-model="form.category"
             label="Categoría"
             :items="categoryItems"

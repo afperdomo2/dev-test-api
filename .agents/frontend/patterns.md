@@ -243,6 +243,35 @@ function handleRefresh() {
 - Icons: `@mdi/font` (Material Design Icons, imported in `plugins/vuetify.ts`)
 - SASS overrides: `frontend/src/styles/settings.scss`
 
+## Delete confirmation rule
+
+Any destructive action (delete, bulk remove) MUST show a confirmation dialog before executing. The dialog must:
+
+- Clearly state what will be deleted (`"¿Estás seguro de eliminar <name>?"`)
+- Have a **Cancel** button (`variant="text"`) and a **Confirm** button (`color="error"`, loading state)
+- Only execute the mutation after the user explicitly confirms
+- Show a success/error snackbar after the operation
+
+```html
+<v-dialog v-model="deleteDialog" max-width="420">
+  <v-card>
+    <v-card-title>Eliminar X</v-card-title>
+    <v-card-text>
+      ¿Estás seguro de eliminar <strong>{{ target?.name }}</strong>?
+    </v-card-text>
+    <v-card-actions>
+      <v-spacer />
+      <v-btn variant="text" @click="deleteDialog = false"> Cancelar </v-btn>
+      <v-btn color="error" :loading="deleteMut.isPending.value" @click="executeDelete">
+        Eliminar
+      </v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+```
+
+This pattern applies to all list pages (Users, Topics, Sessions, etc.).
+
 ## v-slot with dots in Vuetify data table
 
 Vuetify `v-data-table` uses dotted slot names like `item.is_admin`. ESLint's `vue/valid-v-slot` treats dots as modifiers. Use bracket syntax:

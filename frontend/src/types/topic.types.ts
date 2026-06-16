@@ -6,9 +6,14 @@ export const TOPIC_CATEGORIES = [
   'arquitectura',
   'base-datos',
   'conceptos',
+  'movil',
+  'cloud',
+  'testing',
+  'seguridad',
+  'ia',
 ] as const
 
-export type TopicCategory = (typeof TOPIC_CATEGORIES)[number]
+export type TopicCategory = string
 
 export interface Topic {
   id: string

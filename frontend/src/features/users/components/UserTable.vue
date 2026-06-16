@@ -5,6 +5,7 @@ import { formatDateTime } from '@/utils/format'
 interface Props {
   users: Array<User>
   loading: boolean
+  itemsPerPage: number
 }
 
 defineProps<Props>()
@@ -25,6 +26,7 @@ const headers = [
   <v-data-table
     :headers="headers"
     :items="users"
+    :items-per-page="itemsPerPage"
     :loading="loading"
     no-data-text="No hay usuarios"
     loading-text="Cargando usuarios..."

@@ -47,8 +47,8 @@ async function submit() {
 
 <template>
   <v-container class="fill-height d-flex align-center justify-center">
-    <v-card max-width="420" class="pa-6">
-      <v-card-title class="text-center">Configuración inicial</v-card-title>
+    <v-card max-width="480" class="pa-sm-6 pa-4 w-100">
+      <v-card-title class="text-center text-h5 mb-2">Configuración inicial</v-card-title>
       <v-card-subtitle class="text-center mb-4">
         Crea la cuenta de administrador
       </v-card-subtitle>

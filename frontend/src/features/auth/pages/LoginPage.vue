@@ -4,8 +4,8 @@ import LoginForm from '../components/LoginForm.vue'
 
 <template>
   <v-container class="fill-height d-flex align-center justify-center">
-    <v-card max-width="420" class="pa-6">
-      <v-card-title class="text-center">Iniciar sesión</v-card-title>
+    <v-card max-width="480" class="pa-sm-6 pa-4 w-100">
+      <v-card-title class="text-center text-h5 mb-2">Iniciar sesión</v-card-title>
       <LoginForm />
     </v-card>
   </v-container>

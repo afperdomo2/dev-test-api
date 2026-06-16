@@ -67,7 +67,7 @@ async function executeDelete() {
 
     <v-card>
       <v-card-text>
-        <UserTable :users="userList" :loading="isLoading" @delete="confirmDelete">
+        <UserTable :users="userList" :loading="isLoading" :items-per-page="perPage" @delete="confirmDelete">
           <template #footer>
             <PaginatedFooter
               :page="page"

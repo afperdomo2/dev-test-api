@@ -41,9 +41,9 @@ function handleRefresh() {
 const headers = [
   { title: 'Nombre', key: 'name', sortable: false },
   { title: 'Slug', key: 'slug', sortable: false },
-  { title: 'Categoría', key: 'category', sortable: false },
-  { title: 'Tipo', key: 'isSystem', sortable: false },
-  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' as const },
+  { title: 'Categoría', key: 'category', sortable: false, align: 'center' as const },
+  { title: 'Tipo', key: 'isSystem', sortable: false, align: 'center' as const },
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'center' as const },
 ]
 
 function openCreate() {
@@ -98,6 +98,7 @@ function canModify(topic: Topic): boolean {
         <v-data-table
           :headers="headers"
           :items="topicList"
+          :items-per-page="perPage"
           :loading="isLoading"
           no-data-text="No hay temas"
           loading-text="Cargando temas..."
@@ -114,7 +115,7 @@ function canModify(topic: Topic): boolean {
           </template>
 
           <template #[`item.actions`]="{ item }">
-            <div class="d-flex ga-1 justify-end">
+            <div class="d-flex ga-1 justify-center">
               <v-btn
                 v-if="canModify(item)"
                 icon="mdi-pencil"
