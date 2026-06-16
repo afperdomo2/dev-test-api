@@ -30,6 +30,7 @@ Modular Go + Gin API with JWT auth, PostgreSQL/GORM, Swagger docs, and Air live 
 - **Log icons** — always prefix `log.Println`, `log.Printf`, and `log.Fatal`/`log.Fatalf` calls with an emoji icon that best represents the context of the message. Choose the most descriptive icon for each case — don't reuse a generic one just because it was used elsewhere. The list below are examples already in the codebase, not a closed set: ❌ errors, ✅ success, 🚀 startup, 🛢️ database, 🌱 seed.
 - **Swagger UI** at `/swagger/index.html`.
 - **Context7 MCP** is available — use it to fetch current docs for Gin, GORM, jwt, swag, etc. rather than relying on training data. Always resolve library ID first, then query docs with the user's full question.
+- **Dependency safety** — before installing any new library or package, validate it is trustworthy, secure, and maintained (see `.agents/rules/dependencies.md`). Never `go get` without running the checks first.
 
 ## Architecture
 
@@ -126,3 +127,4 @@ response.Paginated(c, http.StatusOK, items, response.Meta{
 For detailed conventions, see:
 - `.agents/rules/responses.md` — error handling, response helpers, validation errors
 - `.agents/rules/architecture.md` — module anatomy, store pattern, service pattern, wiring
+- `.agents/rules/dependencies.md` — dependency safety: security, maintenance, licensing checks before `go get`
