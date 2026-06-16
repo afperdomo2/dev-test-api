@@ -96,32 +96,32 @@ async function handleToggle(questionId: string) {
       <v-tab value="saved"> Guardadas </v-tab>
     </v-tabs>
 
-    <v-row v-if="isLoading">
-      <v-col v-for="n in 4" :key="n" cols="12" sm="6">
-        <v-skeleton-loader type="card" />
-      </v-col>
-    </v-row>
+    <v-card variant="flat" border>
+      <v-row v-if="isLoading" class="ma-0">
+        <v-col v-for="n in 4" :key="n" cols="12" sm="6">
+          <v-skeleton-loader type="card" />
+        </v-col>
+      </v-row>
 
-    <v-row v-else-if="currentList.length">
-      <v-col
-        v-for="question in currentList"
-        :key="question.id"
-        cols="12"
-        sm="6"
-        lg="4"
-      >
-        <ProgressCard
-          :question="question"
-          :show-toggle="true"
-          :is-saved="activeTab === 'saved'"
-          :toggling="togglingId === question.id"
-          @toggle="handleToggle"
-        />
-      </v-col>
-    </v-row>
+      <v-row v-else-if="currentList.length" class="ma-0">
+        <v-col
+          v-for="question in currentList"
+          :key="question.id"
+          cols="12"
+          sm="6"
+          lg="4"
+        >
+          <ProgressCard
+            :question="question"
+            :show-toggle="true"
+            :is-saved="activeTab === 'saved'"
+            :toggling="togglingId === question.id"
+            @toggle="handleToggle"
+          />
+        </v-col>
+      </v-row>
 
-    <v-card v-else>
-      <v-card-text class="text-center py-8">
+      <v-card-text v-else class="text-center py-8">
         <v-icon size="48" color="grey-lighten-1" class="mb-2">
           {{ activeTab === 'upcoming' ? 'mdi-calendar-check' : 'mdi-bookmark-outline' }}
         </v-icon>
@@ -129,15 +129,17 @@ async function handleToggle(questionId: string) {
           {{ activeTab === 'upcoming' ? 'No hay repasos pendientes' : 'No tienes preguntas guardadas' }}
         </p>
       </v-card-text>
-    </v-card>
 
-    <PaginatedFooter
-      :page="page"
-      :per-page="perPage"
-      :total="currentTotal"
-      class="mt-4"
-      @update:page="page = $event"
-      @update:per-page="perPage = $event"
-    />
+      <template v-if="!isLoading && currentList.length">
+        <PaginatedFooter
+          :page="page"
+          :per-page="perPage"
+          :total="currentTotal"
+          :in-table="true"
+          @update:page="page = $event"
+          @update:per-page="perPage = $event"
+        />
+      </template>
+    </v-card>
   </v-container>
 </template>

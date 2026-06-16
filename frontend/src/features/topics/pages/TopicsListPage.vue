@@ -139,6 +139,7 @@ function canModify(topic: Topic): boolean {
               :page="page"
               :per-page="perPage"
               :total="totalTopics"
+              :in-table="true"
               @update:page="page = $event"
               @update:per-page="perPage = $event"
             />

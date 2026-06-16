@@ -38,10 +38,12 @@ function handleRefresh() {
       <v-btn
         variant="tonal"
         color="secondary"
-        icon="mdi-refresh"
+        prepend-icon="mdi-refresh"
         :disabled="refreshCooldown"
         @click="handleRefresh"
-      />
+      >
+        Refrescar
+      </v-btn>
       <v-btn
         v-if="showCreate"
         color="primary"

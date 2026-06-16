@@ -92,33 +92,35 @@ async function handleCreate() {
       @create="createDialog = true"
     />
 
-    <v-row v-if="isLoading">
-      <v-col v-for="n in 4" :key="n" cols="12" sm="6">
-        <v-skeleton-loader type="card" />
-      </v-col>
-    </v-row>
+    <v-card variant="flat" border class="mt-0">
+      <v-row v-if="isLoading" class="ma-0">
+        <v-col v-for="n in 4" :key="n" cols="12" sm="6">
+          <v-skeleton-loader type="card" />
+        </v-col>
+      </v-row>
 
-    <v-row v-else-if="sessionList.length">
-      <v-col v-for="session in sessionList" :key="session.id" cols="12" sm="6" lg="4">
-        <SessionCard :session="session" />
-      </v-col>
-    </v-row>
+      <v-row v-else-if="sessionList.length" class="ma-0">
+        <v-col v-for="session in sessionList" :key="session.id" cols="12" sm="6" lg="4">
+          <SessionCard :session="session" />
+        </v-col>
+      </v-row>
 
-    <v-card v-else>
-      <v-card-text class="text-center py-8">
+      <v-card-text v-else class="text-center py-8">
         <v-icon size="48" color="grey-lighten-1" class="mb-2"> mdi-play-circle-outline </v-icon>
         <p class="text-body-1 text-medium-emphasis">No hay sesiones aún</p>
       </v-card-text>
-    </v-card>
 
-    <PaginatedFooter
-      :page="page"
-      :per-page="perPage"
-      :total="totalSessions"
-      class="mt-4"
-      @update:page="page = $event"
-      @update:per-page="perPage = $event"
-    />
+      <template v-if="!isLoading && sessionList.length">
+        <PaginatedFooter
+          :page="page"
+          :per-page="perPage"
+          :total="totalSessions"
+          :in-table="true"
+          @update:page="page = $event"
+          @update:per-page="perPage = $event"
+        />
+      </template>
+    </v-card>
 
     <!-- Create Session Dialog -->
     <v-dialog v-model="createDialog" max-width="480">

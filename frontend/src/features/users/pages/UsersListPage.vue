@@ -73,6 +73,7 @@ async function executeDelete() {
               :page="page"
               :per-page="perPage"
               :total="totalUsers"
+              :in-table="true"
               @update:page="page = $event"
               @update:per-page="perPage = $event"
             />

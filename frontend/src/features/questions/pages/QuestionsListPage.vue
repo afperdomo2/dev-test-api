@@ -50,40 +50,42 @@ function handleRefresh() {
 
     <QuestionFilters @change="filters = $event" />
 
-    <v-row v-if="isLoading">
-      <v-col v-for="n in 4" :key="n" cols="12" sm="6" lg="4">
-        <v-skeleton-loader type="card" />
-      </v-col>
-    </v-row>
+    <v-card variant="flat" border class="mt-4">
+      <v-row v-if="isLoading" class="ma-0">
+        <v-col v-for="n in 4" :key="n" cols="12" sm="6" lg="4">
+          <v-skeleton-loader type="card" />
+        </v-col>
+      </v-row>
 
-    <v-row v-else-if="questionList.length">
-      <v-col
-        v-for="question in questionList"
-        :key="question.id"
-        cols="12"
-        sm="6"
-        lg="4"
-      >
-        <QuestionCard :question="question" />
-      </v-col>
-    </v-row>
+      <v-row v-else-if="questionList.length" class="ma-0">
+        <v-col
+          v-for="question in questionList"
+          :key="question.id"
+          cols="12"
+          sm="6"
+          lg="4"
+        >
+          <QuestionCard :question="question" />
+        </v-col>
+      </v-row>
 
-    <v-card v-else>
-      <v-card-text class="text-center py-8">
+      <v-card-text v-else class="text-center py-8">
         <v-icon size="48" color="grey-lighten-1" class="mb-2">
           mdi-help-circle-outline
         </v-icon>
         <p class="text-body-1 text-medium-emphasis">No se encontraron preguntas</p>
       </v-card-text>
-    </v-card>
 
-    <PaginatedFooter
-      :page="page"
-      :per-page="perPage"
-      :total="totalQuestions"
-      class="mt-4"
-      @update:page="page = $event"
-      @update:per-page="perPage = $event"
-    />
+      <template v-if="!isLoading && questionList.length">
+        <PaginatedFooter
+          :page="page"
+          :per-page="perPage"
+          :total="totalQuestions"
+          :in-table="true"
+          @update:page="page = $event"
+          @update:per-page="perPage = $event"
+        />
+      </template>
+    </v-card>
   </v-container>
 </template>
