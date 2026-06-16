@@ -1,6 +1,8 @@
 # dev-test-api
 
 > REST API con **Go** + **Gin** · **JWT** · **PostgreSQL** · **Swagger** · live reload con **Air**
+>
+> Frontend SPA con **Vue 3** + **Vite** + **Vuetify** + **Pinia** + **TanStack Query** → [`frontend/`](frontend/)
 
 ## 📋 Requisitos
 
@@ -14,24 +16,17 @@
 
 ```
 dev-test-api/
-├── main.go                    # Punto de entrada, wiring de dependencias
-├── config/
-│   └── config.go              # Configuración desde env vars
-├── database/
-│   └── database.go            # Conexión GORM + AutoMigrate
-├── internal/                  # Módulos de negocio (privados)
-│   ├── auth/                  # Autenticación (setup, login, JWT)
-│   ├── users/                 # Gestión de usuarios (CRUD)
-│   └── questions/             # Preguntas (placeholder)
-├── middleware/
-│   ├── logger.go              # Logging de requests
-│   └── auth.go                # Validación JWT + admin check
-├── pkg/
-│   ├── response/              # Helpers: Success(), Problem() RFC 9457
-│   └── apierr/                # Errores tipados de API
+├── main.go
+├── internal/                  # Módulos de negocio Go
+│   ├── config/
+│   ├── database/
+│   ├── middleware/
+│   ├── models/
+│   ├── modules/
+│   └── server/
+├── pkg/                       # Paquetes públicos
 ├── docs/                      # Swagger auto-generado
-├── .env.example
-├── .air.toml
+├── frontend/                  # SPA Vue 3 + Vite (ver frontend/README.md)
 ├── Makefile
 └── README.md
 ```
@@ -90,14 +85,30 @@ cp .env.example .env
 
 ## 🛠️ Scripts (Makefile)
 
+### Backend
+
 | Comando | Descripción |
 |---------|-------------|
-| `make install` | Instala dependencias (`go mod tidy`) |
+| `make install` | Instala dependencias Go (`go mod tidy`) |
 | `make dev` | Live reload con Air |
 | `make build` | Compila binario en `./tmp/main` |
 | `make run` | Corre el servidor con `go run` |
 | `make swagger` | Regenera docs Swagger |
 | `make clean` | Elimina `tmp/` y `docs/` |
+| `make fmt` | `go fmt ./...` |
+| `make vet` | `go vet ./...` |
+| `make check` | `fmt` + `vet` |
+| `make setup` | Instala git hooks (lefthook) |
+
+### Frontend
+
+| Comando | Descripción |
+|---------|-------------|
+| `make fe-install` | `pnpm install` |
+| `make fe-dev` | Servidor de desarrollo (:3000) |
+| `make fe-build` | Build de producción |
+| `make fe-lint` | ESLint |
+| `make fe-check` | TypeScript check |
 
 ## 📖 Documentación Swagger
 

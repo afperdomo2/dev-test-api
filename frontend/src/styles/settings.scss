@@ -1,0 +1,4 @@
+@use 'vuetify/settings' with (
+  $color-pack: true,
+  $button-height: 40px
+);
