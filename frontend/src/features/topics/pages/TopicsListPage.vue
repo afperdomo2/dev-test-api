@@ -116,22 +116,35 @@ function canModify(topic: Topic): boolean {
 
           <template #[`item.actions`]="{ item }">
             <div class="d-flex ga-1 justify-center">
-              <v-btn
-                v-if="canModify(item)"
-                icon="mdi-pencil"
-                variant="text"
-                size="small"
-                color="primary"
-                @click="openEdit(item)"
-              />
-              <v-btn
-                v-if="canModify(item)"
-                icon="mdi-delete"
-                variant="text"
-                size="small"
-                color="error"
-                @click="confirmDelete(item)"
-              />
+              <template v-if="canModify(item)">
+                <v-btn
+                  icon="mdi-pencil"
+                  variant="text"
+                  size="small"
+                  color="primary"
+                  @click="openEdit(item)"
+                />
+                <v-btn
+                  icon="mdi-delete"
+                  variant="text"
+                  size="small"
+                  color="error"
+                  @click="confirmDelete(item)"
+                />
+              </template>
+              <v-tooltip v-else-if="item.isSystem" text="Los temas del sistema no se pueden modificar">
+                <template #activator="{ props }">
+                  <span v-bind="props">
+                    <v-btn
+                      icon="mdi-lock-outline"
+                      variant="text"
+                      size="small"
+                      color="disabled"
+                      disabled
+                    />
+                  </span>
+                </template>
+              </v-tooltip>
             </div>
           </template>
 
@@ -142,7 +155,7 @@ function canModify(topic: Topic): boolean {
               :total="totalTopics"
               :in-table="true"
               @update:page="page = $event"
-              @update:per-page="perPage = $event"
+              @update:per-page="perPage = $event; page = 1"
             />
           </template>
         </v-data-table>
