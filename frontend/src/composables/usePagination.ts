@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
+import { DEFAULT_PER_PAGE } from '@/constants'
 
-export function usePagination(initialPage = 1, initialPerPage = 20) {
+export function usePagination(initialPage = 1, initialPerPage = DEFAULT_PER_PAGE) {
   const page = ref(initialPage)
   const perPage = ref(initialPerPage)
   const total = ref(0)

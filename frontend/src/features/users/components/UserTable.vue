@@ -26,7 +26,6 @@ const headers = [
     :headers="headers"
     :items="users"
     :loading="loading"
-    items-per-page-text="Usuarios por página"
     no-data-text="No hay usuarios"
     loading-text="Cargando usuarios..."
     hover
@@ -50,6 +49,10 @@ const headers = [
         color="error"
         @click="emit('delete', item)"
       />
+    </template>
+
+    <template #bottom>
+      <slot name="footer" />
     </template>
   </v-data-table>
 </template>

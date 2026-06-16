@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { upcomingQuestionsOptions, savedQuestionsOptions, toggleSaveMutation } from '@/queries/progress.queries'
 import { useAppStore } from '@/stores/app.store'
 import { usePagination } from '@/composables/usePagination'
+import ListPageHeader from '@/components/ListPageHeader.vue'
+import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import ProgressCard from '../components/ProgressCard.vue'
 import type { UpcomingQuestion } from '@/types/progress.types'
 
@@ -13,11 +15,11 @@ const { page, perPage, reset: resetPagination } = usePagination()
 
 const activeTab = ref<'upcoming' | 'saved'>('upcoming')
 
-const { data: upcomingData, isLoading: upcomingLoading } = useQuery(
+const { data: upcomingData, isLoading: upcomingLoading, refetch: refetchUpcoming } = useQuery(
   upcomingQuestionsOptions({ page: page.value, perPage: perPage.value }),
 )
 
-const { data: savedData, isLoading: savedLoading } = useQuery(
+const { data: savedData, isLoading: savedLoading, refetch: refetchSaved } = useQuery(
   savedQuestionsOptions({ page: page.value, perPage: perPage.value }),
 )
 
@@ -40,14 +42,25 @@ const isLoading = computed(() => {
   return activeTab.value === 'upcoming' ? upcomingLoading.value : savedLoading.value
 })
 
-function currentTotal(): number {
+const currentTotal = computed(() => {
   const d = activeTab.value === 'upcoming' ? upcomingData.value : savedData.value
   return d?.meta?.total ?? 0
-}
+})
 
 function switchTab(tab: 'upcoming' | 'saved') {
   activeTab.value = tab
   resetPagination()
+}
+
+function handleRefresh() {
+  resetPagination()
+  queryClient.invalidateQueries({ queryKey: ['progress', 'upcoming'] })
+  queryClient.invalidateQueries({ queryKey: ['progress', 'saved'] })
+  if (activeTab.value === 'upcoming') {
+    refetchUpcoming()
+  } else {
+    refetchSaved()
+  }
 }
 
 async function handleToggle(questionId: string) {
@@ -71,7 +84,12 @@ async function handleToggle(questionId: string) {
 
 <template>
   <v-container>
-    <h1 class="text-h4 mb-4">Progreso</h1>
+    <ListPageHeader
+      title="Progreso"
+      create-label=""
+      :show-create="false"
+      @refresh="handleRefresh"
+    />
 
     <v-tabs v-model="activeTab" color="primary" class="mb-4" @update:model-value="switchTab">
       <v-tab value="upcoming"> Pendientes de repaso </v-tab>
@@ -113,15 +131,13 @@ async function handleToggle(questionId: string) {
       </v-card-text>
     </v-card>
 
-    <div
-      v-if="currentTotal() > perPage"
-      class="d-flex justify-center mt-4"
-    >
-      <v-pagination
-        v-model="page"
-        :length="Math.ceil(currentTotal() / perPage)"
-        :total-visible="5"
-      />
-    </div>
+    <PaginatedFooter
+      :page="page"
+      :per-page="perPage"
+      :total="currentTotal"
+      class="mt-4"
+      @update:page="page = $event"
+      @update:per-page="perPage = $event"
+    />
   </v-container>
 </template>

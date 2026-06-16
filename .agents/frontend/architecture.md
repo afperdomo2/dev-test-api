@@ -13,6 +13,8 @@
 | `frontend/src/composables/` | Reusable composables (useDebounce, usePagination, useFormErrors) | Yes |
 | `frontend/src/types/` | TypeScript DTOs + constant maps | Yes — add types per domain |
 | `frontend/src/utils/` | Pure utilities (storage, format, validators) | Yes |
+| `frontend/src/components/` | Shared components (ErrorState, ListPageHeader, PaginatedFooter) | Yes — add reusable UI here |
+| `frontend/src/constants/` | Global constants (ITEMS_PER_PAGE_OPTIONS, REFRESH_COOLDOWN_MS) | Yes |
 | `frontend/src/plugins/` | Vuetify + VueQueryPlugin setup | Rarely |
 | `frontend/src/components/` | Shared components (ErrorState) | Yes |
 | `frontend/dist/` | Build output | **NEVER** — use `pnpm build` |

@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { sessionsListOptions, createSessionMutation } from '@/queries/sessions.queries'
 import { useAppStore } from '@/stores/app.store'
 import { usePagination } from '@/composables/usePagination'
+import ListPageHeader from '@/components/ListPageHeader.vue'
+import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import SessionCard from '../components/SessionCard.vue'
 import type { Session, CreateSessionRequest } from '@/types/session.types'
 import { SESSION_MODES, SESSION_DIFFICULTIES } from '@/types/session.types'
@@ -12,9 +14,9 @@ import { topicsListOptions } from '@/queries/topics.queries'
 
 const appStore = useAppStore()
 const queryClient = useQueryClient()
-const { page, perPage } = usePagination()
+const { page, perPage, reset: resetPagination } = usePagination()
 
-const { data, isLoading } = useQuery(
+const { data, isLoading, refetch } = useQuery(
   sessionsListOptions(() => page.value, () => perPage.value),
 )
 
@@ -22,8 +24,12 @@ const sessionList = computed<Array<Session>>(() => {
   return data.value?.data ?? []
 })
 
-function totalSessions(): number {
-  return data.value?.meta?.total ?? 0
+const totalSessions = computed(() => data.value?.meta?.total ?? 0)
+
+function handleRefresh() {
+  resetPagination()
+  queryClient.invalidateQueries({ queryKey: ['sessions', 'list'] })
+  refetch()
 }
 
 // Create dialog
@@ -38,7 +44,6 @@ const createErrors = ref<Record<string, Array<string>>>({})
 const creating = ref(false)
 const createMut = useMutation(createSessionMutation())
 
-// Load topics for the create form
 const { data: topicsData } = useQuery(
   topicsListOptions(() => 1, () => 100),
 )
@@ -80,12 +85,12 @@ async function handleCreate() {
 
 <template>
   <v-container>
-    <div class="d-flex align-center justify-space-between mb-4">
-      <h1 class="text-h4">Sesiones</h1>
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="createDialog = true">
-        Nueva sesión
-      </v-btn>
-    </div>
+    <ListPageHeader
+      title="Sesiones"
+      create-label="Nueva sesión"
+      @refresh="handleRefresh"
+      @create="createDialog = true"
+    />
 
     <v-row v-if="isLoading">
       <v-col v-for="n in 4" :key="n" cols="12" sm="6">
@@ -103,20 +108,17 @@ async function handleCreate() {
       <v-card-text class="text-center py-8">
         <v-icon size="48" color="grey-lighten-1" class="mb-2"> mdi-play-circle-outline </v-icon>
         <p class="text-body-1 text-medium-emphasis">No hay sesiones aún</p>
-        <v-btn color="primary" @click="createDialog = true"> Crear primera sesión </v-btn>
       </v-card-text>
     </v-card>
 
-    <div
-      v-if="totalSessions() > perPage"
-      class="d-flex justify-center mt-4"
-    >
-      <v-pagination
-        v-model="page"
-        :length="Math.ceil(totalSessions() / perPage)"
-        :total-visible="5"
-      />
-    </div>
+    <PaginatedFooter
+      :page="page"
+      :per-page="perPage"
+      :total="totalSessions"
+      class="mt-4"
+      @update:page="page = $event"
+      @update:per-page="perPage = $event"
+    />
 
     <!-- Create Session Dialog -->
     <v-dialog v-model="createDialog" max-width="480">

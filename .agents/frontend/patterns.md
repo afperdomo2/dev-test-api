@@ -99,13 +99,141 @@ Stores are global (app-level or cross-feature). Feature-specific state belongs i
 
 ## Pagination
 
+Constants in `constants/index.ts`:
+- `ITEMS_PER_PAGE_OPTIONS = [10, 20, 50]`
+- `DEFAULT_PER_PAGE = 20`
+
 Use `usePagination()` composable in list pages:
 
 ```ts
-const { page, perPage, total, reset } = usePagination()
+import { usePagination } from '@/composables/usePagination'
+
+const { page, perPage, reset } = usePagination()
+// perPage defaults to DEFAULT_PER_PAGE (20) from constants
 ```
 
-Returns reactive refs. Pass `page` and `perPage` to `queryOptions()`. Use `reset()` when filters change (not between pages of the same filtered view).
+`usePagination` returns reactive refs. Pass `page` and `perPage` to `queryOptions()`. Use `reset()` when filters change or on refresh.
+
+## Shared list components
+
+Two standardized components live in `frontend/src/components/`. Every list page MUST use them.
+
+### `ListPageHeader.vue`
+
+Props: `title` (string), `createLabel` (string), `createTo?` (route), `showCreate?` (boolean, default true).
+Emits: `refresh`, `create`.
+
+Renders: page title on left, refresh button + create button on right. Refresh button has a 1-second cooldown (`REFRESH_COOLDOWN_MS` from constants). Show/hide create button with `showCreate` (condition on `authStore.isAdmin` for admin-only create).
+
+### `PaginatedFooter.vue`
+
+Props: `page`, `perPage`, `total` (all numbers). Emits: `update:page`, `update:perPage`.
+
+Renders: per-page selector (10/20/50) + "Mostrando X–Y de Z" on left, pagination with `show-first-last-page` (◀◀ ◀ pages ▶ ▶▶) on right. Only renders pagination controls when `total > perPage` (handled internally).
+
+## List page standard pattern
+
+Every list page follows this structure:
+
+```
+<template>
+  <v-container>
+    <ListPageHeader />
+    <!-- filters (optional) -->
+    <!-- skeleton loaders (loading) -->
+    <!-- data table OR card grid (data) -->
+    <!-- empty state card (no data) -->
+    <PaginatedFooter />
+    <!-- dialogs (create, delete) -->
+  </v-container>
+</template>
+```
+
+### For data table pages (Users, Topics)
+
+Use `v-data-table` with a `#bottom` slot containing `<PaginatedFooter>`:
+
+```html
+<v-data-table ...>
+  <template #[`item.xxx`]="{ item }">...</template>
+  <template #bottom>
+    <PaginatedFooter
+      :page="page" :per-page="perPage" :total="totalX"
+      @update:page="page = $event"
+      @update:per-page="perPage = $event"
+    />
+  </template>
+</v-data-table>
+```
+
+The `#bottom` slot replaces the built-in data table footer.
+
+### For card-based pages (Questions, Sessions, Progress)
+
+Place `<PaginatedFooter>` after the card grid:
+
+```html
+<v-row v-if="items.length">...</v-row>
+<v-card v-else><!-- empty state --></v-card>
+<PaginatedFooter
+  :page="page" :per-page="perPage" :total="totalX"
+  class="mt-4"
+  @update:page="page = $event"
+  @update:per-page="perPage = $event"
+/>
+```
+
+### Empty state standard
+
+Empty states show ONLY text + icon. No inline create buttons (the create button is already in `ListPageHeader`):
+
+```html
+<v-card v-else>
+  <v-card-text class="text-center py-8">
+    <v-icon size="48" color="grey-lighten-1" class="mb-2"> mdi-xxx </v-icon>
+    <p class="text-body-1 text-medium-emphasis">No hay X aún</p>
+  </v-card-text>
+</v-card>
+```
+
+### Refresh pattern
+
+Every list page implements `handleRefresh()` as:
+
+```ts
+function handleRefresh() {
+  resetPagination()                        // back to page 1
+  queryClient.invalidateQueries({ queryKey: ['domain', 'list'] })  // bust cache
+  refetch()                                // force immediate refetch
+}
+```
+
+Cooldown (1s) is handled internally by `ListPageHeader`. No extra logic needed in the page.
+
+### Full wiring example (new module)
+
+```ts
+// features/xxx/pages/XxxListPage.vue
+import ListPageHeader from '@/components/ListPageHeader.vue'
+import PaginatedFooter from '@/components/PaginatedFooter.vue'
+import { usePagination } from '@/composables/usePagination'
+import { useAuthStore } from '@/stores/auth.store'
+
+const authStore = useAuthStore()
+const queryClient = useQueryClient()
+const { page, perPage, reset: resetPagination } = usePagination()
+
+const { data, isLoading, refetch } = useQuery(xxxListOptions(() => page.value, () => perPage.value))
+
+const items = computed(() => data.value?.data ?? [])
+const total = computed(() => data.value?.meta?.total ?? 0)
+
+function handleRefresh() {
+  resetPagination()
+  queryClient.invalidateQueries({ queryKey: ['xxx', 'list'] })
+  refetch()
+}
+```
 
 ## Styling
 

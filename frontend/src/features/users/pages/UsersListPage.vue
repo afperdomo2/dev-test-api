@@ -4,14 +4,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { usersListOptions, deleteUserMutation } from '@/queries/users.queries'
 import { useAppStore } from '@/stores/app.store'
 import { usePagination } from '@/composables/usePagination'
+import ListPageHeader from '@/components/ListPageHeader.vue'
+import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import UserTable from '../components/UserTable.vue'
 import type { User } from '@/types/user.types'
 
 const appStore = useAppStore()
 const queryClient = useQueryClient()
-const { page, perPage } = usePagination()
+const { page, perPage, reset: resetPagination } = usePagination()
 
-const { data, isLoading } = useQuery(
+const { data, isLoading, refetch } = useQuery(
   usersListOptions(() => page.value, () => perPage.value),
 )
 
@@ -19,13 +21,17 @@ const deleteMut = useMutation(deleteUserMutation())
 const deleteTarget = ref<User | null>(null)
 const deleteDialog = ref(false)
 
-function totalUsers(): number {
-  return data.value?.meta?.total ?? 0
-}
-
 const userList = computed<Array<User>>(() => {
   return data.value?.data ?? []
 })
+
+const totalUsers = computed(() => data.value?.meta?.total ?? 0)
+
+function handleRefresh() {
+  resetPagination()
+  queryClient.invalidateQueries({ queryKey: ['users', 'list'] })
+  refetch()
+}
 
 function confirmDelete(user: User) {
   deleteTarget.value = user
@@ -52,32 +58,26 @@ async function executeDelete() {
 
 <template>
   <v-container>
-    <div class="d-flex align-center justify-space-between mb-4">
-      <h1 class="text-h4">Usuarios</h1>
-      <v-btn color="primary" prepend-icon="mdi-plus" to="/users/create">
-        Nuevo usuario
-      </v-btn>
-    </div>
+    <ListPageHeader
+      title="Usuarios"
+      create-label="Nuevo usuario"
+      create-to="/users/create"
+      @refresh="handleRefresh"
+    />
 
     <v-card>
       <v-card-text>
-        <UserTable
-          :users="userList"
-          :loading="isLoading"
-          @delete="confirmDelete"
-        />
-
-        <div
-          v-if="totalUsers() > perPage"
-          class="d-flex justify-center mt-4"
-        >
-          <v-pagination
-            v-model="page"
-            :length="Math.ceil(totalUsers() / perPage)"
-            :total-visible="5"
-            @update:model-value="page = $event"
-          />
-        </div>
+        <UserTable :users="userList" :loading="isLoading" @delete="confirmDelete">
+          <template #footer>
+            <PaginatedFooter
+              :page="page"
+              :per-page="perPage"
+              :total="totalUsers"
+              @update:page="page = $event"
+              @update:per-page="perPage = $event"
+            />
+          </template>
+        </UserTable>
       </v-card-text>
     </v-card>
 

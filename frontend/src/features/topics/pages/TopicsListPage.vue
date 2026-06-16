@@ -5,15 +5,17 @@ import { topicsListOptions, deleteTopicMutation } from '@/queries/topics.queries
 import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import { usePagination } from '@/composables/usePagination'
+import ListPageHeader from '@/components/ListPageHeader.vue'
+import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import TopicFormDialog from '../components/TopicFormDialog.vue'
 import type { Topic } from '@/types/topic.types'
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
 const queryClient = useQueryClient()
-const { page, perPage } = usePagination()
+const { page, perPage, reset: resetPagination } = usePagination()
 
-const { data, isLoading } = useQuery(
+const { data, isLoading, refetch } = useQuery(
   topicsListOptions(() => page.value, () => perPage.value),
 )
 
@@ -28,8 +30,12 @@ const topicList = computed<Array<Topic>>(() => {
   return data.value?.data ?? []
 })
 
-function totalTopics(): number {
-  return data.value?.meta?.total ?? 0
+const totalTopics = computed(() => data.value?.meta?.total ?? 0)
+
+function handleRefresh() {
+  resetPagination()
+  queryClient.invalidateQueries({ queryKey: ['topics', 'list'] })
+  refetch()
 }
 
 const headers = [
@@ -79,17 +85,13 @@ function canModify(topic: Topic): boolean {
 
 <template>
   <v-container>
-    <div class="d-flex align-center justify-space-between mb-4">
-      <h1 class="text-h4">Temas</h1>
-      <v-btn
-        v-if="authStore.isAdmin"
-        color="primary"
-        prepend-icon="mdi-plus"
-        @click="openCreate"
-      >
-        Nuevo tema
-      </v-btn>
-    </div>
+    <ListPageHeader
+      title="Temas"
+      create-label="Nuevo tema"
+      :show-create="authStore.isAdmin"
+      @refresh="handleRefresh"
+      @create="openCreate"
+    />
 
     <v-card>
       <v-card-text>
@@ -97,7 +99,6 @@ function canModify(topic: Topic): boolean {
           :headers="headers"
           :items="topicList"
           :loading="isLoading"
-          items-per-page-text="Temas por página"
           no-data-text="No hay temas"
           loading-text="Cargando temas..."
           hover
@@ -132,18 +133,17 @@ function canModify(topic: Topic): boolean {
               />
             </div>
           </template>
-        </v-data-table>
 
-        <div
-          v-if="totalTopics() > perPage"
-          class="d-flex justify-center mt-4"
-        >
-          <v-pagination
-            v-model="page"
-            :length="Math.ceil(totalTopics() / perPage)"
-            :total-visible="5"
-          />
-        </div>
+          <template #bottom>
+            <PaginatedFooter
+              :page="page"
+              :per-page="perPage"
+              :total="totalTopics"
+              @update:page="page = $event"
+              @update:per-page="perPage = $event"
+            />
+          </template>
+        </v-data-table>
       </v-card-text>
     </v-card>
 
