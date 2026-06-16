@@ -15,8 +15,13 @@ const appStore = useAppStore()
 const queryClient = useQueryClient()
 const { page, perPage, reset: resetPagination } = usePagination()
 
-const { data, isLoading, refetch } = useQuery(
-  topicsListOptions(() => page.value, () => perPage.value),
+const { data, isLoading } = useQuery(
+  topicsListOptions(
+    () => page.value,
+    () => perPage.value,
+    () => 'name',
+    () => 'asc',
+  ),
 )
 
 const deleteMut = useMutation(deleteTopicMutation())
@@ -35,7 +40,6 @@ const totalTopics = computed(() => data.value?.meta?.total ?? 0)
 function handleRefresh() {
   resetPagination()
   queryClient.invalidateQueries({ queryKey: ['topics', 'list'] })
-  refetch()
 }
 
 const headers = [

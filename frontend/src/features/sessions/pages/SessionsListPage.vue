@@ -16,7 +16,7 @@ const appStore = useAppStore()
 const queryClient = useQueryClient()
 const { page, perPage, reset: resetPagination } = usePagination()
 
-const { data, isLoading, refetch } = useQuery(
+const { data, isLoading } = useQuery(
   sessionsListOptions(() => page.value, () => perPage.value),
 )
 
@@ -29,7 +29,6 @@ const totalSessions = computed(() => data.value?.meta?.total ?? 0)
 function handleRefresh() {
   resetPagination()
   queryClient.invalidateQueries({ queryKey: ['sessions', 'list'] })
-  refetch()
 }
 
 // Create dialog

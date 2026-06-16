@@ -5,9 +5,11 @@ import type { PaginatedResponse } from '@/types/api.types'
 export async function listTopics(
   page: number,
   perPage: number,
+  sortBy?: string,
+  sortOrder?: string,
 ): Promise<PaginatedResponse<Topic>> {
   const res = await apiClient.get<PaginatedResponse<Topic>>('/api/v1/topics', {
-    params: { page, per_page: perPage },
+    params: { page, per_page: perPage, sort_by: sortBy, sort_order: sortOrder },
   })
   return res.data
 }

@@ -15,11 +15,11 @@ const { page, perPage, reset: resetPagination } = usePagination()
 
 const activeTab = ref<'upcoming' | 'saved'>('upcoming')
 
-const { data: upcomingData, isLoading: upcomingLoading, refetch: refetchUpcoming } = useQuery(
+const { data: upcomingData, isLoading: upcomingLoading } = useQuery(
   upcomingQuestionsOptions({ page: page.value, perPage: perPage.value }),
 )
 
-const { data: savedData, isLoading: savedLoading, refetch: refetchSaved } = useQuery(
+const { data: savedData, isLoading: savedLoading } = useQuery(
   savedQuestionsOptions({ page: page.value, perPage: perPage.value }),
 )
 
@@ -56,11 +56,6 @@ function handleRefresh() {
   resetPagination()
   queryClient.invalidateQueries({ queryKey: ['progress', 'upcoming'] })
   queryClient.invalidateQueries({ queryKey: ['progress', 'saved'] })
-  if (activeTab.value === 'upcoming') {
-    refetchUpcoming()
-  } else {
-    refetchSaved()
-  }
 }
 
 async function handleToggle(questionId: string) {

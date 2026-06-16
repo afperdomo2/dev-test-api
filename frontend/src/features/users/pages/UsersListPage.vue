@@ -13,7 +13,7 @@ const appStore = useAppStore()
 const queryClient = useQueryClient()
 const { page, perPage, reset: resetPagination } = usePagination()
 
-const { data, isLoading, refetch } = useQuery(
+const { data, isLoading } = useQuery(
   usersListOptions(() => page.value, () => perPage.value),
 )
 
@@ -30,7 +30,6 @@ const totalUsers = computed(() => data.value?.meta?.total ?? 0)
 function handleRefresh() {
   resetPagination()
   queryClient.invalidateQueries({ queryKey: ['users', 'list'] })
-  refetch()
 }
 
 function confirmDelete(user: User) {

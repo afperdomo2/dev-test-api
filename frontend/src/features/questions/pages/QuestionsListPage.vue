@@ -18,7 +18,7 @@ const { page, perPage, reset: resetPagination } = usePagination()
 const filters = ref<QuestionsFilters>({})
 const queryFilters = computed(() => filters.value)
 
-const { data, isLoading, refetch } = useQuery(
+const { data, isLoading } = useQuery(
   questionsListOptions(
     () => page.value,
     () => perPage.value,
@@ -35,7 +35,6 @@ const totalQuestions = computed(() => data.value?.meta?.total ?? 0)
 function handleRefresh() {
   resetPagination()
   queryClient.invalidateQueries({ queryKey: ['questions', 'list'] })
-  refetch()
 }
 </script>
 

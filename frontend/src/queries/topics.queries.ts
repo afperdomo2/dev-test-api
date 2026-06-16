@@ -1,10 +1,15 @@
 import { queryOptions } from '@tanstack/vue-query'
 import * as topicsService from '@/api/services/topics.service'
 
-export function topicsListOptions(page: () => number, perPage: () => number) {
+export function topicsListOptions(
+  page: () => number,
+  perPage: () => number,
+  sortBy?: () => string,
+  sortOrder?: () => string,
+) {
   return queryOptions({
-    queryKey: ['topics', 'list', page, perPage],
-    queryFn: () => topicsService.listTopics(page(), perPage()),
+    queryKey: ['topics', 'list', page, perPage, sortBy?.(), sortOrder?.()],
+    queryFn: () => topicsService.listTopics(page(), perPage(), sortBy?.(), sortOrder?.()),
     staleTime: 60 * 1000,
   })
 }
