@@ -16,10 +16,11 @@ var sortConfig = common.SortConfig{
 }
 
 type CreateSessionRequest struct {
-	Name       string      `json:"name" binding:"required,min=1,max=200"`
-	Mode       string      `json:"mode" binding:"required,oneof=generate review"`
-	Difficulty string      `json:"difficulty" binding:"required,oneof=beginner intermediate advanced"`
-	TopicIDs   []uuid.UUID `json:"topic_ids" binding:"required,min=1"`
+	Name          string      `json:"name" binding:"required,min=1,max=200"`
+	Mode          string      `json:"mode" binding:"required,oneof=generate review"`
+	Difficulty    string      `json:"difficulty" binding:"required,oneof=beginner intermediate advanced"`
+	TopicIDs      []uuid.UUID `json:"topic_ids" binding:"required,min=1"`
+	QuestionLimit *int        `json:"question_limit" binding:"omitempty,min=1,max=50"`
 }
 
 type AnswerRequest struct {
@@ -31,19 +32,20 @@ type AnswerRequest struct {
 }
 
 type SessionResponse struct {
-	ID          uuid.UUID   `json:"id"`
-	UserID      uuid.UUID   `json:"user_id"`
-	Name        string      `json:"name"`
-	Status      string      `json:"status"`
-	Mode        string      `json:"mode"`
-	Difficulty  string      `json:"difficulty"`
-	Score       *float64    `json:"score,omitempty"`
-	StartedAt   time.Time   `json:"started_at"`
-	FinishedAt  *time.Time  `json:"finished_at,omitempty"`
-	Topics      []TopicInfo `json:"topics"`
-	AnswerCount int         `json:"answer_count"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
+	ID            uuid.UUID   `json:"id"`
+	UserID        uuid.UUID   `json:"user_id"`
+	Name          string      `json:"name"`
+	Status        string      `json:"status"`
+	Mode          string      `json:"mode"`
+	Difficulty    string      `json:"difficulty"`
+	QuestionLimit *int        `json:"question_limit,omitempty"`
+	Score         *float64    `json:"score,omitempty"`
+	StartedAt     time.Time   `json:"started_at"`
+	FinishedAt    *time.Time  `json:"finished_at,omitempty"`
+	Topics        []TopicInfo `json:"topics"`
+	AnswerCount   int         `json:"answer_count"`
+	CreatedAt     time.Time   `json:"created_at"`
+	UpdatedAt     time.Time   `json:"updated_at"`
 }
 
 type SessionDetailResponse struct {
@@ -79,19 +81,20 @@ func toSessionResponse(s models.Session) SessionResponse {
 		topics[i] = TopicInfo{ID: t.ID, Slug: t.Slug, Name: t.Name}
 	}
 	return SessionResponse{
-		ID:          s.ID,
-		UserID:      s.UserID,
-		Name:        s.Name,
-		Status:      s.Status,
-		Mode:        s.Mode,
-		Difficulty:  s.Difficulty,
-		Score:       s.Score,
-		StartedAt:   s.StartedAt,
-		FinishedAt:  s.FinishedAt,
-		Topics:      topics,
-		AnswerCount: len(s.Answers),
-		CreatedAt:   s.CreatedAt,
-		UpdatedAt:   s.UpdatedAt,
+		ID:            s.ID,
+		UserID:        s.UserID,
+		Name:          s.Name,
+		Status:        s.Status,
+		Mode:          s.Mode,
+		Difficulty:    s.Difficulty,
+		QuestionLimit: s.QuestionLimit,
+		Score:         s.Score,
+		StartedAt:     s.StartedAt,
+		FinishedAt:    s.FinishedAt,
+		Topics:        topics,
+		AnswerCount:   len(s.Answers),
+		CreatedAt:     s.CreatedAt,
+		UpdatedAt:     s.UpdatedAt,
 	}
 }
 

@@ -37,6 +37,7 @@ export interface Session {
   status: SessionStatus
   mode: SessionMode
   difficulty: SessionDifficulty
+  questionLimit: number | null
   score: number
   startedAt: string
   finishedAt: string | null
@@ -51,6 +52,7 @@ export interface CreateSessionRequest {
   mode: SessionMode
   difficulty: SessionDifficulty
   topic_ids: Array<string>
+  question_limit?: number
 }
 
 export interface SubmitAnswerRequest {

@@ -261,6 +261,10 @@ definitions:
         maxLength: 200
         minLength: 1
         type: string
+      question_limit:
+        maximum: 50
+        minimum: 1
+        type: integer
       topic_ids:
         items:
           type: string
@@ -325,6 +329,8 @@ definitions:
         type: string
       name:
         type: string
+      question_limit:
+        type: integer
       score:
         type: number
       started_at:

@@ -41,6 +41,7 @@ const createForm = ref<CreateSessionRequest>({
   mode: 'generate',
   difficulty: 'beginner',
   topic_ids: [],
+  question_limit: undefined,
 })
 const createErrors = ref<Record<string, Array<string>>>({})
 const creating = ref(false)
@@ -68,6 +69,27 @@ function validateCreate(): boolean {
     ],
     '',
   )
+  if (createForm.value.question_limit !== undefined) {
+    newErrors.question_limit = validateRules(
+      [
+        {
+          validate: () => {
+            const v = createForm.value.question_limit
+            return v !== undefined && v >= 1
+          },
+          message: 'Minimo 1 pregunta',
+        },
+        {
+          validate: () => {
+            const v = createForm.value.question_limit
+            return v !== undefined && v <= 50
+          },
+          message: 'Maximo 50 preguntas',
+        },
+      ],
+      '',
+    )
+  }
   createErrors.value = newErrors
   return Object.values(newErrors).every((e) => e.length === 0)
 }
@@ -79,7 +101,7 @@ async function handleCreate() {
     await createMut.mutateAsync(createForm.value)
     queryClient.invalidateQueries({ queryKey: ['sessions', 'list'] })
     createDialog.value = false
-    createForm.value = { name: '', mode: 'generate', difficulty: 'beginner', topic_ids: [] }
+    createForm.value = { name: '', mode: 'generate', difficulty: 'beginner', topic_ids: [], question_limit: undefined }
     appStore.showSnackbar('Sesión creada')
   } catch (err: unknown) {
     const detail =
@@ -161,6 +183,18 @@ async function handleCreate() {
               :items="SESSION_DIFFICULTIES"
               :disabled="creating"
               required
+            />
+
+            <v-text-field
+              v-model.number="createForm.question_limit"
+              label="Limite de preguntas (opcional)"
+              type="number"
+              min="1"
+              max="50"
+              :error-messages="createErrors.question_limit"
+              :disabled="creating"
+              hint="Deja en blanco para preguntas ilimitadas"
+              persistent-hint
             />
 
             <v-select

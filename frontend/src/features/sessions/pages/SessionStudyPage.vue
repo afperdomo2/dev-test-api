@@ -23,6 +23,14 @@ const { data: session, isLoading: sessionLoading } = useQuery(
   sessionDetailOptions(() => sessionId.value),
 )
 
+const currentQuestionNumber = computed(() => {
+  const sessionData = session.value
+  if (!sessionData) return 0
+  return (sessionData.answerCount ?? 0) + 1
+})
+
+const questionLimit = computed(() => session.value?.questionLimit ?? null)
+
 const {
   data: currentQuestion,
   isLoading: questionLoading,
@@ -136,7 +144,12 @@ async function finishSession() {
     <!-- Session header -->
     <div class="d-flex align-center mb-4">
       <v-btn icon="mdi-arrow-left" variant="text" to="/sessions" class="mr-2" />
-      <h1 class="text-h4">{{ session?.name ?? 'Cargando...' }}</h1>
+      <div>
+        <h1 class="text-h4">{{ session?.name ?? 'Cargando...' }}</h1>
+        <div v-if="questionLimit" class="text-body-2 text-medium-emphasis mt-1">
+          Pregunta {{ currentQuestionNumber }} de {{ questionLimit }}
+        </div>
+      </div>
     </div>
 
     <v-skeleton-loader v-if="sessionLoading" type="article" />

@@ -2006,6 +2006,11 @@ const docTemplate = `{
                     "maxLength": 200,
                     "minLength": 1
                 },
+                "question_limit": {
+                    "type": "integer",
+                    "maximum": 50,
+                    "minimum": 1
+                },
                 "topic_ids": {
                     "type": "array",
                     "minItems": 1,
@@ -2095,6 +2100,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "question_limit": {
+                    "type": "integer"
                 },
                 "score": {
                     "type": "number"

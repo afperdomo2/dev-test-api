@@ -66,11 +66,12 @@ func (s *sessionService) GetByID(sessionID uuid.UUID) (*SessionDetailResponse, e
 
 func (s *sessionService) Create(userID uuid.UUID, input CreateSessionRequest) (*SessionResponse, error) {
 	session := &models.Session{
-		UserID:     userID,
-		Name:       input.Name,
-		Status:     "in_progress",
-		Mode:       input.Mode,
-		Difficulty: input.Difficulty,
+		UserID:        userID,
+		Name:          input.Name,
+		Status:        "in_progress",
+		Mode:          input.Mode,
+		Difficulty:    input.Difficulty,
+		QuestionLimit: input.QuestionLimit,
 	}
 
 	if err := s.store.Create(session); err != nil {
@@ -132,6 +133,9 @@ func (s *sessionService) NextQuestion(sessionID uuid.UUID) (*NextQuestionRespons
 	answeredIDs, err := s.store.FindAnsweredQuestionIDs(sessionID)
 	if err != nil {
 		return nil, apierr.ErrInternal("Error al obtener las preguntas respondidas", "")
+	}
+	if sess.QuestionLimit != nil && len(answeredIDs) >= *sess.QuestionLimit {
+		return nil, apierr.ErrNotFound("Pregunta", "Has alcanzado el limite de preguntas de esta sesion")
 	}
 
 	topicIDs := make([]uuid.UUID, len(sess.Topics))

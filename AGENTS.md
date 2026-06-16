@@ -17,6 +17,8 @@ Fullstack monorepo: **Go + Gin** REST API + **Vue 3 + Vite + Vuetify** SPA front
 | `make setup` | Install lefthook git hooks (run once after clone) |
 | `make clean` | Remove `tmp/` and `docs/` |
 
+Always run `make fmt` after any backend change to format Go code, then `make vet` to catch static issues. `make check` does both.
+
 ### Frontend (`frontend/`)
 
 | Command | Action |
