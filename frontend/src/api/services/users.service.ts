@@ -25,3 +25,8 @@ export async function createUser(data: CreateUserRequest): Promise<User> {
 export async function deleteUser(id: string): Promise<void> {
   await apiClient.delete(`/api/v1/users/${id}`)
 }
+
+export async function getProfile(): Promise<User> {
+  const res = await apiClient.get<User>('/api/v1/profile')
+  return res.data
+}

@@ -24,6 +24,15 @@ export function createUserMutation() {
   }
 }
 
+export function profileQueryOptions() {
+  return queryOptions({
+    queryKey: ['users', 'profile'],
+    queryFn: usersService.getProfile,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  })
+}
+
 export function deleteUserMutation() {
   return {
     mutationKey: ['users', 'delete'],

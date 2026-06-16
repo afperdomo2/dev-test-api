@@ -7,11 +7,20 @@ import router from './router'
 import vuetify from './plugins/vuetify'
 import { queryPluginOptions } from './plugins/query'
 
-const app = createApp(App)
+async function bootstrap() {
+  const app = createApp(App)
 
-app.use(createPinia())
-app.use(router)
-app.use(vuetify)
-app.use(VueQueryPlugin, queryPluginOptions)
+  app.use(createPinia())
 
-app.mount('#app')
+  const { useAuthStore } = await import('@/stores/auth.store')
+  const authStore = useAuthStore()
+  await authStore.initSession()
+
+  app.use(router)
+  app.use(vuetify)
+  app.use(VueQueryPlugin, queryPluginOptions)
+
+  app.mount('#app')
+}
+
+bootstrap()

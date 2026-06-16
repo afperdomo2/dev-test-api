@@ -1,13 +1,178 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { sessionsListOptions, createSessionMutation } from '@/queries/sessions.queries'
+import { useAppStore } from '@/stores/app.store'
+import { usePagination } from '@/composables/usePagination'
+import SessionCard from '../components/SessionCard.vue'
+import type { Session, CreateSessionRequest } from '@/types/session.types'
+import { SESSION_MODES, SESSION_DIFFICULTIES } from '@/types/session.types'
+import { requiredRule, validateRules } from '@/utils/validators'
+import { topicsListOptions } from '@/queries/topics.queries'
+
+const appStore = useAppStore()
+const queryClient = useQueryClient()
+const { page, perPage } = usePagination()
+
+const { data, isLoading } = useQuery(
+  sessionsListOptions(() => page.value, () => perPage.value),
+)
+
+const sessionList = computed<Array<Session>>(() => {
+  return data.value?.data ?? []
+})
+
+function totalSessions(): number {
+  return data.value?.meta?.total ?? 0
+}
+
+// Create dialog
+const createDialog = ref(false)
+const createForm = ref<CreateSessionRequest>({
+  name: '',
+  mode: 'generate',
+  difficulty: 'beginner',
+  topic_ids: [],
+})
+const createErrors = ref<Record<string, Array<string>>>({})
+const creating = ref(false)
+const createMut = useMutation(createSessionMutation())
+
+// Load topics for the create form
+const { data: topicsData } = useQuery(
+  topicsListOptions(() => 1, () => 100),
+)
+const topicItems = computed(() =>
+  (topicsData.value?.data ?? []).map((t) => ({ title: t.name, value: t.id })),
+)
+
+function validateCreate(): boolean {
+  const newErrors: Record<string, Array<string>> = {}
+  newErrors.name = validateRules([requiredRule()], createForm.value.name)
+  newErrors.topic_ids = validateRules(
+    [{ validate: () => createForm.value.topic_ids.length > 0, message: 'Selecciona al menos un tema' }],
+    '',
+  )
+  createErrors.value = newErrors
+  return Object.values(newErrors).every((e) => e.length === 0)
+}
+
+async function handleCreate() {
+  if (!validateCreate()) return
+  creating.value = true
+  try {
+    await createMut.mutateAsync(createForm.value)
+    queryClient.invalidateQueries({ queryKey: ['sessions', 'list'] })
+    createDialog.value = false
+    createForm.value = { name: '', mode: 'generate', difficulty: 'beginner', topic_ids: [] }
+    appStore.showSnackbar('Sesión creada')
+  } catch (err: unknown) {
+    const detail =
+      err && typeof err === 'object' && 'detail' in err
+        ? (err as { detail: string }).detail
+        : 'Error al crear sesión'
+    appStore.showSnackbar(detail, 'error')
+  } finally {
+    creating.value = false
+  }
+}
 </script>
 
 <template>
   <v-container>
-    <h1 class="text-h4 mb-4">Sesiones</h1>
-    <v-card>
-      <v-card-text>
-        <p class="text-body-1">Listado de sesiones (implementar en fase 9)</p>
+    <div class="d-flex align-center justify-space-between mb-4">
+      <h1 class="text-h4">Sesiones</h1>
+      <v-btn color="primary" prepend-icon="mdi-plus" @click="createDialog = true">
+        Nueva sesión
+      </v-btn>
+    </div>
+
+    <v-row v-if="isLoading">
+      <v-col v-for="n in 4" :key="n" cols="12" sm="6">
+        <v-skeleton-loader type="card" />
+      </v-col>
+    </v-row>
+
+    <v-row v-else-if="sessionList.length">
+      <v-col v-for="session in sessionList" :key="session.id" cols="12" sm="6" lg="4">
+        <SessionCard :session="session" />
+      </v-col>
+    </v-row>
+
+    <v-card v-else>
+      <v-card-text class="text-center py-8">
+        <v-icon size="48" color="grey-lighten-1" class="mb-2"> mdi-play-circle-outline </v-icon>
+        <p class="text-body-1 text-medium-emphasis">No hay sesiones aún</p>
+        <v-btn color="primary" @click="createDialog = true"> Crear primera sesión </v-btn>
       </v-card-text>
     </v-card>
+
+    <div
+      v-if="totalSessions() > perPage"
+      class="d-flex justify-center mt-4"
+    >
+      <v-pagination
+        v-model="page"
+        :length="Math.ceil(totalSessions() / perPage)"
+        :total-visible="5"
+      />
+    </div>
+
+    <!-- Create Session Dialog -->
+    <v-dialog v-model="createDialog" max-width="480">
+      <v-card>
+        <v-card-title>Nueva sesión de estudio</v-card-title>
+        <v-card-text>
+          <v-form @submit.prevent="handleCreate">
+            <v-text-field
+              v-model="createForm.name"
+              label="Nombre"
+              :error-messages="createErrors.name"
+              :disabled="creating"
+              required
+              placeholder="Ej: Repaso de Go"
+            />
+
+            <v-select
+              v-model="createForm.mode"
+              label="Modo"
+              :items="SESSION_MODES"
+              :disabled="creating"
+              required
+            />
+
+            <v-select
+              v-model="createForm.difficulty"
+              label="Dificultad"
+              :items="SESSION_DIFFICULTIES"
+              :disabled="creating"
+              required
+            />
+
+            <v-select
+              v-model="createForm.topic_ids"
+              label="Temas"
+              :items="topicItems"
+              :error-messages="createErrors.topic_ids"
+              :disabled="creating"
+              multiple
+              chips
+              required
+              hint="Selecciona los temas a incluir"
+              persistent-hint
+            />
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" :disabled="creating" @click="createDialog = false">
+            Cancelar
+          </v-btn>
+          <v-btn color="primary" :loading="creating" @click="handleCreate">
+            Crear sesión
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
