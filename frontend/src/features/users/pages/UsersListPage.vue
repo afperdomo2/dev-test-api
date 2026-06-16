@@ -7,6 +7,7 @@ import { usePagination } from '@/composables/usePagination'
 import ListPageHeader from '@/components/ListPageHeader.vue'
 import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import UserTable from '../components/UserTable.vue'
+import UserFormDialog from '../components/UserFormDialog.vue'
 import type { User } from '@/types/user.types'
 
 const appStore = useAppStore()
@@ -24,15 +25,33 @@ const deleteMut = useMutation(deleteUserMutation())
 const deleteTarget = ref<User | null>(null)
 const deleteDialog = ref(false)
 
+const dialogOpen = ref(false)
+const editingUser = ref<User | null>(null)
+
 const userList = computed<Array<User>>(() => {
   return data.value?.data ?? []
 })
 
 const totalUsers = computed(() => data.value?.meta?.total ?? 0)
 
+function onPerPageChange(val: number) {
+  perPage.value = val
+  page.value = 1
+}
+
 function handleRefresh() {
   resetPagination()
   queryClient.invalidateQueries({ queryKey: ['users', 'list'] })
+}
+
+function openCreate() {
+  editingUser.value = null
+  dialogOpen.value = true
+}
+
+function openEdit(user: User) {
+  editingUser.value = user
+  dialogOpen.value = true
 }
 
 function confirmDelete(user: User) {
@@ -63,8 +82,8 @@ async function executeDelete() {
     <ListPageHeader
       title="Usuarios"
       create-label="Nuevo usuario"
-      create-to="/users/create"
       @refresh="handleRefresh"
+      @create="openCreate"
     />
 
     <v-card>
@@ -73,6 +92,7 @@ async function executeDelete() {
           :users="userList"
           :loading="isLoading"
           :items-per-page="perPage"
+          @edit="openEdit"
           @delete="confirmDelete"
         >
           <template #footer>
@@ -82,12 +102,14 @@ async function executeDelete() {
               :total="totalUsers"
               :in-table="true"
               @update:page="page = $event"
-              @update:per-page="perPage = $event"
+              @update:per-page="onPerPageChange"
             />
           </template>
         </UserTable>
       </v-card-text>
     </v-card>
+
+    <UserFormDialog v-model="dialogOpen" :user="editingUser" @saved="dialogOpen = false" />
 
     <v-dialog v-model="deleteDialog" max-width="420">
       <v-card>

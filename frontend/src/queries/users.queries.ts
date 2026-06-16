@@ -24,6 +24,19 @@ export function createUserMutation() {
   }
 }
 
+export function updateUserMutation() {
+  return {
+    mutationKey: ['users', 'update'],
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string
+      data: Parameters<typeof usersService.updateUser>[1]
+    }) => usersService.updateUser(id, data),
+  }
+}
+
 export function profileQueryOptions() {
   return queryOptions({
     queryKey: ['users', 'profile'],

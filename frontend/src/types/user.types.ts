@@ -11,3 +11,8 @@ export interface CreateUserRequest {
   password: string
   is_admin?: boolean
 }
+
+export interface UpdateUserRequest {
+  password?: string
+  is_admin?: boolean
+}

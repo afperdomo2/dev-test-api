@@ -12,6 +12,7 @@ func RegisterAdminRoutes(rg *gin.RouterGroup, h *Handler) {
 		users.GET("", h.List)
 		users.POST("", h.Create)
 		users.GET("/:id", h.Get)
+		users.PUT("/:id", h.Update)
 		users.DELETE("/:id", h.Delete)
 	}
 }

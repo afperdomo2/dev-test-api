@@ -12,7 +12,7 @@ type Service interface {
 	Create(email, password string, isAdmin bool) (*models.User, error)
 	List(page, perPage int, sortBy, sortOrder string) ([]models.User, int64, error)
 	GetByID(id uuid.UUID) (*models.User, error)
-	Update(id uuid.UUID, email, password string, isAdmin *bool) (*models.User, error)
+	Update(id uuid.UUID, req UpdateUserRequest) (*models.User, error)
 	Delete(id uuid.UUID) error
 }
 
@@ -67,7 +67,7 @@ func (s *userService) GetByID(id uuid.UUID) (*models.User, error) {
 	return user, nil
 }
 
-func (s *userService) Update(id uuid.UUID, email, password string, isAdmin *bool) (*models.User, error) {
+func (s *userService) Update(id uuid.UUID, req UpdateUserRequest) (*models.User, error) {
 	user, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -76,23 +76,16 @@ func (s *userService) Update(id uuid.UUID, email, password string, isAdmin *bool
 		return nil, apierr.ErrInternal("Error al obtener el usuario", "")
 	}
 
-	if email != "" {
-		if existing, _ := s.store.FindByEmail(email); existing != nil && existing.ID != id {
-			return nil, apierr.ErrConflict("Email Already Exists", "Ya existe un usuario con este email", "")
-		}
-		user.Email = email
-	}
-
-	if password != "" {
-		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if req.Password != "" {
+		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return nil, apierr.ErrInternal("Error al generar el hash de la contraseña", "")
 		}
 		user.PasswordHash = string(hash)
 	}
 
-	if isAdmin != nil {
-		user.IsAdmin = *isAdmin
+	if req.IsAdmin != nil {
+		user.IsAdmin = *req.IsAdmin
 	}
 
 	if err := s.store.Update(user); err != nil {

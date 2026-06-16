@@ -19,6 +19,11 @@ type CreateUserRequest struct {
 	IsAdmin  bool   `json:"is_admin"`
 }
 
+type UpdateUserRequest struct {
+	Password string `json:"password,omitempty" binding:"omitempty,min=8,max=72"`
+	IsAdmin  *bool  `json:"is_admin,omitempty"`
+}
+
 type UserResponse struct {
 	ID        uuid.UUID `json:"id"`
 	Email     string    `json:"email"`

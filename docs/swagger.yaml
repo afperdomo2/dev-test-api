@@ -410,6 +410,15 @@ definitions:
     - email
     - password
     type: object
+  users.UpdateUserRequest:
+    properties:
+      is_admin:
+        type: boolean
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    type: object
   users.UserResponse:
     properties:
       created_at:
@@ -1392,6 +1401,50 @@ paths:
       security:
       - BearerAuth: []
       summary: Obtener usuario (Admin)
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un usuario
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/users.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Actualizar usuario (Admin)
       tags:
       - users
   /health:

@@ -144,6 +144,44 @@ func (h *Handler) Delete(c *gin.Context) {
 	response.Success(c, http.StatusOK, gin.H{"message": "Usuario eliminado"})
 }
 
+// @Summary      Actualizar usuario (Admin)
+// @Description  Actualiza los datos de un usuario
+// @Tags         users
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id    path  string              true  "User ID"
+// @Param        body  body  UpdateUserRequest   true  "Datos a actualizar"
+// @Success      200   {object}  UserResponse
+// @Failure      400   {object}  apierr.APIError
+// @Failure      401   {object}  apierr.APIError
+// @Failure      403   {object}  apierr.APIError
+// @Failure      404   {object}  apierr.APIError
+// @Router       /api/v1/users/{id} [put]
+func (h *Handler) Update(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.NotFound(c, "Usuario", c.Request.URL.Path)
+		return
+	}
+
+	var req UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ValidationError(c, err.Error(), c.Request.URL.Path)
+		return
+	}
+
+	user, err := h.service.Update(id, req)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, ToUserResponse(*user))
+}
+
 // @Summary      Obtener perfil
 // @Description  Obtiene los datos del usuario autenticado
 // @Tags         profile

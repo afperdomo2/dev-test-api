@@ -42,12 +42,6 @@ export const routes: Array<RouteRecordRaw> = [
         meta: { requiresAuth: true, requiresAdmin: true },
       },
       {
-        path: 'users/create',
-        name: 'UserCreate',
-        component: () => import('@/features/users/pages/UserCreatePage.vue'),
-        meta: { requiresAuth: true, requiresAdmin: true },
-      },
-      {
         path: 'questions',
         name: 'QuestionsList',
         component: () => import('@/features/questions/pages/QuestionsListPage.vue'),

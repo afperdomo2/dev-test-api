@@ -11,14 +11,15 @@ interface Props {
 defineProps<Props>()
 
 const emit = defineEmits<{
+  edit: [user: User]
   delete: [user: User]
 }>()
 
 const headers = [
   { title: 'Email', key: 'email', sortable: false },
-  { title: 'Rol', key: 'isAdmin', sortable: false },
-  { title: 'Creado', key: 'createdAt', sortable: false },
-  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' as const },
+  { title: 'Rol', key: 'isAdmin', sortable: false, align: 'center' as const },
+  { title: 'Creado', key: 'createdAt', sortable: false, align: 'center' as const },
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'center' as const },
 ]
 </script>
 
@@ -33,24 +34,36 @@ const headers = [
     hover
   >
     <template #[`item.isAdmin`]="{ item }">
-      <v-chip :color="item.isAdmin ? 'primary' : ''" size="small" variant="tonal">
-        {{ item.isAdmin ? 'Admin' : 'Usuario' }}
-      </v-chip>
+      <div class="d-flex justify-center">
+        <v-chip :color="item.isAdmin ? 'primary' : ''" size="small" variant="tonal">
+          {{ item.isAdmin ? 'Admin' : 'Usuario' }}
+        </v-chip>
+      </div>
     </template>
 
     <template #[`item.createdAt`]="{ item }">
-      {{ formatDateTime(item.createdAt) }}
+      <div class="d-flex justify-center">
+        {{ formatDateTime(item.createdAt) }}
+      </div>
     </template>
 
     <template #[`item.actions`]="{ item }">
-      <v-btn
-        v-if="!item.isAdmin"
-        icon="mdi-delete"
-        variant="text"
-        size="small"
-        color="error"
-        @click="emit('delete', item)"
-      />
+      <div class="d-flex ga-1 justify-center">
+        <v-btn
+          icon="mdi-pencil"
+          variant="text"
+          size="small"
+          color="primary"
+          @click="emit('edit', item)"
+        />
+        <v-btn
+          icon="mdi-delete"
+          variant="text"
+          size="small"
+          color="error"
+          @click="emit('delete', item)"
+        />
+      </div>
     </template>
 
     <template #bottom>
