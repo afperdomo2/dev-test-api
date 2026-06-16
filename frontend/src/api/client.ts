@@ -20,7 +20,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 apiClient.interceptors.response.use(
   (response) => {
-    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+    if (response.data && typeof response.data === 'object' && 'data' in response.data && !('meta' in response.data)) {
       return { ...response, data: response.data.data }
     }
     return response
