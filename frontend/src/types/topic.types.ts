@@ -1,3 +1,15 @@
+export const TOPIC_CATEGORIES = [
+  'lenguajes',
+  'frontend',
+  'backend',
+  'devops',
+  'arquitectura',
+  'base-datos',
+  'conceptos',
+] as const
+
+export type TopicCategory = (typeof TOPIC_CATEGORIES)[number]
+
 export interface Topic {
   id: string
   slug: string
