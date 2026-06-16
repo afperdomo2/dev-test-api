@@ -27,7 +27,7 @@ Fullstack monorepo: **Go + Gin** REST API + **Vue 3 + Vite + Vuetify** SPA front
 | `make fe-lint` | ESLint (`--fix`) |
 | `make fe-check` | TypeScript check (`vue-tsc --build`) |
 
-Always run `make fe-check` and `make fe-lint` after any frontend change. The `make fe-build` command runs `type-check` automatically before `vite build`.
+Always run `make fe-check` and `make fe-lint` after any frontend change. `make fe-build` is only required in CI and before deploy — it's too slow for the dev loop (~8s) and adds no signal that type-check + lint don't already catch.
 
 ## Key facts
 
