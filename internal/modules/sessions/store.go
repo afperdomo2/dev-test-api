@@ -7,7 +7,7 @@ import (
 )
 
 type Store interface {
-	FindPage(userID uuid.UUID, page, perPage int) ([]models.Session, int64, error)
+	FindPage(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]models.Session, int64, error)
 	FindByID(id uuid.UUID) (*models.Session, error)
 	Create(session *models.Session) error
 	Update(session *models.Session) error
@@ -25,7 +25,7 @@ func NewStore(db *gorm.DB) Store {
 	return &gormStore{db: db}
 }
 
-func (s *gormStore) FindPage(userID uuid.UUID, page, perPage int) ([]models.Session, int64, error) {
+func (s *gormStore) FindPage(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]models.Session, int64, error) {
 	var sessions []models.Session
 	var total int64
 
@@ -35,7 +35,7 @@ func (s *gormStore) FindPage(userID uuid.UUID, page, perPage int) ([]models.Sess
 	err := base.Offset((page - 1) * perPage).Limit(perPage).
 		Preload("Topics").
 		Preload("Answers").
-		Order("started_at DESC").
+		Order(sortConfig.OrderClause(sortBy, sortOrder)).
 		Find(&sessions).Error
 	return sessions, total, err
 }

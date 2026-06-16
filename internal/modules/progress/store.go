@@ -9,8 +9,8 @@ import (
 type Store interface {
 	FindByUserAndQuestion(userID, questionID uuid.UUID) (*models.UserQuestionProgress, error)
 	Upsert(progress *models.UserQuestionProgress) error
-	FindUpcoming(userID uuid.UUID, page, perPage int) ([]models.UserQuestionProgress, int64, error)
-	FindSaved(userID uuid.UUID, page, perPage int) ([]models.UserQuestionProgress, int64, error)
+	FindUpcoming(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]models.UserQuestionProgress, int64, error)
+	FindSaved(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]models.UserQuestionProgress, int64, error)
 }
 
 type gormStore struct {
@@ -34,7 +34,7 @@ func (s *gormStore) Upsert(p *models.UserQuestionProgress) error {
 	return s.db.Save(p).Error
 }
 
-func (s *gormStore) FindUpcoming(userID uuid.UUID, page, perPage int) ([]models.UserQuestionProgress, int64, error) {
+func (s *gormStore) FindUpcoming(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]models.UserQuestionProgress, int64, error) {
 	var items []models.UserQuestionProgress
 	var total int64
 
@@ -45,12 +45,12 @@ func (s *gormStore) FindUpcoming(userID uuid.UUID, page, perPage int) ([]models.
 		Preload("Question.Options").
 		Preload("Question.CodeChallenge").
 		Preload("Question.Topics").
-		Order("next_review_at ASC").
+		Order(upcomingSortConfig.OrderClause(sortBy, sortOrder)).
 		Find(&items).Error
 	return items, total, err
 }
 
-func (s *gormStore) FindSaved(userID uuid.UUID, page, perPage int) ([]models.UserQuestionProgress, int64, error) {
+func (s *gormStore) FindSaved(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]models.UserQuestionProgress, int64, error) {
 	var items []models.UserQuestionProgress
 	var total int64
 
@@ -61,7 +61,7 @@ func (s *gormStore) FindSaved(userID uuid.UUID, page, perPage int) ([]models.Use
 		Preload("Question.Options").
 		Preload("Question.CodeChallenge").
 		Preload("Question.Topics").
-		Order("updated_at DESC").
+		Order(savedSortConfig.OrderClause(sortBy, sortOrder)).
 		Find(&items).Error
 	return items, total, err
 }

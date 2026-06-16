@@ -4,10 +4,16 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
 	"github.com/google/uuid"
 )
+
+var sortConfig = common.SortConfig{
+	Allowed: []string{"status", "score", "started_at", "created_at"},
+	Default: "started_at DESC",
+}
 
 type CreateSessionRequest struct {
 	Name       string      `json:"name" binding:"required,min=1,max=200"`

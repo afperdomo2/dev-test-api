@@ -3,9 +3,15 @@ package users
 import (
 	"time"
 
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
 )
+
+var sortConfig = common.SortConfig{
+	Allowed: []string{"email", "created_at", "updated_at"},
+	Default: "created_at desc",
+}
 
 type CreateUserRequest struct {
 	Email    string `json:"email"    binding:"required,email"`

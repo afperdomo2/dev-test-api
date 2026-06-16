@@ -13,7 +13,7 @@ type QuestionFilters struct {
 }
 
 type Store interface {
-	FindPage(page, perPage int, filters QuestionFilters) ([]models.Question, int64, error)
+	FindPage(page, perPage int, sortBy, sortOrder string, filters QuestionFilters) ([]models.Question, int64, error)
 	FindAll() ([]models.Question, error)
 	FindByID(id uuid.UUID) (*models.Question, error)
 	Create(question *models.Question) error
@@ -32,7 +32,7 @@ func NewStore(db *gorm.DB) Store {
 	return &gormStore{db: db}
 }
 
-func (s *gormStore) FindPage(page, perPage int, filters QuestionFilters) ([]models.Question, int64, error) {
+func (s *gormStore) FindPage(page, perPage int, sortBy, sortOrder string, filters QuestionFilters) ([]models.Question, int64, error) {
 	var questions []models.Question
 	var total int64
 
@@ -49,7 +49,8 @@ func (s *gormStore) FindPage(page, perPage int, filters QuestionFilters) ([]mode
 	}
 
 	query.Count(&total)
-	err := query.Offset((page - 1) * perPage).Limit(perPage).Order("created_at desc").
+	err := query.Offset((page - 1) * perPage).Limit(perPage).
+		Order(sortConfig.OrderClause(sortBy, sortOrder)).
 		Preload("Options").Preload("CodeChallenge").Preload("Topics").
 		Find(&questions).Error
 	return questions, total, err

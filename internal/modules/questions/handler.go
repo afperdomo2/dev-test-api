@@ -2,8 +2,8 @@ package questions
 
 import (
 	"net/http"
-	"strconv"
 
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/felipe/dev-test-api/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -25,28 +25,36 @@ func NewHandler(service Service) *Handler {
 // @Security     BearerAuth
 // @Produce      json
 // @Param        page       query  int     false  "Número de página (default: 1)"
-// @Param        per_page   query  int     false  "Elementos por página (default: 20)"
+// @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
 // @Param        type       query  string  false  "Filtrar por tipo (single_choice, multiple_choice, code_completion)"
 // @Param        difficulty query  string  false  "Filtrar por dificultad (beginner, intermediate, advanced)"
+// @Param        sort_by    query  string  false  "Campo de ordenación: type, difficulty, created_at, updated_at"
+// @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
 // @Success      200  {object}  response.Meta  "Lista de preguntas"
 // @Failure      401  {object}  apierr.APIError
+// @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/questions [get]
 func (h *Handler) List(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	params, err := common.ParsePagination(c, sortConfig)
+	if err != nil {
+		response.ValidationError(c, err.Error(), c.Request.URL.Path)
+		return
+	}
 
 	filters := QuestionFilters{
 		Type:       c.Query("type"),
 		Difficulty: c.Query("difficulty"),
 	}
 
-	questions, total, err := h.service.List(page, perPage, filters)
+	questions, total, err := h.service.List(params.Page, params.PerPage, params.SortBy, params.SortOrder, filters)
 	if err != nil {
-		response.Problem(c, err.(*apierr.APIError))
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
 		return
 	}
 
-	response.Paginated(c, http.StatusOK, questions, response.Meta{Total: total, Page: page, PerPage: perPage})
+	response.Paginated(c, http.StatusOK, questions, response.Meta{Total: total, Page: params.Page, PerPage: params.PerPage})
 }
 
 // @Summary      Obtener pregunta

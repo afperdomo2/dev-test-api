@@ -591,10 +591,18 @@ paths:
         in: query
         name: page
         type: integer
-      - description: 'Elementos por página (default: 20)'
+      - description: 'Elementos por página (default: 20, max: 100)'
         in: query
         name: per_page
         type: integer
+      - description: 'Campo de ordenación: updated_at, repetitions, ease_factor'
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Dirección: asc o desc (default: desc)'
+        in: query
+        name: sort_order
+        type: string
       produces:
       - application/json
       responses:
@@ -604,6 +612,10 @@ paths:
             $ref: '#/definitions/response.Meta'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
           schema:
             $ref: '#/definitions/apierr.APIError'
       security:
@@ -620,10 +632,18 @@ paths:
         in: query
         name: page
         type: integer
-      - description: 'Elementos por página (default: 20)'
+      - description: 'Elementos por página (default: 20, max: 100)'
         in: query
         name: per_page
         type: integer
+      - description: 'Campo de ordenación: next_review_at, repetitions, ease_factor'
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Dirección: asc o desc (default: asc)'
+        in: query
+        name: sort_order
+        type: string
       produces:
       - application/json
       responses:
@@ -633,6 +653,10 @@ paths:
             $ref: '#/definitions/response.Meta'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
           schema:
             $ref: '#/definitions/apierr.APIError'
       security:
@@ -648,7 +672,7 @@ paths:
         in: query
         name: page
         type: integer
-      - description: 'Elementos por página (default: 20)'
+      - description: 'Elementos por página (default: 20, max: 100)'
         in: query
         name: per_page
         type: integer
@@ -660,6 +684,14 @@ paths:
         in: query
         name: difficulty
         type: string
+      - description: 'Campo de ordenación: type, difficulty, created_at, updated_at'
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Dirección: asc o desc (default: desc)'
+        in: query
+        name: sort_order
+        type: string
       produces:
       - application/json
       responses:
@@ -669,6 +701,10 @@ paths:
             $ref: '#/definitions/response.Meta'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
           schema:
             $ref: '#/definitions/apierr.APIError'
       security:
@@ -827,10 +863,18 @@ paths:
         in: query
         name: page
         type: integer
-      - description: 'Elementos por página (default: 20)'
+      - description: 'Elementos por página (default: 20, max: 100)'
         in: query
         name: per_page
         type: integer
+      - description: 'Campo de ordenación: status, score, started_at, created_at'
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Dirección: asc o desc (default: desc)'
+        in: query
+        name: sort_order
+        type: string
       produces:
       - application/json
       responses:
@@ -840,6 +884,10 @@ paths:
             $ref: '#/definitions/response.Meta'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
           schema:
             $ref: '#/definitions/apierr.APIError'
       security:
@@ -1018,10 +1066,18 @@ paths:
         in: query
         name: page
         type: integer
-      - description: 'Elementos por página (default: 20)'
+      - description: 'Elementos por página (default: 20, max: 100)'
         in: query
         name: per_page
         type: integer
+      - description: 'Campo de ordenación: name, slug, category, created_at'
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Dirección: asc o desc (default: desc)'
+        in: query
+        name: sort_order
+        type: string
       produces:
       - application/json
       responses:
@@ -1031,6 +1087,10 @@ paths:
             $ref: '#/definitions/response.Meta'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
           schema:
             $ref: '#/definitions/apierr.APIError'
       security:
@@ -1192,10 +1252,18 @@ paths:
         in: query
         name: page
         type: integer
-      - description: 'Elementos por página (default: 20)'
+      - description: 'Elementos por página (default: 20, max: 100)'
         in: query
         name: per_page
         type: integer
+      - description: 'Campo de ordenación: email, created_at, updated_at'
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Dirección: asc o desc (default: desc)'
+        in: query
+        name: sort_order
+        type: string
       produces:
       - application/json
       responses:
@@ -1209,6 +1277,10 @@ paths:
             $ref: '#/definitions/apierr.APIError'
         "403":
           description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
           schema:
             $ref: '#/definitions/apierr.APIError'
       security:

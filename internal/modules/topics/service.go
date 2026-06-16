@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	List(page, perPage int) ([]TopicResponse, int64, error)
+	List(page, perPage int, sortBy, sortOrder string) ([]TopicResponse, int64, error)
 	GetByID(id uuid.UUID) (*TopicResponse, error)
 	Create(userID uuid.UUID, input CreateTopicRequest) (*TopicResponse, error)
 	Update(id uuid.UUID, input UpdateTopicRequest) (*TopicResponse, error)
@@ -23,8 +23,8 @@ func NewService(store Store) Service {
 	return &topicService{store: store}
 }
 
-func (s *topicService) List(page, perPage int) ([]TopicResponse, int64, error) {
-	topics, total, err := s.store.FindPage(page, perPage)
+func (s *topicService) List(page, perPage int, sortBy, sortOrder string) ([]TopicResponse, int64, error) {
+	topics, total, err := s.store.FindPage(page, perPage, sortBy, sortOrder)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar los temas", "")
 	}

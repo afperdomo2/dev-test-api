@@ -3,9 +3,15 @@ package topics
 import (
 	"time"
 
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
 )
+
+var sortConfig = common.SortConfig{
+	Allowed: []string{"name", "slug", "category", "created_at"},
+	Default: "category, name",
+}
 
 type CreateTopicRequest struct {
 	Slug     string `json:"slug"     binding:"required,min=2,max=100"`

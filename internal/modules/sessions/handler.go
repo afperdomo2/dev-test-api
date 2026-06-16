@@ -2,8 +2,8 @@ package sessions
 
 import (
 	"net/http"
-	"strconv"
 
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/felipe/dev-test-api/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -24,14 +24,20 @@ func NewHandler(service Service) *Handler {
 // @Tags         sessions
 // @Security     BearerAuth
 // @Produce      json
-// @Param        page      query  int  false  "Número de página (default: 1)"
-// @Param        per_page  query  int  false  "Elementos por página (default: 20)"
+// @Param        page       query  int     false  "Número de página (default: 1)"
+// @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
+// @Param        sort_by    query  string  false  "Campo de ordenación: status, score, started_at, created_at"
+// @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
 // @Success      200  {object}  response.Meta  "Lista de sesiones"
 // @Failure      401  {object}  apierr.APIError
+// @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/sessions [get]
 func (h *Handler) List(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	params, err := common.ParsePagination(c, sortConfig)
+	if err != nil {
+		response.ValidationError(c, err.Error(), c.Request.URL.Path)
+		return
+	}
 
 	userID, apiErr := getUserID(c)
 	if apiErr != nil {
@@ -40,13 +46,15 @@ func (h *Handler) List(c *gin.Context) {
 		return
 	}
 
-	sessions, total, err := h.service.List(userID, page, perPage)
+	sessions, total, err := h.service.List(userID, params.Page, params.PerPage, params.SortBy, params.SortOrder)
 	if err != nil {
-		response.Problem(c, err.(*apierr.APIError))
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
 		return
 	}
 
-	response.Paginated(c, http.StatusOK, sessions, response.Meta{Total: total, Page: page, PerPage: perPage})
+	response.Paginated(c, http.StatusOK, sessions, response.Meta{Total: total, Page: params.Page, PerPage: params.PerPage})
 }
 
 // @Summary      Crear sesión

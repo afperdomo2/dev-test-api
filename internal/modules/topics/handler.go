@@ -2,8 +2,8 @@ package topics
 
 import (
 	"net/http"
-	"strconv"
 
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/felipe/dev-test-api/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -24,22 +24,30 @@ func NewHandler(service Service) *Handler {
 // @Tags         topics
 // @Security     BearerAuth
 // @Produce      json
-// @Param        page      query  int  false  "Número de página (default: 1)"
-// @Param        per_page  query  int  false  "Elementos por página (default: 20)"
+// @Param        page       query  int     false  "Número de página (default: 1)"
+// @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
+// @Param        sort_by    query  string  false  "Campo de ordenación: name, slug, category, created_at"
+// @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
 // @Success      200  {object}  response.Meta  "Lista de temas"
 // @Failure      401  {object}  apierr.APIError
+// @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/topics [get]
 func (h *Handler) List(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-
-	topics, total, err := h.service.List(page, perPage)
+	params, err := common.ParsePagination(c, sortConfig)
 	if err != nil {
-		response.Problem(c, err.(*apierr.APIError))
+		response.ValidationError(c, err.Error(), c.Request.URL.Path)
 		return
 	}
 
-	response.Paginated(c, http.StatusOK, topics, response.Meta{Total: total, Page: page, PerPage: perPage})
+	topics, total, err := h.service.List(params.Page, params.PerPage, params.SortBy, params.SortOrder)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Paginated(c, http.StatusOK, topics, response.Meta{Total: total, Page: params.Page, PerPage: params.PerPage})
 }
 
 // @Summary      Obtener tema

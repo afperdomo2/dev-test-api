@@ -2,8 +2,8 @@ package progress
 
 import (
 	"net/http"
-	"strconv"
 
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/felipe/dev-test-api/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -67,14 +67,20 @@ func (h *Handler) Answer(c *gin.Context) {
 // @Tags         progress
 // @Security     BearerAuth
 // @Produce      json
-// @Param        page      query  int  false  "Número de página (default: 1)"
-// @Param        per_page  query  int  false  "Elementos por página (default: 20)"
+// @Param        page       query  int     false  "Número de página (default: 1)"
+// @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
+// @Param        sort_by    query  string  false  "Campo de ordenación: next_review_at, repetitions, ease_factor"
+// @Param        sort_order query  string  false  "Dirección: asc o desc (default: asc)"
 // @Success      200  {object}  response.Meta  "Preguntas pendientes"
 // @Failure      401  {object}  apierr.APIError
+// @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/progress/upcoming [get]
 func (h *Handler) Upcoming(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	params, err := common.ParsePagination(c, upcomingSortConfig)
+	if err != nil {
+		response.ValidationError(c, err.Error(), c.Request.URL.Path)
+		return
+	}
 
 	userID, apiErr := getUserID(c)
 	if apiErr != nil {
@@ -83,13 +89,15 @@ func (h *Handler) Upcoming(c *gin.Context) {
 		return
 	}
 
-	items, total, err := h.service.Upcoming(userID, page, perPage)
+	items, total, err := h.service.Upcoming(userID, params.Page, params.PerPage, params.SortBy, params.SortOrder)
 	if err != nil {
-		response.Problem(c, err.(*apierr.APIError))
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
 		return
 	}
 
-	response.Paginated(c, http.StatusOK, items, response.Meta{Total: total, Page: page, PerPage: perPage})
+	response.Paginated(c, http.StatusOK, items, response.Meta{Total: total, Page: params.Page, PerPage: params.PerPage})
 }
 
 // @Summary      Preguntas guardadas
@@ -97,14 +105,20 @@ func (h *Handler) Upcoming(c *gin.Context) {
 // @Tags         progress
 // @Security     BearerAuth
 // @Produce      json
-// @Param        page      query  int  false  "Número de página (default: 1)"
-// @Param        per_page  query  int  false  "Elementos por página (default: 20)"
+// @Param        page       query  int     false  "Número de página (default: 1)"
+// @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
+// @Param        sort_by    query  string  false  "Campo de ordenación: updated_at, repetitions, ease_factor"
+// @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
 // @Success      200  {object}  response.Meta  "Preguntas guardadas"
 // @Failure      401  {object}  apierr.APIError
+// @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/progress/saved [get]
 func (h *Handler) Saved(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	params, err := common.ParsePagination(c, savedSortConfig)
+	if err != nil {
+		response.ValidationError(c, err.Error(), c.Request.URL.Path)
+		return
+	}
 
 	userID, apiErr := getUserID(c)
 	if apiErr != nil {
@@ -113,13 +127,15 @@ func (h *Handler) Saved(c *gin.Context) {
 		return
 	}
 
-	items, total, err := h.service.Saved(userID, page, perPage)
+	items, total, err := h.service.Saved(userID, params.Page, params.PerPage, params.SortBy, params.SortOrder)
 	if err != nil {
-		response.Problem(c, err.(*apierr.APIError))
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
 		return
 	}
 
-	response.Paginated(c, http.StatusOK, items, response.Meta{Total: total, Page: page, PerPage: perPage})
+	response.Paginated(c, http.StatusOK, items, response.Meta{Total: total, Page: params.Page, PerPage: params.PerPage})
 }
 
 // @Summary      Marcar/desmarcar pregunta

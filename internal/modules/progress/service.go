@@ -13,8 +13,8 @@ import (
 
 type Service interface {
 	Answer(userID, questionID uuid.UUID, isCorrect bool) (*ProgressResponse, error)
-	Upcoming(userID uuid.UUID, page, perPage int) ([]UpcomingItem, int64, error)
-	Saved(userID uuid.UUID, page, perPage int) ([]UpcomingItem, int64, error)
+	Upcoming(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]UpcomingItem, int64, error)
+	Saved(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]UpcomingItem, int64, error)
 	ToggleSave(userID, questionID uuid.UUID) (*ProgressResponse, error)
 }
 
@@ -48,8 +48,8 @@ func (s *progressService) Answer(userID, questionID uuid.UUID, isCorrect bool) (
 	return toProgressResponse(p), nil
 }
 
-func (s *progressService) Upcoming(userID uuid.UUID, page, perPage int) ([]UpcomingItem, int64, error) {
-	items, total, err := s.store.FindUpcoming(userID, page, perPage)
+func (s *progressService) Upcoming(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]UpcomingItem, int64, error) {
+	items, total, err := s.store.FindUpcoming(userID, page, perPage, sortBy, sortOrder)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar las preguntas pendientes", "")
 	}
@@ -64,8 +64,8 @@ func (s *progressService) Upcoming(userID uuid.UUID, page, perPage int) ([]Upcom
 	return result, total, nil
 }
 
-func (s *progressService) Saved(userID uuid.UUID, page, perPage int) ([]UpcomingItem, int64, error) {
-	items, total, err := s.store.FindSaved(userID, page, perPage)
+func (s *progressService) Saved(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]UpcomingItem, int64, error) {
+	items, total, err := s.store.FindSaved(userID, page, perPage, sortBy, sortOrder)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar las preguntas guardadas", "")
 	}

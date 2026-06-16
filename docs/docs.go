@@ -170,8 +170,20 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Elementos por página (default: 20)",
+                        "description": "Elementos por página (default: 20, max: 100)",
                         "name": "per_page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo de ordenación: updated_at, repetitions, ease_factor",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Dirección: asc o desc (default: desc)",
+                        "name": "sort_order",
                         "in": "query"
                     }
                 ],
@@ -184,6 +196,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -215,8 +233,20 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Elementos por página (default: 20)",
+                        "description": "Elementos por página (default: 20, max: 100)",
                         "name": "per_page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo de ordenación: next_review_at, repetitions, ease_factor",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Dirección: asc o desc (default: asc)",
+                        "name": "sort_order",
                         "in": "query"
                     }
                 ],
@@ -229,6 +259,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -364,7 +400,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Elementos por página (default: 20)",
+                        "description": "Elementos por página (default: 20, max: 100)",
                         "name": "per_page",
                         "in": "query"
                     },
@@ -379,6 +415,18 @@ const docTemplate = `{
                         "description": "Filtrar por dificultad (beginner, intermediate, advanced)",
                         "name": "difficulty",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo de ordenación: type, difficulty, created_at, updated_at",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Dirección: asc o desc (default: desc)",
+                        "name": "sort_order",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -390,6 +438,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -643,8 +697,20 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Elementos por página (default: 20)",
+                        "description": "Elementos por página (default: 20, max: 100)",
                         "name": "per_page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo de ordenación: status, score, started_at, created_at",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Dirección: asc o desc (default: desc)",
+                        "name": "sort_order",
                         "in": "query"
                     }
                 ],
@@ -657,6 +723,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -945,8 +1017,20 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Elementos por página (default: 20)",
+                        "description": "Elementos por página (default: 20, max: 100)",
                         "name": "per_page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo de ordenación: name, slug, category, created_at",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Dirección: asc o desc (default: desc)",
+                        "name": "sort_order",
                         "in": "query"
                     }
                 ],
@@ -959,6 +1043,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -1218,8 +1308,20 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Elementos por página (default: 20)",
+                        "description": "Elementos por página (default: 20, max: 100)",
                         "name": "per_page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo de ordenación: email, created_at, updated_at",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Dirección: asc o desc (default: desc)",
+                        "name": "sort_order",
                         "in": "query"
                     }
                 ],
@@ -1238,6 +1340,12 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
