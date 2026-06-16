@@ -29,9 +29,7 @@ const formattedDate = computed(() => {
             <v-card-title class="text-h5">
               {{ authStore.user?.email }}
             </v-card-title>
-            <v-card-subtitle class="mt-1">
-              Miembro desde {{ formattedDate }}
-            </v-card-subtitle>
+            <v-card-subtitle class="mt-1"> Miembro desde {{ formattedDate }} </v-card-subtitle>
           </v-card-item>
           <v-card-text>
             <v-chip

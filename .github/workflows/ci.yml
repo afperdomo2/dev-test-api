@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  backend:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,3 +26,43 @@ jobs:
 
       - name: Build
         run: go build ./...
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Get pnpm store directory
+        id: pnpm-store
+        run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.store }}
+          key: pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: frontend
+
+      - name: Check formatting
+        run: pnpm prettier --check src/
+        working-directory: frontend
+
+      - name: Lint
+        run: pnpm eslint . --ext .vue,.ts,.tsx
+        working-directory: frontend
+
+      - name: Type check
+        run: pnpm type-check
+        working-directory: frontend

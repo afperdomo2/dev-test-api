@@ -2,7 +2,12 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { sessionDetailOptions, nextQuestionOptions, submitAnswerMutation, finishSessionMutation } from '@/queries/sessions.queries'
+import {
+  sessionDetailOptions,
+  nextQuestionOptions,
+  submitAnswerMutation,
+  finishSessionMutation,
+} from '@/queries/sessions.queries'
 import { useAppStore } from '@/stores/app.store'
 import { DIFFICULTY_COLORS, TYPE_ICONS } from '@/types/question.types'
 import type { SessionAnswer } from '@/types/session.types'
@@ -181,7 +186,10 @@ async function finishSession() {
                 :key="option.id"
                 :class="{
                   'bg-success-lighten-5': answerState === 'result' && isCorrectOption(option.id),
-                  'bg-error-lighten-5': answerState === 'result' && isSelected(option.id) && !isCorrectOption(option.id),
+                  'bg-error-lighten-5':
+                    answerState === 'result' &&
+                    isSelected(option.id) &&
+                    !isCorrectOption(option.id),
                 }"
                 rounded
                 class="mb-1"
@@ -237,10 +245,7 @@ async function finishSession() {
         <v-card v-if="answerState === 'result' && lastResult" class="mb-4">
           <v-card-item>
             <template #prepend>
-              <v-icon
-                :color="lastResult.isCorrect ? 'success' : 'error'"
-                size="32"
-              >
+              <v-icon :color="lastResult.isCorrect ? 'success' : 'error'" size="32">
                 {{ lastResult.isCorrect ? 'mdi-check-circle' : 'mdi-close-circle' }}
               </v-icon>
             </template>
@@ -253,19 +258,16 @@ async function finishSession() {
           </v-card-item>
           <v-card-actions>
             <v-spacer />
-            <v-btn color="primary" variant="text" @click="nextQuestion">
-              Siguiente pregunta
-            </v-btn>
+            <v-btn color="primary" variant="text" @click="nextQuestion"> Siguiente pregunta </v-btn>
           </v-card-actions>
         </v-card>
 
         <!-- Action buttons (before answer) -->
-        <div v-if="answerState === 'answering' || answerState === 'submitting'" class="d-flex ga-2 justify-end">
-          <v-btn
-            variant="tonal"
-            :disabled="answerState === 'submitting'"
-            @click="finishSession"
-          >
+        <div
+          v-if="answerState === 'answering' || answerState === 'submitting'"
+          class="d-flex ga-2 justify-end"
+        >
+          <v-btn variant="tonal" :disabled="answerState === 'submitting'" @click="finishSession">
             Finalizar sesión
           </v-btn>
           <v-btn

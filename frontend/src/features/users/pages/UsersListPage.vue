@@ -14,7 +14,10 @@ const queryClient = useQueryClient()
 const { page, perPage, reset: resetPagination } = usePagination()
 
 const { data, isLoading } = useQuery(
-  usersListOptions(() => page.value, () => perPage.value),
+  usersListOptions(
+    () => page.value,
+    () => perPage.value,
+  ),
 )
 
 const deleteMut = useMutation(deleteUserMutation())
@@ -66,7 +69,12 @@ async function executeDelete() {
 
     <v-card>
       <v-card-text>
-        <UserTable :users="userList" :loading="isLoading" :items-per-page="perPage" @delete="confirmDelete">
+        <UserTable
+          :users="userList"
+          :loading="isLoading"
+          :items-per-page="perPage"
+          @delete="confirmDelete"
+        >
           <template #footer>
             <PaginatedFooter
               :page="page"
@@ -92,11 +100,7 @@ async function executeDelete() {
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="deleteDialog = false"> Cancelar </v-btn>
-          <v-btn
-            color="error"
-            :loading="deleteMut.isPending.value"
-            @click="executeDelete"
-          >
+          <v-btn color="error" :loading="deleteMut.isPending.value" @click="executeDelete">
             Eliminar
           </v-btn>
         </v-card-actions>

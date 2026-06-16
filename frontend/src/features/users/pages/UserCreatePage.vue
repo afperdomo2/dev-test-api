@@ -31,12 +31,7 @@ async function handleSubmit(data: CreateUserRequest) {
 <template>
   <v-container>
     <div class="d-flex align-center mb-4">
-      <v-btn
-        icon="mdi-arrow-left"
-        variant="text"
-        to="/users"
-        class="mr-2"
-      />
+      <v-btn icon="mdi-arrow-left" variant="text" to="/users" class="mr-2" />
       <h1 class="text-h4">Crear usuario</h1>
     </div>
 

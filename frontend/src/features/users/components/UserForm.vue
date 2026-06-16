@@ -91,20 +91,8 @@ function reset() {
     />
 
     <div class="d-flex ga-2">
-      <v-btn
-        color="primary"
-        type="submit"
-        :loading="loading"
-      >
-        Crear usuario
-      </v-btn>
-      <v-btn
-        variant="text"
-        :disabled="loading"
-        @click="reset"
-      >
-        Limpiar
-      </v-btn>
+      <v-btn color="primary" type="submit" :loading="loading"> Crear usuario </v-btn>
+      <v-btn variant="text" :disabled="loading" @click="reset"> Limpiar </v-btn>
     </div>
   </v-form>
 </template>

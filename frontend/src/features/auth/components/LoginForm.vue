@@ -62,14 +62,7 @@ async function submit() {
       :disabled="loading"
       required
     />
-    <v-btn
-      color="primary"
-      block
-      type="submit"
-      :loading="loading"
-      size="large"
-      class="mt-2"
-    >
+    <v-btn color="primary" block type="submit" :loading="loading" size="large" class="mt-2">
       Iniciar sesión
     </v-btn>
   </v-form>

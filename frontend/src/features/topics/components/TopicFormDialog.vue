@@ -24,9 +24,7 @@ const { extractFieldErrors } = useFormErrors()
 
 const isEdit = computed(() => !!props.topic)
 
-const dialogTitle = computed(() =>
-  isEdit.value ? 'Editar tema' : 'Nuevo tema',
-)
+const dialogTitle = computed(() => (isEdit.value ? 'Editar tema' : 'Nuevo tema'))
 
 const form = ref<CreateTopicRequest>({
   slug: '',
@@ -134,7 +132,11 @@ function close() {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="480" @update:model-value="emit('update:modelValue', $event)">
+  <v-dialog
+    :model-value="modelValue"
+    max-width="480"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
     <v-card>
       <v-card-title>{{ dialogTitle }}</v-card-title>
 
@@ -173,11 +175,7 @@ function close() {
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" :disabled="saving" @click="close"> Cancelar </v-btn>
-        <v-btn
-          color="primary"
-          :loading="saving"
-          @click="submit"
-        >
+        <v-btn color="primary" :loading="saving" @click="submit">
           {{ isEdit ? 'Guardar' : 'Crear' }}
         </v-btn>
       </v-card-actions>

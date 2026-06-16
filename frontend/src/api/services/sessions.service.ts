@@ -42,9 +42,6 @@ export async function submitAnswer(
   sessionId: string,
   data: SubmitAnswerRequest,
 ): Promise<SessionAnswer> {
-  const res = await apiClient.post<SessionAnswer>(
-    `/api/v1/sessions/${sessionId}/answer`,
-    data,
-  )
+  const res = await apiClient.post<SessionAnswer>(`/api/v1/sessions/${sessionId}/answer`, data)
   return res.data
 }

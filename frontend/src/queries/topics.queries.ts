@@ -31,8 +31,13 @@ export function createTopicMutation() {
 export function updateTopicMutation() {
   return {
     mutationKey: ['topics', 'update'],
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof topicsService.updateTopic>[1] }) =>
-      topicsService.updateTopic(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string
+      data: Parameters<typeof topicsService.updateTopic>[1]
+    }) => topicsService.updateTopic(id, data),
   }
 }
 

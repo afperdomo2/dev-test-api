@@ -17,7 +17,10 @@ const queryClient = useQueryClient()
 const { page, perPage, reset: resetPagination } = usePagination()
 
 const { data, isLoading } = useQuery(
-  sessionsListOptions(() => page.value, () => perPage.value),
+  sessionsListOptions(
+    () => page.value,
+    () => perPage.value,
+  ),
 )
 
 const sessionList = computed<Array<Session>>(() => {
@@ -44,7 +47,10 @@ const creating = ref(false)
 const createMut = useMutation(createSessionMutation())
 
 const { data: topicsData } = useQuery(
-  topicsListOptions(() => 1, () => 100),
+  topicsListOptions(
+    () => 1,
+    () => 100,
+  ),
 )
 const topicItems = computed(() =>
   (topicsData.value?.data ?? []).map((t) => ({ title: t.name, value: t.id })),
@@ -54,7 +60,12 @@ function validateCreate(): boolean {
   const newErrors: Record<string, Array<string>> = {}
   newErrors.name = validateRules([requiredRule()], createForm.value.name)
   newErrors.topic_ids = validateRules(
-    [{ validate: () => createForm.value.topic_ids.length > 0, message: 'Selecciona al menos un tema' }],
+    [
+      {
+        validate: () => createForm.value.topic_ids.length > 0,
+        message: 'Selecciona al menos un tema',
+      },
+    ],
     '',
   )
   createErrors.value = newErrors
@@ -171,9 +182,7 @@ async function handleCreate() {
           <v-btn variant="text" :disabled="creating" @click="createDialog = false">
             Cancelar
           </v-btn>
-          <v-btn color="primary" :loading="creating" @click="handleCreate">
-            Crear sesión
-          </v-btn>
+          <v-btn color="primary" :loading="creating" @click="handleCreate"> Crear sesión </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

@@ -9,9 +9,7 @@ import { formatDateTime } from '@/utils/format'
 const route = useRoute()
 const questionId = computed(() => route.params.id as string)
 
-const { data: question, isLoading } = useQuery(
-  questionDetailOptions(() => questionId.value),
-)
+const { data: question, isLoading } = useQuery(questionDetailOptions(() => questionId.value))
 
 function typeLabel(type: string): string {
   const labels: Record<string, string> = {
@@ -64,17 +62,12 @@ function typeLabel(type: string): string {
         <v-card-title class="text-h6">Opciones</v-card-title>
         <v-card-text>
           <v-list density="compact">
-            <v-list-item
-              v-for="option in question.options"
-              :key="option.id"
-            >
+            <v-list-item v-for="option in question.options" :key="option.id">
               <template #prepend>
                 <v-icon v-if="option.isCorrect" color="success" size="small">
                   mdi-check-circle
                 </v-icon>
-                <v-icon v-else color="grey" size="small">
-                  mdi-circle-outline
-                </v-icon>
+                <v-icon v-else color="grey" size="small"> mdi-circle-outline </v-icon>
               </template>
               <v-list-item-title>{{ option.content }}</v-list-item-title>
             </v-list-item>
@@ -89,9 +82,9 @@ function typeLabel(type: string): string {
           <v-chip size="small" variant="tonal" class="mb-2">
             {{ question.codeChallenge.language }}
           </v-chip>
-          <pre
-            class="bg-grey-lighten-4 pa-4 rounded text-caption overflow-auto"
-          >{{ question.codeChallenge.starterCode }}</pre>
+          <pre class="bg-grey-lighten-4 pa-4 rounded text-caption overflow-auto">{{
+            question.codeChallenge.starterCode
+          }}</pre>
         </v-card-text>
       </v-card>
 

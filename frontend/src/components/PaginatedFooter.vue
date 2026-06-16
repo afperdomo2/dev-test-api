@@ -28,22 +28,22 @@ const to = computed(() => Math.min(props.page * props.perPage, props.total))
   <template v-if="inTable">
     <v-divider />
     <div class="d-flex align-center justify-space-between flex-wrap ga-2 pa-3">
-      <div class="d-flex align-center ga-2" style="white-space: nowrap;">
+      <div class="d-flex align-center ga-2" style="white-space: nowrap">
         <v-select
           :model-value="perPage"
           :items="ITEMS_PER_PAGE_OPTIONS as unknown as Array<number>"
           density="compact"
           variant="outlined"
           hide-details
-          style="min-width: 100px;"
+          style="min-width: 100px"
           @update:model-value="emit('update:perPage', $event as number)"
         />
-        <span class="text-body-2 text-medium-emphasis" style="white-space: nowrap;">
+        <span class="text-body-2 text-medium-emphasis" style="white-space: nowrap">
           registros por página
         </span>
       </div>
 
-      <span class="text-body-2 text-medium-emphasis" style="white-space: nowrap;">
+      <span class="text-body-2 text-medium-emphasis" style="white-space: nowrap">
         Mostrando {{ from }}–{{ to }} de {{ total }}
       </span>
 
@@ -61,22 +61,22 @@ const to = computed(() => Math.min(props.page * props.perPage, props.total))
 
   <v-card v-else variant="flat" border class="mt-4">
     <div class="d-flex align-center justify-space-between flex-wrap ga-2 pa-3">
-      <div class="d-flex align-center ga-2" style="white-space: nowrap;">
+      <div class="d-flex align-center ga-2" style="white-space: nowrap">
         <v-select
           :model-value="perPage"
           :items="ITEMS_PER_PAGE_OPTIONS as unknown as Array<number>"
           density="compact"
           variant="outlined"
           hide-details
-          style="min-width: 100px;"
+          style="min-width: 100px"
           @update:model-value="emit('update:perPage', $event as number)"
         />
-        <span class="text-body-2 text-medium-emphasis" style="white-space: nowrap;">
+        <span class="text-body-2 text-medium-emphasis" style="white-space: nowrap">
           registros por página
         </span>
       </div>
 
-      <span class="text-body-2 text-medium-emphasis" style="white-space: nowrap;">
+      <span class="text-body-2 text-medium-emphasis" style="white-space: nowrap">
         Mostrando {{ from }}–{{ to }} de {{ total }}
       </span>
 

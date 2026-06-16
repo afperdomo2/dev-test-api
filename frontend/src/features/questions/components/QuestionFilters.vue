@@ -10,9 +10,7 @@ const emit = defineEmits<{
 const selectedType = ref<string>('')
 const selectedDifficulty = ref<string>('')
 
-const hasFilters = computed(
-  () => !!selectedType.value || !!selectedDifficulty.value,
-)
+const hasFilters = computed(() => !!selectedType.value || !!selectedDifficulty.value)
 
 function updateFilters() {
   emit('change', {

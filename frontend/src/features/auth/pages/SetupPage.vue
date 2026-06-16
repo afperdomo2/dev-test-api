@@ -49,9 +49,7 @@ async function submit() {
   <v-container class="fill-height d-flex align-center justify-center">
     <v-card max-width="480" class="pa-sm-6 pa-4 w-100">
       <v-card-title class="text-center text-h5 mb-2">Configuración inicial</v-card-title>
-      <v-card-subtitle class="text-center mb-4">
-        Crea la cuenta de administrador
-      </v-card-subtitle>
+      <v-card-subtitle class="text-center mb-4"> Crea la cuenta de administrador </v-card-subtitle>
 
       <v-form @submit.prevent="submit">
         <v-text-field
@@ -70,14 +68,7 @@ async function submit() {
           :disabled="loading"
           required
         />
-        <v-btn
-          color="primary"
-          block
-          type="submit"
-          :loading="loading"
-          size="large"
-          class="mt-2"
-        >
+        <v-btn color="primary" block type="submit" :loading="loading" size="large" class="mt-2">
           Crear cuenta
         </v-btn>
       </v-form>

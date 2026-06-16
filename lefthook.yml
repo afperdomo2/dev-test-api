@@ -1,7 +1,11 @@
 pre-commit:
-  parallel: false
+  parallel: true
   commands:
     fmt:
       run: test -z "$(gofmt -l .)" || { echo "Unformatted files:"; gofmt -l .; exit 1; }
     vet:
       run: go vet ./...
+    fe-format:
+      run: cd frontend && pnpm prettier --write src/
+    fe-lint:
+      run: cd frontend && pnpm eslint . --ext .vue,.ts,.tsx

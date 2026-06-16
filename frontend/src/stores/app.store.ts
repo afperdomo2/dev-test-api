@@ -18,7 +18,10 @@ export const useAppStore = defineStore('app', () => {
     sidebarOpen.value = !sidebarOpen.value
   }
 
-  function showSnackbar(message: string, color: 'success' | 'error' | 'warning' | 'info' = 'success') {
+  function showSnackbar(
+    message: string,
+    color: 'success' | 'error' | 'warning' | 'info' = 'success',
+  ) {
     snackbar.value = { show: true, message, color }
   }
 

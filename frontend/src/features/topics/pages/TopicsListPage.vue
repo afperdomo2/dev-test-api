@@ -37,6 +37,11 @@ const topicList = computed<Array<Topic>>(() => {
 
 const totalTopics = computed(() => data.value?.meta?.total ?? 0)
 
+function onPerPageChange(val: number) {
+  perPage.value = val
+  page.value = 1
+}
+
 function handleRefresh() {
   resetPagination()
   queryClient.invalidateQueries({ queryKey: ['topics', 'list'] })
@@ -109,11 +114,7 @@ function canModify(topic: Topic): boolean {
           hover
         >
           <template #[`item.isSystem`]="{ item }">
-            <v-chip
-              :color="item.isSystem ? 'info' : 'success'"
-              size="small"
-              variant="tonal"
-            >
+            <v-chip :color="item.isSystem ? 'info' : 'success'" size="small" variant="tonal">
               {{ item.isSystem ? 'Sistema' : 'Custom' }}
             </v-chip>
           </template>
@@ -136,7 +137,10 @@ function canModify(topic: Topic): boolean {
                   @click="confirmDelete(item)"
                 />
               </template>
-              <v-tooltip v-else-if="item.isSystem" text="Los temas del sistema no se pueden modificar">
+              <v-tooltip
+                v-else-if="item.isSystem"
+                text="Los temas del sistema no se pueden modificar"
+              >
                 <template #activator="{ props }">
                   <span v-bind="props">
                     <v-btn
@@ -159,18 +163,14 @@ function canModify(topic: Topic): boolean {
               :total="totalTopics"
               :in-table="true"
               @update:page="page = $event"
-              @update:per-page="perPage = $event; page = 1"
+              @update:per-page="onPerPageChange"
             />
           </template>
         </v-data-table>
       </v-card-text>
     </v-card>
 
-    <TopicFormDialog
-      v-model="dialogOpen"
-      :topic="editingTopic"
-      @saved="dialogOpen = false"
-    />
+    <TopicFormDialog v-model="dialogOpen" :topic="editingTopic" @saved="dialogOpen = false" />
 
     <v-dialog v-model="deleteDialog" max-width="420">
       <v-card>
@@ -183,11 +183,7 @@ function canModify(topic: Topic): boolean {
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="deleteDialog = false"> Cancelar </v-btn>
-          <v-btn
-            color="error"
-            :loading="deleteMut.isPending.value"
-            @click="executeDelete"
-          >
+          <v-btn color="error" :loading="deleteMut.isPending.value" @click="executeDelete">
             Eliminar
           </v-btn>
         </v-card-actions>

@@ -2,10 +2,7 @@ import apiClient from '@/api/client'
 import type { User, CreateUserRequest } from '@/types/user.types'
 import type { PaginatedResponse } from '@/types/api.types'
 
-export async function listUsers(
-  page: number,
-  perPage: number,
-): Promise<PaginatedResponse<User>> {
+export async function listUsers(page: number, perPage: number): Promise<PaginatedResponse<User>> {
   const res = await apiClient.get<PaginatedResponse<User>>('/api/v1/users', {
     params: { page, per_page: perPage },
   })

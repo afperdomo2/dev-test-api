@@ -51,12 +51,7 @@ function truncate(text: string, max = 120): string {
 
     <v-card-text>
       <div v-if="question.topics.length" class="d-flex flex-wrap ga-1">
-        <v-chip
-          v-for="topic in question.topics"
-          :key="topic.id"
-          size="x-small"
-          variant="outlined"
-        >
+        <v-chip v-for="topic in question.topics" :key="topic.id" size="x-small" variant="outlined">
           {{ topic.name }}
         </v-chip>
       </div>

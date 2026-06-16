@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { upcomingQuestionsOptions, savedQuestionsOptions, toggleSaveMutation } from '@/queries/progress.queries'
+import {
+  upcomingQuestionsOptions,
+  savedQuestionsOptions,
+  toggleSaveMutation,
+} from '@/queries/progress.queries'
 import { useAppStore } from '@/stores/app.store'
 import { usePagination } from '@/composables/usePagination'
 import ListPageHeader from '@/components/ListPageHeader.vue'
@@ -99,13 +103,7 @@ async function handleToggle(questionId: string) {
       </v-row>
 
       <v-row v-else-if="currentList.length" class="ma-0">
-        <v-col
-          v-for="question in currentList"
-          :key="question.id"
-          cols="12"
-          sm="6"
-          lg="4"
-        >
+        <v-col v-for="question in currentList" :key="question.id" cols="12" sm="6" lg="4">
           <ProgressCard
             :question="question"
             :show-toggle="true"
@@ -121,7 +119,9 @@ async function handleToggle(questionId: string) {
           {{ activeTab === 'upcoming' ? 'mdi-calendar-check' : 'mdi-bookmark-outline' }}
         </v-icon>
         <p class="text-body-1 text-medium-emphasis">
-          {{ activeTab === 'upcoming' ? 'No hay repasos pendientes' : 'No tienes preguntas guardadas' }}
+          {{
+            activeTab === 'upcoming' ? 'No hay repasos pendientes' : 'No tienes preguntas guardadas'
+          }}
         </p>
       </v-card-text>
 

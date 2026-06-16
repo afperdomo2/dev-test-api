@@ -57,21 +57,13 @@ function handleRefresh() {
       </v-row>
 
       <v-row v-else-if="questionList.length" class="ma-0">
-        <v-col
-          v-for="question in questionList"
-          :key="question.id"
-          cols="12"
-          sm="6"
-          lg="4"
-        >
+        <v-col v-for="question in questionList" :key="question.id" cols="12" sm="6" lg="4">
           <QuestionCard :question="question" />
         </v-col>
       </v-row>
 
       <v-card-text v-else class="text-center py-8">
-        <v-icon size="48" color="grey-lighten-1" class="mb-2">
-          mdi-help-circle-outline
-        </v-icon>
+        <v-icon size="48" color="grey-lighten-1" class="mb-2"> mdi-help-circle-outline </v-icon>
         <p class="text-body-1 text-medium-emphasis">No se encontraron preguntas</p>
       </v-card-text>
 

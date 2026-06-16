@@ -24,9 +24,7 @@ const navItems: Array<NavItem> = [
   { title: 'Usuarios', to: '/users', icon: 'mdi-account-group', adminOnly: true },
 ]
 
-const filteredNav = computed(() =>
-  navItems.filter((item) => !item.adminOnly || authStore.isAdmin),
-)
+const filteredNav = computed(() => navItems.filter((item) => !item.adminOnly || authStore.isAdmin))
 
 function logout() {
   authStore.clearSession()
@@ -36,11 +34,7 @@ function logout() {
 
 <template>
   <v-app :theme="appStore.theme">
-    <v-navigation-drawer
-      v-model="appStore.sidebarOpen"
-      :permanent="true"
-      color="surface"
-    >
+    <v-navigation-drawer v-model="appStore.sidebarOpen" :permanent="true" color="surface">
       <v-list-item
         class="pa-4"
         prepend-icon="mdi-code-braces"
@@ -64,11 +58,7 @@ function logout() {
       <template #append>
         <v-divider />
         <v-list density="compact" nav class="pa-2">
-          <v-list-item
-            prepend-icon="mdi-logout"
-            title="Cerrar sesión"
-            @click="logout"
-          />
+          <v-list-item prepend-icon="mdi-logout" title="Cerrar sesión" @click="logout" />
         </v-list>
       </template>
     </v-navigation-drawer>
