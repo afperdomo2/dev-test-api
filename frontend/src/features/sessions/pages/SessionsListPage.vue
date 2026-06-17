@@ -54,7 +54,11 @@ const { data: topicsData } = useQuery(
   ),
 )
 const topicItems = computed(() =>
-  (topicsData.value?.data ?? []).map((t) => ({ title: t.name, value: t.id, props: { subtitle: t.category } })),
+  (topicsData.value?.data ?? []).map((t) => ({
+    title: t.name,
+    value: t.id,
+    props: { subtitle: t.category },
+  })),
 )
 
 function validateCreate(): boolean {
@@ -211,8 +215,6 @@ async function handleCreate() {
                 />
               </v-col>
             </v-row>
-
-            
 
             <v-select
               v-model="createForm.topic_ids"
