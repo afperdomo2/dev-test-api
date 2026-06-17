@@ -115,6 +115,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/auth/status": {
+            "get": {
+                "description": "Indica si el sistema ya fue inicializado (tiene al menos un usuario)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Estado del sistema",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.StatusResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/profile": {
             "get": {
                 "security": [
@@ -1673,6 +1693,14 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 8
+                }
+            }
+        },
+        "auth.StatusResponse": {
+            "type": "object",
+            "properties": {
+                "initialized": {
+                    "type": "boolean"
                 }
             }
         },

@@ -14,6 +14,10 @@ type SetupRequest struct {
 	Password string `json:"password" binding:"required,min=8,max=72"`
 }
 
+type StatusResponse struct {
+	Initialized bool `json:"initialized"`
+}
+
 type AuthResponse struct {
 	Token string             `json:"token"`
 	User  users.UserResponse `json:"user"`

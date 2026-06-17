@@ -43,6 +43,11 @@ definitions:
     - email
     - password
     type: object
+  auth.StatusResponse:
+    properties:
+      initialized:
+        type: boolean
+    type: object
   progress.AnswerRequest:
     properties:
       is_correct:
@@ -510,6 +515,19 @@ paths:
           schema:
             $ref: '#/definitions/apierr.APIError'
       summary: Inicializar sistema (primer usuario admin)
+      tags:
+      - auth
+  /api/v1/auth/status:
+    get:
+      description: Indica si el sistema ya fue inicializado (tiene al menos un usuario)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.StatusResponse'
+      summary: Estado del sistema
       tags:
       - auth
   /api/v1/profile:

@@ -10,6 +10,10 @@ export interface SetupRequest {
   password: string
 }
 
+export interface StatusResponse {
+  initialized: boolean
+}
+
 export interface AuthResponse {
   token: string
   user: User

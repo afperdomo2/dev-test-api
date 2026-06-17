@@ -44,6 +44,24 @@ func (h *Handler) Setup(c *gin.Context) {
 	response.Success(c, http.StatusCreated, res)
 }
 
+// @Summary      Estado del sistema
+// @Description  Indica si el sistema ya fue inicializado (tiene al menos un usuario)
+// @Tags         auth
+// @Produce      json
+// @Success      200  {object}  StatusResponse
+// @Router       /api/v1/auth/status [get]
+func (h *Handler) Status(c *gin.Context) {
+	res, err := h.service.Initialized()
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, res)
+}
+
 // @Summary      Iniciar sesión
 // @Description  Autentica un usuario y devuelve un token JWT
 // @Tags         auth

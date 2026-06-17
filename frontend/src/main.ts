@@ -15,6 +15,7 @@ async function bootstrap() {
   const { useAuthStore } = await import('@/stores/auth.store')
   const authStore = useAuthStore()
   await authStore.initSession()
+  await authStore.checkStatus()
 
   app.use(router)
   app.use(vuetify)

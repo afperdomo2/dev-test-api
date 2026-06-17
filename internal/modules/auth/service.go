@@ -16,6 +16,7 @@ import (
 type Service interface {
 	Setup(email, password string) (*AuthResponse, error)
 	Login(email, password string) (*AuthResponse, error)
+	Initialized() (*StatusResponse, error)
 }
 
 type authService struct {
@@ -98,6 +99,14 @@ func (s *authService) Login(email, password string) (*AuthResponse, error) {
 		Token: token,
 		User:  users.ToUserResponse(*user),
 	}, nil
+}
+
+func (s *authService) Initialized() (*StatusResponse, error) {
+	count, err := s.store.Count()
+	if err != nil {
+		return nil, apierr.ErrInternal("Error al verificar el estado del sistema", "")
+	}
+	return &StatusResponse{Initialized: count > 0}, nil
 }
 
 func (s *authService) generateToken(user *models.User) (string, error) {

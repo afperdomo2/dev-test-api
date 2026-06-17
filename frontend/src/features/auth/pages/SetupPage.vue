@@ -30,9 +30,10 @@ async function submit() {
   if (!validate()) return
   loading.value = true
   try {
-    const res = await setupApi(form.value)
-    authStore.setSession(res.token, res.user)
-    router.push('/')
+    await setupApi(form.value)
+    authStore.needsSetup = false
+    appStore.showSnackbar('Cuenta creada correctamente. Inicia sesión.', 'success')
+    router.push('/login')
   } catch (err: unknown) {
     const detail =
       err && typeof err === 'object' && 'detail' in err
