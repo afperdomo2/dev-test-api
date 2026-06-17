@@ -54,7 +54,7 @@ const { data: topicsData } = useQuery(
   ),
 )
 const topicItems = computed(() =>
-  (topicsData.value?.data ?? []).map((t) => ({ title: t.name, value: t.id })),
+  (topicsData.value?.data ?? []).map((t) => ({ title: t.name, value: t.id, props: { subtitle: t.category } })),
 )
 
 function validateCreate(): boolean {
@@ -161,7 +161,7 @@ async function handleCreate() {
     </v-card>
 
     <!-- Create Session Dialog -->
-    <v-dialog v-model="createDialog" max-width="480">
+    <v-dialog v-model="createDialog" max-width="640">
       <v-card>
         <v-card-title>Nueva sesión de estudio</v-card-title>
         <v-card-text>
@@ -175,38 +175,51 @@ async function handleCreate() {
               placeholder="Ej: Repaso de Go"
             />
 
-            <v-select
-              v-model="createForm.mode"
-              label="Modo"
-              :items="SESSION_MODES"
-              :disabled="creating"
-              required
-            />
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-select
+                  v-model="createForm.mode"
+                  label="Modo"
+                  :items="SESSION_MODES"
+                  :disabled="creating"
+                  required
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-select
+                  v-model="createForm.difficulty"
+                  label="Dificultad"
+                  :items="SESSION_DIFFICULTIES"
+                  :disabled="creating"
+                  required
+                />
+              </v-col>
+            </v-row>
 
-            <v-select
-              v-model="createForm.difficulty"
-              label="Dificultad"
-              :items="SESSION_DIFFICULTIES"
-              :disabled="creating"
-              required
-            />
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model.number="createForm.question_limit"
+                  label="Limite de preguntas (opcional)"
+                  type="number"
+                  min="1"
+                  max="50"
+                  :error-messages="createErrors.question_limit"
+                  :disabled="creating"
+                  hint="Deja en blanco para preguntas ilimitadas"
+                  persistent-hint
+                />
+              </v-col>
+            </v-row>
 
-            <v-text-field
-              v-model.number="createForm.question_limit"
-              label="Limite de preguntas (opcional)"
-              type="number"
-              min="1"
-              max="50"
-              :error-messages="createErrors.question_limit"
-              :disabled="creating"
-              hint="Deja en blanco para preguntas ilimitadas"
-              persistent-hint
-            />
+            
 
             <v-select
               v-model="createForm.topic_ids"
               label="Temas"
               :items="topicItems"
+              item-title="title"
+              item-props="props"
               :error-messages="createErrors.topic_ids"
               :disabled="creating"
               multiple
