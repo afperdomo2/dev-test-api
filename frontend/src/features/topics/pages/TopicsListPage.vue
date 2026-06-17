@@ -88,7 +88,8 @@ async function executeDelete() {
 }
 
 function canModify(topic: Topic): boolean {
-  return authStore.isAdmin && !topic.isSystem
+  if (authStore.isAdmin) return topic.isSystem
+  return !topic.isSystem
 }
 </script>
 
@@ -97,7 +98,7 @@ function canModify(topic: Topic): boolean {
     <ListPageHeader
       title="Temas"
       create-label="Nuevo tema"
-      :show-create="authStore.isAdmin"
+      :show-create="true"
       @refresh="handleRefresh"
       @create="openCreate"
     />

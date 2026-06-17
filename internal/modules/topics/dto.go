@@ -25,13 +25,24 @@ type UpdateTopicRequest struct {
 }
 
 type TopicResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Slug      string    `json:"slug"`
-	Name      string    `json:"name"`
-	Category  string    `json:"category"`
-	IsSystem  bool      `json:"is_system"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        uuid.UUID  `json:"id"`
+	Slug      string     `json:"slug"`
+	Name      string     `json:"name"`
+	Category  string     `json:"category"`
+	IsSystem  bool       `json:"is_system"`
+	CreatedBy *uuid.UUID `json:"created_by,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+type TopicListResponse struct {
+	ID        uuid.UUID  `json:"id"`
+	Slug      string     `json:"slug"`
+	Name      string     `json:"name"`
+	Category  string     `json:"category"`
+	IsSystem  bool       `json:"is_system"`
+	CreatedBy *uuid.UUID `json:"created_by,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
 }
 
 func ToTopicResponse(t models.Topic) TopicResponse {
@@ -41,7 +52,20 @@ func ToTopicResponse(t models.Topic) TopicResponse {
 		Name:      t.Name,
 		Category:  t.Category,
 		IsSystem:  t.IsSystem,
+		CreatedBy: t.CreatedBy,
 		CreatedAt: t.CreatedAt,
 		UpdatedAt: t.UpdatedAt,
+	}
+}
+
+func ToTopicListResponse(t models.Topic) TopicListResponse {
+	return TopicListResponse{
+		ID:        t.ID,
+		Slug:      t.Slug,
+		Name:      t.Name,
+		Category:  t.Category,
+		IsSystem:  t.IsSystem,
+		CreatedBy: t.CreatedBy,
+		CreatedAt: t.CreatedAt,
 	}
 }

@@ -13,7 +13,7 @@ import (
 )
 
 type Service interface {
-	List(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]SessionResponse, int64, error)
+	List(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]SessionListResponse, int64, error)
 	GetByID(sessionID uuid.UUID) (*SessionDetailResponse, error)
 	Create(userID uuid.UUID, input CreateSessionRequest) (*SessionResponse, error)
 	Finish(sessionID uuid.UUID) (*SessionResponse, error)
@@ -30,15 +30,15 @@ func NewService(store Store, progressService progress.Service) Service {
 	return &sessionService{store: store, progressService: progressService}
 }
 
-func (s *sessionService) List(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]SessionResponse, int64, error) {
+func (s *sessionService) List(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]SessionListResponse, int64, error) {
 	sessions, total, err := s.store.FindPage(userID, page, perPage, sortBy, sortOrder)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar las sesiones", "")
 	}
 
-	result := make([]SessionResponse, len(sessions))
+	result := make([]SessionListResponse, len(sessions))
 	for i, sess := range sessions {
-		result[i] = toSessionResponse(sess)
+		result[i] = toSessionListResponse(sess)
 	}
 	return result, total, nil
 }

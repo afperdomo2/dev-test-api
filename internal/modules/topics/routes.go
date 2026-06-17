@@ -7,11 +7,11 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler) {
 	{
 		t.GET("", h.List)
 		t.GET("/:id", h.Get)
+		t.POST("", h.Create)
+		t.PUT("/:id", h.Update)
+		t.DELETE("/:id", h.Delete)
 	}
 }
 
 func RegisterAdminRoutes(rg *gin.RouterGroup, h *Handler) {
-	rg.POST("/topics", h.Create)
-	rg.PUT("/topics/:id", h.Update)
-	rg.DELETE("/topics/:id", h.Delete)
 }

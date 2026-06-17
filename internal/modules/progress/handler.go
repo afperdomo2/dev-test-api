@@ -62,7 +62,7 @@ func (h *Handler) Answer(c *gin.Context) {
 	response.Success(c, http.StatusOK, resp)
 }
 
-// @Summary      Preguntas pendientes
+// @Summary      Preguntas pendientes (con paginación)
 // @Description  Lista las preguntas marcadas para repasar cuyo próximo repaso es hoy
 // @Tags         progress
 // @Security     BearerAuth
@@ -71,7 +71,7 @@ func (h *Handler) Answer(c *gin.Context) {
 // @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
 // @Param        sort_by    query  string  false  "Campo de ordenación: next_review_at, repetitions, ease_factor"
 // @Param        sort_order query  string  false  "Dirección: asc o desc (default: asc)"
-// @Success      200  {object}  response.Meta  "Preguntas pendientes"
+// @Success      200  {object}  response.Meta  "Preguntas pendientes (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/progress/upcoming [get]
@@ -100,7 +100,7 @@ func (h *Handler) Upcoming(c *gin.Context) {
 	response.Paginated(c, http.StatusOK, items, response.Meta{Total: total, Page: params.Page, PerPage: params.PerPage})
 }
 
-// @Summary      Preguntas guardadas
+// @Summary      Preguntas guardadas (con paginación)
 // @Description  Lista todas las preguntas que el usuario ha guardado para repasar
 // @Tags         progress
 // @Security     BearerAuth
@@ -109,7 +109,7 @@ func (h *Handler) Upcoming(c *gin.Context) {
 // @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
 // @Param        sort_by    query  string  false  "Campo de ordenación: updated_at, repetitions, ease_factor"
 // @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
-// @Success      200  {object}  response.Meta  "Preguntas guardadas"
+// @Success      200  {object}  response.Meta  "Preguntas guardadas (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/progress/saved [get]

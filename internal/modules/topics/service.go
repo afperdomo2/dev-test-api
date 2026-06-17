@@ -8,11 +8,11 @@ import (
 )
 
 type Service interface {
-	List(page, perPage int, sortBy, sortOrder string) ([]TopicResponse, int64, error)
-	GetByID(id uuid.UUID) (*TopicResponse, error)
-	Create(userID uuid.UUID, input CreateTopicRequest) (*TopicResponse, error)
-	Update(id uuid.UUID, input UpdateTopicRequest) (*TopicResponse, error)
-	Delete(id uuid.UUID) error
+	List(page, perPage int, sortBy, sortOrder string, isAdmin bool, userID uuid.UUID) ([]TopicListResponse, int64, error)
+	GetByID(id uuid.UUID, isAdmin bool, userID uuid.UUID) (*TopicResponse, error)
+	Create(userID uuid.UUID, input CreateTopicRequest, isAdmin bool) (*TopicResponse, error)
+	Update(id uuid.UUID, input UpdateTopicRequest, isAdmin bool, userID uuid.UUID) (*TopicResponse, error)
+	Delete(id uuid.UUID, isAdmin bool, userID uuid.UUID) error
 }
 
 type topicService struct {
@@ -23,20 +23,20 @@ func NewService(store Store) Service {
 	return &topicService{store: store}
 }
 
-func (s *topicService) List(page, perPage int, sortBy, sortOrder string) ([]TopicResponse, int64, error) {
-	topics, total, err := s.store.FindPage(page, perPage, sortBy, sortOrder)
+func (s *topicService) List(page, perPage int, sortBy, sortOrder string, isAdmin bool, userID uuid.UUID) ([]TopicListResponse, int64, error) {
+	topics, total, err := s.store.FindPageFiltered(page, perPage, sortBy, sortOrder, isAdmin, userID)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar los temas", "")
 	}
 
-	result := make([]TopicResponse, len(topics))
+	result := make([]TopicListResponse, len(topics))
 	for i, t := range topics {
-		result[i] = ToTopicResponse(t)
+		result[i] = ToTopicListResponse(t)
 	}
 	return result, total, nil
 }
 
-func (s *topicService) GetByID(id uuid.UUID) (*TopicResponse, error) {
+func (s *topicService) GetByID(id uuid.UUID, isAdmin bool, userID uuid.UUID) (*TopicResponse, error) {
 	topic, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -45,11 +45,21 @@ func (s *topicService) GetByID(id uuid.UUID) (*TopicResponse, error) {
 		return nil, apierr.ErrInternal("Error al obtener el tema", "")
 	}
 
+	if isAdmin {
+		if !topic.IsSystem {
+			return nil, apierr.ErrNotFound("Tema", "")
+		}
+	} else {
+		if !topic.IsSystem && (topic.CreatedBy == nil || *topic.CreatedBy != userID) {
+			return nil, apierr.ErrNotFound("Tema", "")
+		}
+	}
+
 	resp := ToTopicResponse(*topic)
 	return &resp, nil
 }
 
-func (s *topicService) Create(userID uuid.UUID, input CreateTopicRequest) (*TopicResponse, error) {
+func (s *topicService) Create(userID uuid.UUID, input CreateTopicRequest, isAdmin bool) (*TopicResponse, error) {
 	existing, _ := s.store.FindBySlugAndUser(input.Slug, nil)
 	if existing != nil && existing.IsSystem {
 		return nil, apierr.ErrConflict(
@@ -69,11 +79,17 @@ func (s *topicService) Create(userID uuid.UUID, input CreateTopicRequest) (*Topi
 	}
 
 	topic := &models.Topic{
-		Slug:      input.Slug,
-		Name:      input.Name,
-		Category:  input.Category,
-		IsSystem:  false,
-		CreatedBy: &userID,
+		Slug:     input.Slug,
+		Name:     input.Name,
+		Category: input.Category,
+	}
+
+	if isAdmin {
+		topic.IsSystem = true
+		topic.CreatedBy = nil
+	} else {
+		topic.IsSystem = false
+		topic.CreatedBy = &userID
 	}
 
 	if err := s.store.Create(topic); err != nil {
@@ -84,13 +100,23 @@ func (s *topicService) Create(userID uuid.UUID, input CreateTopicRequest) (*Topi
 	return &resp, nil
 }
 
-func (s *topicService) Update(id uuid.UUID, input UpdateTopicRequest) (*TopicResponse, error) {
+func (s *topicService) Update(id uuid.UUID, input UpdateTopicRequest, isAdmin bool, userID uuid.UUID) (*TopicResponse, error) {
 	topic, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, apierr.ErrNotFound("Tema", "")
 		}
 		return nil, apierr.ErrInternal("Error al obtener el tema", "")
+	}
+
+	if isAdmin {
+		if !topic.IsSystem {
+			return nil, apierr.ErrForbidden("No tienes permisos para modificar este tema", "")
+		}
+	} else {
+		if topic.IsSystem || topic.CreatedBy == nil || *topic.CreatedBy != userID {
+			return nil, apierr.ErrForbidden("No tienes permisos para modificar este tema", "")
+		}
 	}
 
 	if input.Name != "" {
@@ -108,13 +134,23 @@ func (s *topicService) Update(id uuid.UUID, input UpdateTopicRequest) (*TopicRes
 	return &resp, nil
 }
 
-func (s *topicService) Delete(id uuid.UUID) error {
-	_, err := s.store.FindByID(id)
+func (s *topicService) Delete(id uuid.UUID, isAdmin bool, userID uuid.UUID) error {
+	topic, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return apierr.ErrNotFound("Tema", "")
 		}
 		return apierr.ErrInternal("Error al obtener el tema", "")
+	}
+
+	if isAdmin {
+		if !topic.IsSystem {
+			return apierr.ErrForbidden("No tienes permisos para eliminar este tema", "")
+		}
+	} else {
+		if topic.IsSystem || topic.CreatedBy == nil || *topic.CreatedBy != userID {
+			return apierr.ErrForbidden("No tienes permisos para eliminar este tema", "")
+		}
 	}
 
 	if err := s.store.Delete(id); err != nil {

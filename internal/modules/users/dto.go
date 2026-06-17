@@ -32,6 +32,13 @@ type UserResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type UserListResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	IsAdmin   bool      `json:"is_admin"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 func ToUserResponse(u models.User) UserResponse {
 	return UserResponse{
 		ID:        u.ID,
@@ -39,5 +46,14 @@ func ToUserResponse(u models.User) UserResponse {
 		IsAdmin:   u.IsAdmin,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
+	}
+}
+
+func ToUserListResponse(u models.User) UserListResponse {
+	return UserListResponse{
+		ID:        u.ID,
+		Email:     u.Email,
+		IsAdmin:   u.IsAdmin,
+		CreatedAt: u.CreatedAt,
 	}
 }

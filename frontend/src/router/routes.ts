@@ -45,11 +45,13 @@ export const routes: Array<RouteRecordRaw> = [
         path: 'questions',
         name: 'QuestionsList',
         component: () => import('@/features/questions/pages/QuestionsListPage.vue'),
+        meta: { requiresNotAdmin: true },
       },
       {
         path: 'questions/:id',
         name: 'QuestionDetail',
         component: () => import('@/features/questions/pages/QuestionDetailPage.vue'),
+        meta: { requiresNotAdmin: true },
       },
       {
         path: 'topics',
@@ -60,16 +62,19 @@ export const routes: Array<RouteRecordRaw> = [
         path: 'sessions',
         name: 'SessionsList',
         component: () => import('@/features/sessions/pages/SessionsListPage.vue'),
+        meta: { requiresNotAdmin: true },
       },
       {
         path: 'sessions/:id/study',
         name: 'SessionStudy',
         component: () => import('@/features/sessions/pages/SessionStudyPage.vue'),
+        meta: { requiresNotAdmin: true },
       },
       {
         path: 'progress',
         name: 'Progress',
         component: () => import('@/features/progress/pages/ProgressPage.vue'),
+        meta: { requiresNotAdmin: true },
       },
     ],
   },

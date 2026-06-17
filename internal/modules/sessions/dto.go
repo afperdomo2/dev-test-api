@@ -48,6 +48,22 @@ type SessionResponse struct {
 	UpdatedAt     time.Time   `json:"updated_at"`
 }
 
+type SessionListResponse struct {
+	ID            uuid.UUID   `json:"id"`
+	UserID        uuid.UUID   `json:"user_id"`
+	Name          string      `json:"name"`
+	Status        string      `json:"status"`
+	Mode          string      `json:"mode"`
+	Difficulty    string      `json:"difficulty"`
+	QuestionLimit *int        `json:"question_limit,omitempty"`
+	Score         *float64    `json:"score,omitempty"`
+	StartedAt     time.Time   `json:"started_at"`
+	FinishedAt    *time.Time  `json:"finished_at,omitempty"`
+	Topics        []TopicInfo `json:"topics"`
+	AnswerCount   int         `json:"answer_count"`
+	CreatedAt     time.Time   `json:"created_at"`
+}
+
 type SessionDetailResponse struct {
 	Session SessionResponse         `json:"session"`
 	Answers []SessionAnswerResponse `json:"answers"`
@@ -95,6 +111,28 @@ func toSessionResponse(s models.Session) SessionResponse {
 		AnswerCount:   len(s.Answers),
 		CreatedAt:     s.CreatedAt,
 		UpdatedAt:     s.UpdatedAt,
+	}
+}
+
+func toSessionListResponse(s models.Session) SessionListResponse {
+	topics := make([]TopicInfo, len(s.Topics))
+	for i, t := range s.Topics {
+		topics[i] = TopicInfo{ID: t.ID, Slug: t.Slug, Name: t.Name}
+	}
+	return SessionListResponse{
+		ID:            s.ID,
+		UserID:        s.UserID,
+		Name:          s.Name,
+		Status:        s.Status,
+		Mode:          s.Mode,
+		Difficulty:    s.Difficulty,
+		QuestionLimit: s.QuestionLimit,
+		Score:         s.Score,
+		StartedAt:     s.StartedAt,
+		FinishedAt:    s.FinishedAt,
+		Topics:        topics,
+		AnswerCount:   len(s.Answers),
+		CreatedAt:     s.CreatedAt,
 	}
 }
 

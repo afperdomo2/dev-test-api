@@ -19,7 +19,7 @@ func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// @Summary      Listar preguntas
+// @Summary      Listar preguntas (con paginación)
 // @Description  Lista todas las preguntas disponibles, con filtros opcionales
 // @Tags         questions
 // @Security     BearerAuth
@@ -30,7 +30,7 @@ func NewHandler(service Service) *Handler {
 // @Param        difficulty query  string  false  "Filtrar por dificultad (beginner, intermediate, advanced)"
 // @Param        sort_by    query  string  false  "Campo de ordenación: type, difficulty, created_at, updated_at"
 // @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
-// @Success      200  {object}  response.Meta  "Lista de preguntas"
+// @Success      200  {object}  response.Meta  "Lista de preguntas (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/questions [get]

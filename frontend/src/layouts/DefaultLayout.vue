@@ -13,18 +13,24 @@ interface NavItem {
   to: string
   icon: string
   adminOnly?: boolean
+  userOnly?: boolean
 }
 
 const navItems: Array<NavItem> = [
   { title: 'Dashboard', to: '/', icon: 'mdi-view-dashboard' },
-  { title: 'Preguntas', to: '/questions', icon: 'mdi-help-circle' },
+  { title: 'Preguntas', to: '/questions', icon: 'mdi-help-circle', userOnly: true },
   { title: 'Temas', to: '/topics', icon: 'mdi-tag' },
-  { title: 'Sesiones', to: '/sessions', icon: 'mdi-play-circle' },
-  { title: 'Progreso', to: '/progress', icon: 'mdi-chart-line' },
+  { title: 'Sesiones', to: '/sessions', icon: 'mdi-play-circle', userOnly: true },
+  { title: 'Progreso', to: '/progress', icon: 'mdi-chart-line', userOnly: true },
   { title: 'Usuarios', to: '/users', icon: 'mdi-account-group', adminOnly: true },
 ]
 
-const filteredNav = computed(() => navItems.filter((item) => !item.adminOnly || authStore.isAdmin))
+const filteredNav = computed(() =>
+  navItems.filter(
+    (item) =>
+      (item.adminOnly ? authStore.isAdmin : true) && (item.userOnly ? !authStore.isAdmin : true),
+  ),
+)
 
 function logout() {
   authStore.clearSession()

@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	List(page, perPage int, sortBy, sortOrder string, filters QuestionFilters) ([]QuestionResponse, int64, error)
+	List(page, perPage int, sortBy, sortOrder string, filters QuestionFilters) ([]QuestionListResponse, int64, error)
 	GetByID(id uuid.UUID) (*QuestionResponse, error)
 	Create(userID uuid.UUID, input CreateQuestionRequest) (*QuestionResponse, error)
 	Update(id uuid.UUID, input UpdateQuestionRequest) (*QuestionResponse, error)
@@ -23,15 +23,15 @@ func NewService(store Store) Service {
 	return &questionService{store: store}
 }
 
-func (s *questionService) List(page, perPage int, sortBy, sortOrder string, filters QuestionFilters) ([]QuestionResponse, int64, error) {
+func (s *questionService) List(page, perPage int, sortBy, sortOrder string, filters QuestionFilters) ([]QuestionListResponse, int64, error) {
 	questions, total, err := s.store.FindPage(page, perPage, sortBy, sortOrder, filters)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar las preguntas", "")
 	}
 
-	result := make([]QuestionResponse, len(questions))
+	result := make([]QuestionListResponse, len(questions))
 	for i, q := range questions {
-		result[i] = ToQuestionResponse(q)
+		result[i] = ToQuestionListResponse(q)
 	}
 	return result, total, nil
 }

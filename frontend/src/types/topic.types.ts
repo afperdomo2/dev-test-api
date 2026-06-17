@@ -21,8 +21,8 @@ export interface Topic {
   name: string
   category: string
   isSystem: boolean
+  createdBy?: string
   createdAt: string
-  updatedAt: string
 }
 
 export interface CreateTopicRequest {

@@ -67,7 +67,6 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		admin.Use(middleware.AdminOnly())
 		{
 			users.RegisterAdminRoutes(admin, userHandler)
-			topics.RegisterAdminRoutes(admin, topicHandler)
 			questions.RegisterAdminRoutes(admin, questionHandler)
 		}
 	}

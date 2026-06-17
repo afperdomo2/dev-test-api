@@ -19,7 +19,7 @@ func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// @Summary      Listar usuarios (Admin)
+// @Summary      Listar usuarios (con paginación) (Admin)
 // @Description  Lista todos los usuarios
 // @Tags         users
 // @Security     BearerAuth
@@ -28,7 +28,7 @@ func NewHandler(service Service) *Handler {
 // @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
 // @Param        sort_by    query  string  false  "Campo de ordenación: email, created_at, updated_at"
 // @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
-// @Success      200  {object}  response.Meta  "Lista de usuarios"
+// @Success      200  {object}  response.Meta  "Lista de usuarios (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      403  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
@@ -48,9 +48,9 @@ func (h *Handler) List(c *gin.Context) {
 		return
 	}
 
-	result := make([]UserResponse, len(users))
+	result := make([]UserListResponse, len(users))
 	for i, u := range users {
-		result[i] = ToUserResponse(u)
+		result[i] = ToUserListResponse(u)
 	}
 
 	response.Paginated(c, http.StatusOK, result, response.Meta{Total: total, Page: params.Page, PerPage: params.PerPage})

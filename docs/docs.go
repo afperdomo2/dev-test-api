@@ -180,7 +180,7 @@ const docTemplate = `{
                 "tags": [
                     "progress"
                 ],
-                "summary": "Preguntas guardadas",
+                "summary": "Preguntas guardadas (con paginación)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -209,7 +209,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Preguntas guardadas",
+                        "description": "Preguntas guardadas (con paginación)",
                         "schema": {
                             "$ref": "#/definitions/response.Meta"
                         }
@@ -243,7 +243,7 @@ const docTemplate = `{
                 "tags": [
                     "progress"
                 ],
-                "summary": "Preguntas pendientes",
+                "summary": "Preguntas pendientes (con paginación)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -272,7 +272,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Preguntas pendientes",
+                        "description": "Preguntas pendientes (con paginación)",
                         "schema": {
                             "$ref": "#/definitions/response.Meta"
                         }
@@ -410,7 +410,7 @@ const docTemplate = `{
                 "tags": [
                     "questions"
                 ],
-                "summary": "Listar preguntas",
+                "summary": "Listar preguntas (con paginación)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -451,7 +451,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de preguntas",
+                        "description": "Lista de preguntas (con paginación)",
                         "schema": {
                             "$ref": "#/definitions/response.Meta"
                         }
@@ -707,7 +707,7 @@ const docTemplate = `{
                 "tags": [
                     "sessions"
                 ],
-                "summary": "Listar sesiones",
+                "summary": "Listar sesiones (con paginación)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -736,7 +736,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de sesiones",
+                        "description": "Lista de sesiones (con paginación)",
                         "schema": {
                             "$ref": "#/definitions/response.Meta"
                         }
@@ -1020,14 +1020,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista todos los temas disponibles",
+                "description": "Lista los temas según el rol del usuario. Admin ve solo temas del sistema (is_system=true). Usuarios normales ven solo sus propios temas personalizados (is_system=false).",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "topics"
                 ],
-                "summary": "Listar temas",
+                "summary": "Listar temas (con paginación)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1056,7 +1056,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de temas",
+                        "description": "Lista de temas (con paginación)",
                         "schema": {
                             "$ref": "#/definitions/response.Meta"
                         }
@@ -1081,7 +1081,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo tema personalizado",
+                "description": "Crea un nuevo tema. Admin crea temas del sistema (is_system=true), usuarios normales crean temas personalizados (is_system=false).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1091,7 +1091,7 @@ const docTemplate = `{
                 "tags": [
                     "topics"
                 ],
-                "summary": "Crear tema (Admin)",
+                "summary": "Crear tema",
                 "parameters": [
                     {
                         "description": "Datos del tema",
@@ -1122,12 +1122,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/apierr.APIError"
                         }
                     },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/apierr.APIError"
-                        }
-                    },
                     "409": {
                         "description": "Conflict",
                         "schema": {
@@ -1144,7 +1138,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene un tema por ID",
+                "description": "Obtiene un tema por ID. Admin solo puede ver temas del sistema (is_system=true). Usuarios normales pueden ver temas del sistema y sus propios temas.",
                 "produces": [
                     "application/json"
                 ],
@@ -1188,7 +1182,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza un tema existente",
+                "description": "Actualiza un tema existente. Admin solo puede modificar temas del sistema (is_system=true). Usuarios normales solo pueden modificar sus propios temas (is_system=false).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1198,7 +1192,7 @@ const docTemplate = `{
                 "tags": [
                     "topics"
                 ],
-                "summary": "Actualizar tema (Admin)",
+                "summary": "Actualizar tema",
                 "parameters": [
                     {
                         "type": "string",
@@ -1256,14 +1250,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un tema",
+                "description": "Elimina un tema. Admin solo puede eliminar temas del sistema (is_system=true). Usuarios normales solo pueden eliminar sus propios temas (is_system=false).",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "topics"
                 ],
-                "summary": "Eliminar tema (Admin)",
+                "summary": "Eliminar tema",
                 "parameters": [
                     {
                         "type": "string",
@@ -1318,7 +1312,7 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Listar usuarios (Admin)",
+                "summary": "Listar usuarios (con paginación) (Admin)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1347,7 +1341,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de usuarios",
+                        "description": "Lista de usuarios (con paginación)",
                         "schema": {
                             "$ref": "#/definitions/response.Meta"
                         }
@@ -2201,6 +2195,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
                     "type": "string"
                 },
                 "id": {

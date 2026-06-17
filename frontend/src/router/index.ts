@@ -7,6 +7,7 @@ declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean
     requiresAdmin?: boolean
+    requiresNotAdmin?: boolean
     layout?: string
   }
 }
@@ -35,6 +36,10 @@ router.beforeEach((to, _from) => {
   }
 
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    return { path: '/' }
+  }
+
+  if (to.meta.requiresNotAdmin && authStore.isAdmin) {
     return { path: '/' }
   }
 

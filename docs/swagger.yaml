@@ -385,6 +385,8 @@ definitions:
         type: string
       created_at:
         type: string
+      created_by:
+        type: string
       id:
         type: string
       is_system:
@@ -640,7 +642,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Preguntas guardadas
+          description: Preguntas guardadas (con paginación)
           schema:
             $ref: '#/definitions/response.Meta'
         "401":
@@ -653,7 +655,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Preguntas guardadas
+      summary: Preguntas guardadas (con paginación)
       tags:
       - progress
   /api/v1/progress/upcoming:
@@ -681,7 +683,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Preguntas pendientes
+          description: Preguntas pendientes (con paginación)
           schema:
             $ref: '#/definitions/response.Meta'
         "401":
@@ -694,7 +696,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Preguntas pendientes
+      summary: Preguntas pendientes (con paginación)
       tags:
       - progress
   /api/v1/questions:
@@ -729,7 +731,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Lista de preguntas
+          description: Lista de preguntas (con paginación)
           schema:
             $ref: '#/definitions/response.Meta'
         "401":
@@ -742,7 +744,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Listar preguntas
+      summary: Listar preguntas (con paginación)
       tags:
       - questions
     post:
@@ -912,7 +914,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Lista de sesiones
+          description: Lista de sesiones (con paginación)
           schema:
             $ref: '#/definitions/response.Meta'
         "401":
@@ -925,7 +927,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Listar sesiones
+      summary: Listar sesiones (con paginación)
       tags:
       - sessions
     post:
@@ -1093,7 +1095,9 @@ paths:
       - sessions
   /api/v1/topics:
     get:
-      description: Lista todos los temas disponibles
+      description: Lista los temas según el rol del usuario. Admin ve solo temas del
+        sistema (is_system=true). Usuarios normales ven solo sus propios temas personalizados
+        (is_system=false).
       parameters:
       - description: 'Número de página (default: 1)'
         in: query
@@ -1115,7 +1119,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Lista de temas
+          description: Lista de temas (con paginación)
           schema:
             $ref: '#/definitions/response.Meta'
         "401":
@@ -1128,13 +1132,14 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Listar temas
+      summary: Listar temas (con paginación)
       tags:
       - topics
     post:
       consumes:
       - application/json
-      description: Crea un nuevo tema personalizado
+      description: Crea un nuevo tema. Admin crea temas del sistema (is_system=true),
+        usuarios normales crean temas personalizados (is_system=false).
       parameters:
       - description: Datos del tema
         in: body
@@ -1157,22 +1162,19 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/apierr.APIError'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/apierr.APIError'
         "409":
           description: Conflict
           schema:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Crear tema (Admin)
+      summary: Crear tema
       tags:
       - topics
   /api/v1/topics/{id}:
     delete:
-      description: Elimina un tema
+      description: Elimina un tema. Admin solo puede eliminar temas del sistema (is_system=true).
+        Usuarios normales solo pueden eliminar sus propios temas (is_system=false).
       parameters:
       - description: Topic ID
         in: path
@@ -1202,11 +1204,13 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Eliminar tema (Admin)
+      summary: Eliminar tema
       tags:
       - topics
     get:
-      description: Obtiene un tema por ID
+      description: Obtiene un tema por ID. Admin solo puede ver temas del sistema
+        (is_system=true). Usuarios normales pueden ver temas del sistema y sus propios
+        temas.
       parameters:
       - description: Topic ID
         in: path
@@ -1236,7 +1240,9 @@ paths:
     put:
       consumes:
       - application/json
-      description: Actualiza un tema existente
+      description: Actualiza un tema existente. Admin solo puede modificar temas del
+        sistema (is_system=true). Usuarios normales solo pueden modificar sus propios
+        temas (is_system=false).
       parameters:
       - description: Topic ID
         in: path
@@ -1274,7 +1280,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Actualizar tema (Admin)
+      summary: Actualizar tema
       tags:
       - topics
   /api/v1/users:
@@ -1301,7 +1307,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Lista de usuarios
+          description: Lista de usuarios (con paginación)
           schema:
             $ref: '#/definitions/response.Meta'
         "401":
@@ -1318,7 +1324,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Listar usuarios (Admin)
+      summary: Listar usuarios (con paginación) (Admin)
       tags:
       - users
     post:

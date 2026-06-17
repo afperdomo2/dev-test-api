@@ -19,8 +19,8 @@ func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// @Summary      Listar temas
-// @Description  Lista todos los temas disponibles
+// @Summary      Listar temas (con paginación)
+// @Description  Lista los temas según el rol del usuario. Admin ve solo temas del sistema (is_system=true). Usuarios normales ven solo sus propios temas personalizados (is_system=false).
 // @Tags         topics
 // @Security     BearerAuth
 // @Produce      json
@@ -28,7 +28,7 @@ func NewHandler(service Service) *Handler {
 // @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
 // @Param        sort_by    query  string  false  "Campo de ordenación: name, slug, category, created_at"
 // @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
-// @Success      200  {object}  response.Meta  "Lista de temas"
+// @Success      200  {object}  response.Meta  "Lista de temas (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/topics [get]
@@ -39,7 +39,14 @@ func (h *Handler) List(c *gin.Context) {
 		return
 	}
 
-	topics, total, err := h.service.List(params.Page, params.PerPage, params.SortBy, params.SortOrder)
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	topics, total, err := h.service.List(params.Page, params.PerPage, params.SortBy, params.SortOrder, isAdmin, userID)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
@@ -51,7 +58,7 @@ func (h *Handler) List(c *gin.Context) {
 }
 
 // @Summary      Obtener tema
-// @Description  Obtiene un tema por ID
+// @Description  Obtiene un tema por ID. Admin solo puede ver temas del sistema (is_system=true). Usuarios normales pueden ver temas del sistema y sus propios temas.
 // @Tags         topics
 // @Security     BearerAuth
 // @Produce      json
@@ -67,7 +74,14 @@ func (h *Handler) Get(c *gin.Context) {
 		return
 	}
 
-	topic, err := h.service.GetByID(id)
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	topic, err := h.service.GetByID(id, isAdmin, userID)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
@@ -78,8 +92,8 @@ func (h *Handler) Get(c *gin.Context) {
 	response.Success(c, http.StatusOK, topic)
 }
 
-// @Summary      Crear tema (Admin)
-// @Description  Crea un nuevo tema personalizado
+// @Summary      Crear tema
+// @Description  Crea un nuevo tema. Admin crea temas del sistema (is_system=true), usuarios normales crean temas personalizados (is_system=false).
 // @Tags         topics
 // @Security     BearerAuth
 // @Accept       json
@@ -88,7 +102,6 @@ func (h *Handler) Get(c *gin.Context) {
 // @Success      201   {object}  TopicResponse
 // @Failure      400   {object}  apierr.APIError
 // @Failure      401   {object}  apierr.APIError
-// @Failure      403   {object}  apierr.APIError
 // @Failure      409   {object}  apierr.APIError
 // @Router       /api/v1/topics [post]
 func (h *Handler) Create(c *gin.Context) {
@@ -98,14 +111,14 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	userID, apiErr := getUserID(c)
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
 	if apiErr != nil {
 		apiErr.Instance = c.Request.URL.Path
 		response.Problem(c, apiErr)
 		return
 	}
 
-	topic, err := h.service.Create(userID, req)
+	topic, err := h.service.Create(userID, req, isAdmin)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
@@ -116,8 +129,8 @@ func (h *Handler) Create(c *gin.Context) {
 	response.Success(c, http.StatusCreated, topic)
 }
 
-// @Summary      Actualizar tema (Admin)
-// @Description  Actualiza un tema existente
+// @Summary      Actualizar tema
+// @Description  Actualiza un tema existente. Admin solo puede modificar temas del sistema (is_system=true). Usuarios normales solo pueden modificar sus propios temas (is_system=false).
 // @Tags         topics
 // @Security     BearerAuth
 // @Accept       json
@@ -143,7 +156,14 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 
-	topic, err := h.service.Update(id, req)
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	topic, err := h.service.Update(id, req, isAdmin, userID)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
@@ -154,8 +174,8 @@ func (h *Handler) Update(c *gin.Context) {
 	response.Success(c, http.StatusOK, topic)
 }
 
-// @Summary      Eliminar tema (Admin)
-// @Description  Elimina un tema
+// @Summary      Eliminar tema
+// @Description  Elimina un tema. Admin solo puede eliminar temas del sistema (is_system=true). Usuarios normales solo pueden eliminar sus propios temas (is_system=false).
 // @Tags         topics
 // @Security     BearerAuth
 // @Produce      json
@@ -172,7 +192,14 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(id); err != nil {
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	if err := h.service.Delete(id, isAdmin, userID); err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
 		response.Problem(c, e)
@@ -182,26 +209,28 @@ func (h *Handler) Delete(c *gin.Context) {
 	response.Success(c, http.StatusOK, gin.H{"message": "Tema eliminado"})
 }
 
-func getUserID(c *gin.Context) (uuid.UUID, *apierr.APIError) {
+func getUserRoleAndID(c *gin.Context) (bool, uuid.UUID, *apierr.APIError) {
 	claims, exists := c.Get("user_claims")
 	if !exists {
-		return uuid.Nil, apierr.ErrUnauthorized("Usuario no autenticado", "")
+		return false, uuid.Nil, apierr.ErrUnauthorized("Usuario no autenticado", "")
 	}
 
 	mapClaims, ok := claims.(*jwt.MapClaims)
 	if !ok {
-		return uuid.Nil, apierr.ErrInternal("Error al obtener los claims del usuario", "")
+		return false, uuid.Nil, apierr.ErrInternal("Error al obtener los claims del usuario", "")
 	}
 
 	sub, ok := (*mapClaims)["sub"].(string)
 	if !ok {
-		return uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
+		return false, uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
 	}
 
 	id, err := uuid.Parse(sub)
 	if err != nil {
-		return uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
+		return false, uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
 	}
 
-	return id, nil
+	isAdmin, _ := (*mapClaims)["is_admin"].(bool)
+
+	return isAdmin, id, nil
 }

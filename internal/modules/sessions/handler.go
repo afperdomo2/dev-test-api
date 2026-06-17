@@ -19,7 +19,7 @@ func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// @Summary      Listar sesiones
+// @Summary      Listar sesiones (con paginación)
 // @Description  Lista las sesiones de estudio del usuario autenticado
 // @Tags         sessions
 // @Security     BearerAuth
@@ -28,7 +28,7 @@ func NewHandler(service Service) *Handler {
 // @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
 // @Param        sort_by    query  string  false  "Campo de ordenación: status, score, started_at, created_at"
 // @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
-// @Success      200  {object}  response.Meta  "Lista de sesiones"
+// @Success      200  {object}  response.Meta  "Lista de sesiones (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/sessions [get]

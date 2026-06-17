@@ -9,6 +9,7 @@ import (
 type Store interface {
 	FindAll() ([]models.Topic, error)
 	FindPage(page, perPage int, sortBy, sortOrder string) ([]models.Topic, int64, error)
+	FindPageFiltered(page, perPage int, sortBy, sortOrder string, isAdmin bool, userID uuid.UUID) ([]models.Topic, int64, error)
 	FindByID(id uuid.UUID) (*models.Topic, error)
 	FindBySlugAndUser(slug string, createdBy *uuid.UUID) (*models.Topic, error)
 	Create(topic *models.Topic) error
@@ -35,6 +36,24 @@ func (s *gormStore) FindPage(page, perPage int, sortBy, sortOrder string) ([]mod
 	var total int64
 	s.db.Model(&models.Topic{}).Count(&total)
 	err := s.db.Offset((page - 1) * perPage).Limit(perPage).
+		Order(sortConfig.OrderClause(sortBy, sortOrder)).
+		Find(&topics).Error
+	return topics, total, err
+}
+
+func (s *gormStore) FindPageFiltered(page, perPage int, sortBy, sortOrder string, isAdmin bool, userID uuid.UUID) ([]models.Topic, int64, error) {
+	var topics []models.Topic
+	var total int64
+
+	query := s.db.Model(&models.Topic{})
+	if isAdmin {
+		query = query.Where("is_system = ?", true)
+	} else {
+		query = query.Where("is_system = ? OR (is_system = ? AND created_by = ?)", true, false, userID)
+	}
+	query.Count(&total)
+
+	err := query.Offset((page - 1) * perPage).Limit(perPage).
 		Order(sortConfig.OrderClause(sortBy, sortOrder)).
 		Find(&topics).Error
 	return topics, total, err
