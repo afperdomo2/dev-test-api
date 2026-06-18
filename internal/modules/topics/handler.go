@@ -25,9 +25,9 @@ func NewHandler(service Service) *Handler {
 // @Security     BearerAuth
 // @Produce      json
 // @Param        page       query  int     false  "Número de página (default: 1)"
-// @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
-// @Param        sort_by    query  string  false  "Campo de ordenación: name, slug, category, created_at"
-// @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
+// @Param        perPage     query  int     false  "Elementos por página (default: 20, max: 100)"
+// @Param        sortBy       query  string  false  "Campo de ordenación: name, slug, category, created_at"
+// @Param        sortOrder query  string  false  "Dirección: asc o desc (default: desc)"
 // @Success      200  {object}  response.Meta  "Lista de temas (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError

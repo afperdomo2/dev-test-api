@@ -12,11 +12,11 @@ type Topic struct {
 	Slug      string     `gorm:"not null;size:100" json:"slug"`
 	Name      string     `gorm:"not null;size:150" json:"name"`
 	Category  string     `gorm:"not null;size:50" json:"category"`
-	IsSystem  bool       `gorm:"not null;default:false" json:"is_system"`
-	CreatedBy *uuid.UUID `gorm:"type:uuid" json:"created_by,omitempty"`
+	IsSystem  bool       `gorm:"not null;default:false" json:"isSystem"`
+	CreatedBy *uuid.UUID `gorm:"type:uuid" json:"createdBy,omitempty"`
 	Creator   *User      `gorm:"foreignKey:CreatedBy" json:"-"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
 }
 
 func (t *Topic) BeforeCreate(tx *gorm.DB) error {

@@ -9,10 +9,10 @@ export interface User {
 export interface CreateUserRequest {
   email: string
   password: string
-  is_admin?: boolean
+  isAdmin?: boolean
 }
 
 export interface UpdateUserRequest {
   password?: string
-  is_admin?: boolean
+  isAdmin?: boolean
 }

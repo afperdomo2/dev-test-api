@@ -16,27 +16,27 @@ var sortConfig = common.SortConfig{
 type CreateUserRequest struct {
 	Email    string `json:"email"    binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8,max=72"`
-	IsAdmin  bool   `json:"is_admin"`
+	IsAdmin  bool   `json:"isAdmin"`
 }
 
 type UpdateUserRequest struct {
 	Password string `json:"password,omitempty" binding:"omitempty,min=8,max=72"`
-	IsAdmin  *bool  `json:"is_admin,omitempty"`
+	IsAdmin  *bool  `json:"isAdmin,omitempty"`
 }
 
 type UserResponse struct {
 	ID        uuid.UUID `json:"id"`
 	Email     string    `json:"email"`
-	IsAdmin   bool      `json:"is_admin"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	IsAdmin   bool      `json:"isAdmin"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type UserListResponse struct {
 	ID        uuid.UUID `json:"id"`
 	Email     string    `json:"email"`
-	IsAdmin   bool      `json:"is_admin"`
-	CreatedAt time.Time `json:"created_at"`
+	IsAdmin   bool      `json:"isAdmin"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 func ToUserResponse(u models.User) UserResponse {

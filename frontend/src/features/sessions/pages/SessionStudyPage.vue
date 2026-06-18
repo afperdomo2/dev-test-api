@@ -100,9 +100,9 @@ async function submitAnswer() {
     const result = await submitMut.mutateAsync({
       sessionId: sessionId.value,
       data: {
-        question_id: currentQuestion.value.id,
-        selected_options: isCodeCompletion.value ? undefined : selectedOptions.value,
-        answer_text: isCodeCompletion.value ? answerText.value : undefined,
+        questionId: currentQuestion.value.id,
+        selectedOptions: isCodeCompletion.value ? undefined : selectedOptions.value,
+        answerText: isCodeCompletion.value ? answerText.value : undefined,
       },
     })
     lastResult.value = result

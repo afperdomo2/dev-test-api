@@ -9,7 +9,7 @@ export async function listTopics(
   sortOrder?: string,
 ): Promise<PaginatedResponse<Topic>> {
   const res = await apiClient.get<PaginatedResponse<Topic>>('/api/v1/topics', {
-    params: { page, per_page: perPage, sort_by: sortBy, sort_order: sortOrder },
+    params: { page, perPage, sortBy, sortOrder },
   })
   return res.data
 }

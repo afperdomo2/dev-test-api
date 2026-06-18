@@ -45,19 +45,19 @@ func ParsePagination(c *gin.Context, cfg SortConfig) (PaginationParams, error) {
 	}
 
 	perPage := DefaultPerPage
-	if pp := c.Query("per_page"); pp != "" {
+	if pp := c.Query("perPage"); pp != "" {
 		v, err := strconv.Atoi(pp)
 		if err != nil || v < 1 {
-			return PaginationParams{}, fmt.Errorf("per_page debe ser un número entero positivo")
+			return PaginationParams{}, fmt.Errorf("perPage debe ser un número entero positivo")
 		}
 		if v > MaxPerPage {
-			return PaginationParams{}, fmt.Errorf("per_page no puede exceder %d", MaxPerPage)
+			return PaginationParams{}, fmt.Errorf("perPage no puede exceder %d", MaxPerPage)
 		}
 		perPage = v
 	}
 
-	sortBy := c.Query("sort_by")
-	sortOrder := c.Query("sort_order")
+	sortBy := c.Query("sortBy")
+	sortOrder := c.Query("sortOrder")
 
 	if sortBy != "" {
 		valid := false
@@ -68,13 +68,13 @@ func ParsePagination(c *gin.Context, cfg SortConfig) (PaginationParams, error) {
 			}
 		}
 		if !valid {
-			return PaginationParams{}, fmt.Errorf("sort_by '%s' no es válido. Valores permitidos: %s",
+			return PaginationParams{}, fmt.Errorf("sortBy '%s' no es válido. Valores permitidos: %s",
 				sortBy, strings.Join(cfg.Allowed, ", "))
 		}
 	}
 
 	if sortOrder != "" && sortOrder != "asc" && sortOrder != "desc" {
-		return PaginationParams{}, fmt.Errorf("sort_order debe ser 'asc' o 'desc'")
+		return PaginationParams{}, fmt.Errorf("sortOrder debe ser 'asc' o 'desc'")
 	}
 	if sortBy != "" && sortOrder == "" {
 		sortOrder = DefaultSortOrder

@@ -2,7 +2,6 @@ import axios from 'axios'
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import type { ApiError } from '@/types/api.types'
 import { getToken, removeToken } from '@/utils/storage'
-import { snakeToCamel } from '@/utils/transform'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -24,13 +23,10 @@ apiClient.interceptors.response.use(
     let data = response.data
 
     if (data && typeof data === 'object') {
-      // Step 1: unwrap envelope { data: ... } → inner value
+      // unwrap envelope { data: ... } → inner value
       if ('data' in data && !('meta' in data)) {
         data = data.data
       }
-
-      // Step 2: transform snake_case → camelCase
-      data = snakeToCamel(data)
     }
 
     return { ...response, data }

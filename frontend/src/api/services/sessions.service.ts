@@ -13,7 +13,7 @@ export async function listSessions(
   perPage: number,
 ): Promise<PaginatedResponse<Session>> {
   const res = await apiClient.get<PaginatedResponse<Session>>('/api/v1/sessions', {
-    params: { page, per_page: perPage },
+    params: { page, perPage },
   })
   return res.data
 }

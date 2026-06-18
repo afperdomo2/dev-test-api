@@ -50,48 +50,48 @@ definitions:
     type: object
   progress.AnswerRequest:
     properties:
-      is_correct:
+      isCorrect:
         type: boolean
     required:
-    - is_correct
+    - isCorrect
     type: object
   progress.ProgressResponse:
     properties:
-      ease_factor:
+      easeFactor:
         type: number
-      interval_days:
+      intervalDays:
         type: integer
-      is_mastered:
+      isMastered:
         type: boolean
-      is_saved:
+      isSaved:
         type: boolean
-      last_reviewed_at:
+      lastReviewedAt:
         type: string
-      next_review_at:
+      nextReviewAt:
         type: string
-      question_id:
+      questionId:
         type: string
       repetitions:
         type: integer
     type: object
   questions.CodeChallengeResponse:
     properties:
-      expected_output:
+      expectedOutput:
         type: string
       id:
         type: string
       language:
         type: string
-      starter_code:
+      starterCode:
         type: string
-      test_cases:
+      testCases:
         type: string
     type: object
   questions.CreateOptionReq:
     properties:
       content:
         type: string
-      is_correct:
+      isCorrect:
         type: boolean
     required:
     - content
@@ -106,7 +106,7 @@ definitions:
         - intermediate
         - advanced
         type: string
-      expected_output:
+      expectedOutput:
         type: string
       explanation:
         type: string
@@ -122,11 +122,11 @@ definitions:
         - manual
         - imported
         type: string
-      starter_code:
+      starterCode:
         type: string
-      test_cases:
+      testCases:
         type: string
-      topic_ids:
+      topicIds:
         items:
           type: string
         minItems: 1
@@ -140,7 +140,7 @@ definitions:
     required:
     - content
     - difficulty
-    - topic_ids
+    - topicIds
     - type
     type: object
   questions.OptionResponse:
@@ -149,16 +149,16 @@ definitions:
         type: string
       id:
         type: string
-      is_correct:
+      isCorrect:
         type: boolean
     type: object
   questions.QuestionResponse:
     properties:
-      code_challenge:
+      codeChallenge:
         $ref: '#/definitions/questions.CodeChallengeResponse'
       content:
         type: string
-      created_at:
+      createdAt:
         type: string
       difficulty:
         type: string
@@ -166,7 +166,7 @@ definitions:
         type: string
       id:
         type: string
-      is_public:
+      isPublic:
         type: boolean
       options:
         items:
@@ -180,9 +180,9 @@ definitions:
         type: array
       type:
         type: string
-      updated_at:
+      updatedAt:
         type: string
-      user_id:
+      userId:
         type: string
     type: object
   questions.TopicInfo:
@@ -204,7 +204,7 @@ definitions:
         - intermediate
         - advanced
         type: string
-      expected_output:
+      expectedOutput:
         type: string
       explanation:
         type: string
@@ -214,11 +214,11 @@ definitions:
         items:
           $ref: '#/definitions/questions.CreateOptionReq'
         type: array
-      starter_code:
+      starterCode:
         type: string
-      test_cases:
+      testCases:
         type: string
-      topic_ids:
+      topicIds:
         items:
           type: string
         type: array
@@ -234,20 +234,20 @@ definitions:
     type: object
   sessions.AnswerRequest:
     properties:
-      answer_text:
+      answerText:
         type: string
-      is_correct:
+      isCorrect:
         type: boolean
-      question_id:
+      questionId:
         type: string
-      response_time_ms:
+      responseTimeMs:
         type: integer
-      selected_options:
+      selectedOptions:
         items:
           type: string
         type: array
     required:
-    - question_id
+    - questionId
     type: object
   sessions.CreateSessionRequest:
     properties:
@@ -266,11 +266,11 @@ definitions:
         maxLength: 200
         minLength: 1
         type: string
-      question_limit:
+      questionLimit:
         maximum: 50
         minimum: 1
         type: integer
-      topic_ids:
+      topicIds:
         items:
           type: string
         minItems: 1
@@ -279,7 +279,7 @@ definitions:
     - difficulty
     - mode
     - name
-    - topic_ids
+    - topicIds
     type: object
   sessions.NextQuestionResponse:
     properties:
@@ -288,23 +288,23 @@ definitions:
     type: object
   sessions.SessionAnswerResponse:
     properties:
-      ai_feedback:
+      aiFeedback:
         type: string
-      answer_text:
+      answerText:
         type: string
-      created_at:
+      createdAt:
         type: string
       id:
         type: string
-      is_correct:
+      isCorrect:
         type: boolean
       question:
         $ref: '#/definitions/questions.QuestionResponse'
-      question_id:
+      questionId:
         type: string
-      response_time_ms:
+      responseTimeMs:
         type: integer
-      selected_options:
+      selectedOptions:
         items:
           type: string
         type: array
@@ -320,13 +320,13 @@ definitions:
     type: object
   sessions.SessionResponse:
     properties:
-      answer_count:
+      answerCount:
         type: integer
-      created_at:
+      createdAt:
         type: string
       difficulty:
         type: string
-      finished_at:
+      finishedAt:
         type: string
       id:
         type: string
@@ -334,11 +334,11 @@ definitions:
         type: string
       name:
         type: string
-      question_limit:
+      questionLimit:
         type: integer
       score:
         type: number
-      started_at:
+      startedAt:
         type: string
       status:
         type: string
@@ -346,9 +346,9 @@ definitions:
         items:
           $ref: '#/definitions/sessions.TopicInfo'
         type: array
-      updated_at:
+      updatedAt:
         type: string
-      user_id:
+      userId:
         type: string
     type: object
   sessions.TopicInfo:
@@ -383,19 +383,19 @@ definitions:
     properties:
       category:
         type: string
-      created_at:
+      createdAt:
         type: string
-      created_by:
+      createdBy:
         type: string
       id:
         type: string
-      is_system:
+      isSystem:
         type: boolean
       name:
         type: string
       slug:
         type: string
-      updated_at:
+      updatedAt:
         type: string
     type: object
   topics.UpdateTopicRequest:
@@ -413,7 +413,7 @@ definitions:
     properties:
       email:
         type: string
-      is_admin:
+      isAdmin:
         type: boolean
       password:
         maxLength: 72
@@ -425,7 +425,7 @@ definitions:
     type: object
   users.UpdateUserRequest:
     properties:
-      is_admin:
+      isAdmin:
         type: boolean
       password:
         maxLength: 72
@@ -434,15 +434,15 @@ definitions:
     type: object
   users.UserResponse:
     properties:
-      created_at:
+      createdAt:
         type: string
       email:
         type: string
       id:
         type: string
-      is_admin:
+      isAdmin:
         type: boolean
-      updated_at:
+      updatedAt:
         type: string
     type: object
 host: localhost:8080
@@ -628,15 +628,15 @@ paths:
         type: integer
       - description: 'Elementos por página (default: 20, max: 100)'
         in: query
-        name: per_page
+        name: perPage
         type: integer
       - description: 'Campo de ordenación: updated_at, repetitions, ease_factor'
         in: query
-        name: sort_by
+        name: sortBy
         type: string
       - description: 'Dirección: asc o desc (default: desc)'
         in: query
-        name: sort_order
+        name: sortOrder
         type: string
       produces:
       - application/json
@@ -669,15 +669,15 @@ paths:
         type: integer
       - description: 'Elementos por página (default: 20, max: 100)'
         in: query
-        name: per_page
+        name: perPage
         type: integer
       - description: 'Campo de ordenación: next_review_at, repetitions, ease_factor'
         in: query
-        name: sort_by
+        name: sortBy
         type: string
       - description: 'Dirección: asc o desc (default: asc)'
         in: query
-        name: sort_order
+        name: sortOrder
         type: string
       produces:
       - application/json
@@ -709,7 +709,7 @@ paths:
         type: integer
       - description: 'Elementos por página (default: 20, max: 100)'
         in: query
-        name: per_page
+        name: perPage
         type: integer
       - description: Filtrar por tipo (single_choice, multiple_choice, code_completion)
         in: query
@@ -721,11 +721,11 @@ paths:
         type: string
       - description: 'Campo de ordenación: type, difficulty, created_at, updated_at'
         in: query
-        name: sort_by
+        name: sortBy
         type: string
       - description: 'Dirección: asc o desc (default: desc)'
         in: query
-        name: sort_order
+        name: sortOrder
         type: string
       produces:
       - application/json
@@ -900,15 +900,15 @@ paths:
         type: integer
       - description: 'Elementos por página (default: 20, max: 100)'
         in: query
-        name: per_page
+        name: perPage
         type: integer
       - description: 'Campo de ordenación: status, score, started_at, created_at'
         in: query
-        name: sort_by
+        name: sortBy
         type: string
       - description: 'Dirección: asc o desc (default: desc)'
         in: query
-        name: sort_order
+        name: sortOrder
         type: string
       produces:
       - application/json
@@ -1105,15 +1105,15 @@ paths:
         type: integer
       - description: 'Elementos por página (default: 20, max: 100)'
         in: query
-        name: per_page
+        name: perPage
         type: integer
       - description: 'Campo de ordenación: name, slug, category, created_at'
         in: query
-        name: sort_by
+        name: sortBy
         type: string
       - description: 'Dirección: asc o desc (default: desc)'
         in: query
-        name: sort_order
+        name: sortOrder
         type: string
       produces:
       - application/json
@@ -1293,15 +1293,15 @@ paths:
         type: integer
       - description: 'Elementos por página (default: 20, max: 100)'
         in: query
-        name: per_page
+        name: perPage
         type: integer
       - description: 'Campo de ordenación: email, created_at, updated_at'
         in: query
-        name: sort_by
+        name: sortBy
         type: string
       - description: 'Dirección: asc o desc (default: desc)'
         in: query
-        name: sort_order
+        name: sortOrder
         type: string
       produces:
       - application/json

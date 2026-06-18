@@ -25,11 +25,11 @@ func NewHandler(service Service) *Handler {
 // @Security     BearerAuth
 // @Produce      json
 // @Param        page       query  int     false  "Número de página (default: 1)"
-// @Param        per_page   query  int     false  "Elementos por página (default: 20, max: 100)"
+// @Param        perPage     query  int     false  "Elementos por página (default: 20, max: 100)"
 // @Param        type       query  string  false  "Filtrar por tipo (single_choice, multiple_choice, code_completion)"
 // @Param        difficulty query  string  false  "Filtrar por dificultad (beginner, intermediate, advanced)"
-// @Param        sort_by    query  string  false  "Campo de ordenación: type, difficulty, created_at, updated_at"
-// @Param        sort_order query  string  false  "Dirección: asc o desc (default: desc)"
+// @Param        sortBy       query  string  false  "Campo de ordenación: type, difficulty, created_at, updated_at"
+// @Param        sortOrder query  string  false  "Dirección: asc o desc (default: desc)"
 // @Success      200  {object}  response.Meta  "Lista de preguntas (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError

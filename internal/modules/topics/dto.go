@@ -29,10 +29,10 @@ type TopicResponse struct {
 	Slug      string     `json:"slug"`
 	Name      string     `json:"name"`
 	Category  string     `json:"category"`
-	IsSystem  bool       `json:"is_system"`
-	CreatedBy *uuid.UUID `json:"created_by,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	IsSystem  bool       `json:"isSystem"`
+	CreatedBy *uuid.UUID `json:"createdBy,omitempty"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
 }
 
 type TopicListResponse struct {
@@ -40,9 +40,9 @@ type TopicListResponse struct {
 	Slug      string     `json:"slug"`
 	Name      string     `json:"name"`
 	Category  string     `json:"category"`
-	IsSystem  bool       `json:"is_system"`
-	CreatedBy *uuid.UUID `json:"created_by,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
+	IsSystem  bool       `json:"isSystem"`
+	CreatedBy *uuid.UUID `json:"createdBy,omitempty"`
+	CreatedAt time.Time  `json:"createdAt"`
 }
 
 func ToTopicResponse(t models.Topic) TopicResponse {

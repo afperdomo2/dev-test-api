@@ -7,7 +7,7 @@ import (
 )
 
 type SessionTopic struct {
-	SessionID uuid.UUID `gorm:"type:uuid;primaryKey" json:"session_id"`
-	TopicID   uuid.UUID `gorm:"type:uuid;primaryKey" json:"topic_id"`
-	CreatedAt time.Time `json:"created_at"`
+	SessionID uuid.UUID `gorm:"type:uuid;primaryKey" json:"sessionId"`
+	TopicID   uuid.UUID `gorm:"type:uuid;primaryKey" json:"topicId"`
+	CreatedAt time.Time `json:"createdAt"`
 }

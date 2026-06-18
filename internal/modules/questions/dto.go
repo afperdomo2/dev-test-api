@@ -19,74 +19,74 @@ type CreateQuestionRequest struct {
 	Explanation    string            `json:"explanation,omitempty"`
 	Difficulty     string            `json:"difficulty" binding:"required,oneof=beginner intermediate advanced"`
 	Source         string            `json:"source,omitempty" binding:"omitempty,oneof=ai_generated manual imported"`
-	TopicIDs       []uuid.UUID       `json:"topic_ids" binding:"required,min=1"`
+	TopicIDs       []uuid.UUID       `json:"topicIds" binding:"required,min=1"`
 	Options        []CreateOptionReq `json:"options,omitempty"`
-	StarterCode    string            `json:"starter_code,omitempty"`
-	ExpectedOutput string            `json:"expected_output,omitempty"`
+	StarterCode    string            `json:"starterCode,omitempty"`
+	ExpectedOutput string            `json:"expectedOutput,omitempty"`
 	Language       string            `json:"language,omitempty"`
-	TestCasesJSON  string            `json:"test_cases,omitempty"`
+	TestCasesJSON  string            `json:"testCases,omitempty"`
 }
 
 type CreateOptionReq struct {
 	Content   string `json:"content" binding:"required"`
-	IsCorrect bool   `json:"is_correct"`
+	IsCorrect bool   `json:"isCorrect"`
 }
 
 type UpdateQuestionRequest struct {
 	Content        string            `json:"content,omitempty" binding:"omitempty"`
 	Explanation    string            `json:"explanation,omitempty"`
 	Difficulty     string            `json:"difficulty,omitempty" binding:"omitempty,oneof=beginner intermediate advanced"`
-	TopicIDs       []uuid.UUID       `json:"topic_ids,omitempty"`
+	TopicIDs       []uuid.UUID       `json:"topicIds,omitempty"`
 	Options        []CreateOptionReq `json:"options,omitempty"`
-	StarterCode    string            `json:"starter_code,omitempty"`
-	ExpectedOutput string            `json:"expected_output,omitempty"`
+	StarterCode    string            `json:"starterCode,omitempty"`
+	ExpectedOutput string            `json:"expectedOutput,omitempty"`
 	Language       string            `json:"language,omitempty"`
-	TestCasesJSON  string            `json:"test_cases,omitempty"`
+	TestCasesJSON  string            `json:"testCases,omitempty"`
 }
 
 type QuestionResponse struct {
 	ID            uuid.UUID              `json:"id"`
-	UserID        uuid.UUID              `json:"user_id"`
+	UserID        uuid.UUID              `json:"userId"`
 	Type          string                 `json:"type"`
 	Content       string                 `json:"content"`
 	Explanation   string                 `json:"explanation,omitempty"`
 	Difficulty    string                 `json:"difficulty"`
-	IsPublic      bool                   `json:"is_public"`
+	IsPublic      bool                   `json:"isPublic"`
 	Source        string                 `json:"source"`
 	Options       []OptionResponse       `json:"options,omitempty"`
-	CodeChallenge *CodeChallengeResponse `json:"code_challenge,omitempty"`
+	CodeChallenge *CodeChallengeResponse `json:"codeChallenge,omitempty"`
 	Topics        []TopicInfo            `json:"topics"`
-	CreatedAt     time.Time              `json:"created_at"`
-	UpdatedAt     time.Time              `json:"updated_at"`
+	CreatedAt     time.Time              `json:"createdAt"`
+	UpdatedAt     time.Time              `json:"updatedAt"`
 }
 
 type QuestionListResponse struct {
 	ID            uuid.UUID              `json:"id"`
-	UserID        uuid.UUID              `json:"user_id"`
+	UserID        uuid.UUID              `json:"userId"`
 	Type          string                 `json:"type"`
 	Content       string                 `json:"content"`
 	Explanation   string                 `json:"explanation,omitempty"`
 	Difficulty    string                 `json:"difficulty"`
-	IsPublic      bool                   `json:"is_public"`
+	IsPublic      bool                   `json:"isPublic"`
 	Source        string                 `json:"source"`
 	Options       []OptionResponse       `json:"options,omitempty"`
-	CodeChallenge *CodeChallengeResponse `json:"code_challenge,omitempty"`
+	CodeChallenge *CodeChallengeResponse `json:"codeChallenge,omitempty"`
 	Topics        []TopicInfo            `json:"topics"`
-	CreatedAt     time.Time              `json:"created_at"`
+	CreatedAt     time.Time              `json:"createdAt"`
 }
 
 type OptionResponse struct {
 	ID        uuid.UUID `json:"id"`
 	Content   string    `json:"content"`
-	IsCorrect bool      `json:"is_correct"`
+	IsCorrect bool      `json:"isCorrect"`
 }
 
 type CodeChallengeResponse struct {
 	ID             uuid.UUID `json:"id"`
-	StarterCode    string    `json:"starter_code,omitempty"`
-	ExpectedOutput string    `json:"expected_output,omitempty"`
+	StarterCode    string    `json:"starterCode,omitempty"`
+	ExpectedOutput string    `json:"expectedOutput,omitempty"`
 	Language       string    `json:"language"`
-	TestCasesJSON  string    `json:"test_cases,omitempty"`
+	TestCasesJSON  string    `json:"testCases,omitempty"`
 }
 
 type TopicInfo struct {

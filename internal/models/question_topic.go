@@ -7,7 +7,7 @@ import (
 )
 
 type QuestionTopic struct {
-	QuestionID uuid.UUID `gorm:"type:uuid;primaryKey" json:"question_id"`
-	TopicID    uuid.UUID `gorm:"type:uuid;primaryKey" json:"topic_id"`
-	CreatedAt  time.Time `json:"created_at"`
+	QuestionID uuid.UUID `gorm:"type:uuid;primaryKey" json:"questionId"`
+	TopicID    uuid.UUID `gorm:"type:uuid;primaryKey" json:"topicId"`
+	CreatedAt  time.Time `json:"createdAt"`
 }

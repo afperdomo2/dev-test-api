@@ -191,19 +191,19 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Elementos por página (default: 20, max: 100)",
-                        "name": "per_page",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Campo de ordenación: updated_at, repetitions, ease_factor",
-                        "name": "sort_by",
+                        "name": "sortBy",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Dirección: asc o desc (default: desc)",
-                        "name": "sort_order",
+                        "name": "sortOrder",
                         "in": "query"
                     }
                 ],
@@ -254,19 +254,19 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Elementos por página (default: 20, max: 100)",
-                        "name": "per_page",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Campo de ordenación: next_review_at, repetitions, ease_factor",
-                        "name": "sort_by",
+                        "name": "sortBy",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Dirección: asc o desc (default: asc)",
-                        "name": "sort_order",
+                        "name": "sortOrder",
                         "in": "query"
                     }
                 ],
@@ -421,7 +421,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Elementos por página (default: 20, max: 100)",
-                        "name": "per_page",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -439,13 +439,13 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Campo de ordenación: type, difficulty, created_at, updated_at",
-                        "name": "sort_by",
+                        "name": "sortBy",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Dirección: asc o desc (default: desc)",
-                        "name": "sort_order",
+                        "name": "sortOrder",
                         "in": "query"
                     }
                 ],
@@ -718,19 +718,19 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Elementos por página (default: 20, max: 100)",
-                        "name": "per_page",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Campo de ordenación: status, score, started_at, created_at",
-                        "name": "sort_by",
+                        "name": "sortBy",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Dirección: asc o desc (default: desc)",
-                        "name": "sort_order",
+                        "name": "sortOrder",
                         "in": "query"
                     }
                 ],
@@ -1038,19 +1038,19 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Elementos por página (default: 20, max: 100)",
-                        "name": "per_page",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Campo de ordenación: name, slug, category, created_at",
-                        "name": "sort_by",
+                        "name": "sortBy",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Dirección: asc o desc (default: desc)",
-                        "name": "sort_order",
+                        "name": "sortOrder",
                         "in": "query"
                     }
                 ],
@@ -1323,19 +1323,19 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Elementos por página (default: 20, max: 100)",
-                        "name": "per_page",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Campo de ordenación: email, created_at, updated_at",
-                        "name": "sort_by",
+                        "name": "sortBy",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Dirección: asc o desc (default: desc)",
-                        "name": "sort_order",
+                        "name": "sortOrder",
                         "in": "query"
                     }
                 ],
@@ -1701,10 +1701,10 @@ const docTemplate = `{
         "progress.AnswerRequest": {
             "type": "object",
             "required": [
-                "is_correct"
+                "isCorrect"
             ],
             "properties": {
-                "is_correct": {
+                "isCorrect": {
                     "type": "boolean"
                 }
             }
@@ -1712,25 +1712,25 @@ const docTemplate = `{
         "progress.ProgressResponse": {
             "type": "object",
             "properties": {
-                "ease_factor": {
+                "easeFactor": {
                     "type": "number"
                 },
-                "interval_days": {
+                "intervalDays": {
                     "type": "integer"
                 },
-                "is_mastered": {
+                "isMastered": {
                     "type": "boolean"
                 },
-                "is_saved": {
+                "isSaved": {
                     "type": "boolean"
                 },
-                "last_reviewed_at": {
+                "lastReviewedAt": {
                     "type": "string"
                 },
-                "next_review_at": {
+                "nextReviewAt": {
                     "type": "string"
                 },
-                "question_id": {
+                "questionId": {
                     "type": "string"
                 },
                 "repetitions": {
@@ -1741,7 +1741,7 @@ const docTemplate = `{
         "questions.CodeChallengeResponse": {
             "type": "object",
             "properties": {
-                "expected_output": {
+                "expectedOutput": {
                     "type": "string"
                 },
                 "id": {
@@ -1750,10 +1750,10 @@ const docTemplate = `{
                 "language": {
                     "type": "string"
                 },
-                "starter_code": {
+                "starterCode": {
                     "type": "string"
                 },
-                "test_cases": {
+                "testCases": {
                     "type": "string"
                 }
             }
@@ -1767,7 +1767,7 @@ const docTemplate = `{
                 "content": {
                     "type": "string"
                 },
-                "is_correct": {
+                "isCorrect": {
                     "type": "boolean"
                 }
             }
@@ -1777,7 +1777,7 @@ const docTemplate = `{
             "required": [
                 "content",
                 "difficulty",
-                "topic_ids",
+                "topicIds",
                 "type"
             ],
             "properties": {
@@ -1792,7 +1792,7 @@ const docTemplate = `{
                         "advanced"
                     ]
                 },
-                "expected_output": {
+                "expectedOutput": {
                     "type": "string"
                 },
                 "explanation": {
@@ -1815,13 +1815,13 @@ const docTemplate = `{
                         "imported"
                     ]
                 },
-                "starter_code": {
+                "starterCode": {
                     "type": "string"
                 },
-                "test_cases": {
+                "testCases": {
                     "type": "string"
                 },
-                "topic_ids": {
+                "topicIds": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
@@ -1847,7 +1847,7 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "is_correct": {
+                "isCorrect": {
                     "type": "boolean"
                 }
             }
@@ -1855,13 +1855,13 @@ const docTemplate = `{
         "questions.QuestionResponse": {
             "type": "object",
             "properties": {
-                "code_challenge": {
+                "codeChallenge": {
                     "$ref": "#/definitions/questions.CodeChallengeResponse"
                 },
                 "content": {
                     "type": "string"
                 },
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
                 "difficulty": {
@@ -1873,7 +1873,7 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "is_public": {
+                "isPublic": {
                     "type": "boolean"
                 },
                 "options": {
@@ -1894,10 +1894,10 @@ const docTemplate = `{
                 "type": {
                     "type": "string"
                 },
-                "updated_at": {
+                "updatedAt": {
                     "type": "string"
                 },
-                "user_id": {
+                "userId": {
                     "type": "string"
                 }
             }
@@ -1930,7 +1930,7 @@ const docTemplate = `{
                         "advanced"
                     ]
                 },
-                "expected_output": {
+                "expectedOutput": {
                     "type": "string"
                 },
                 "explanation": {
@@ -1945,13 +1945,13 @@ const docTemplate = `{
                         "$ref": "#/definitions/questions.CreateOptionReq"
                     }
                 },
-                "starter_code": {
+                "starterCode": {
                     "type": "string"
                 },
-                "test_cases": {
+                "testCases": {
                     "type": "string"
                 },
-                "topic_ids": {
+                "topicIds": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -1976,22 +1976,22 @@ const docTemplate = `{
         "sessions.AnswerRequest": {
             "type": "object",
             "required": [
-                "question_id"
+                "questionId"
             ],
             "properties": {
-                "answer_text": {
+                "answerText": {
                     "type": "string"
                 },
-                "is_correct": {
+                "isCorrect": {
                     "type": "boolean"
                 },
-                "question_id": {
+                "questionId": {
                     "type": "string"
                 },
-                "response_time_ms": {
+                "responseTimeMs": {
                     "type": "integer"
                 },
-                "selected_options": {
+                "selectedOptions": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2005,7 +2005,7 @@ const docTemplate = `{
                 "difficulty",
                 "mode",
                 "name",
-                "topic_ids"
+                "topicIds"
             ],
             "properties": {
                 "difficulty": {
@@ -2028,12 +2028,12 @@ const docTemplate = `{
                     "maxLength": 200,
                     "minLength": 1
                 },
-                "question_limit": {
+                "questionLimit": {
                     "type": "integer",
                     "maximum": 50,
                     "minimum": 1
                 },
-                "topic_ids": {
+                "topicIds": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
@@ -2053,31 +2053,31 @@ const docTemplate = `{
         "sessions.SessionAnswerResponse": {
             "type": "object",
             "properties": {
-                "ai_feedback": {
+                "aiFeedback": {
                     "type": "string"
                 },
-                "answer_text": {
+                "answerText": {
                     "type": "string"
                 },
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "is_correct": {
+                "isCorrect": {
                     "type": "boolean"
                 },
                 "question": {
                     "$ref": "#/definitions/questions.QuestionResponse"
                 },
-                "question_id": {
+                "questionId": {
                     "type": "string"
                 },
-                "response_time_ms": {
+                "responseTimeMs": {
                     "type": "integer"
                 },
-                "selected_options": {
+                "selectedOptions": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2102,16 +2102,16 @@ const docTemplate = `{
         "sessions.SessionResponse": {
             "type": "object",
             "properties": {
-                "answer_count": {
+                "answerCount": {
                     "type": "integer"
                 },
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
                 "difficulty": {
                     "type": "string"
                 },
-                "finished_at": {
+                "finishedAt": {
                     "type": "string"
                 },
                 "id": {
@@ -2123,13 +2123,13 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "question_limit": {
+                "questionLimit": {
                     "type": "integer"
                 },
                 "score": {
                     "type": "number"
                 },
-                "started_at": {
+                "startedAt": {
                     "type": "string"
                 },
                 "status": {
@@ -2141,10 +2141,10 @@ const docTemplate = `{
                         "$ref": "#/definitions/sessions.TopicInfo"
                     }
                 },
-                "updated_at": {
+                "updatedAt": {
                     "type": "string"
                 },
-                "user_id": {
+                "userId": {
                     "type": "string"
                 }
             }
@@ -2194,16 +2194,16 @@ const docTemplate = `{
                 "category": {
                     "type": "string"
                 },
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
-                "created_by": {
+                "createdBy": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "is_system": {
+                "isSystem": {
                     "type": "boolean"
                 },
                 "name": {
@@ -2212,7 +2212,7 @@ const docTemplate = `{
                 "slug": {
                     "type": "string"
                 },
-                "updated_at": {
+                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -2242,7 +2242,7 @@ const docTemplate = `{
                 "email": {
                     "type": "string"
                 },
-                "is_admin": {
+                "isAdmin": {
                     "type": "boolean"
                 },
                 "password": {
@@ -2255,7 +2255,7 @@ const docTemplate = `{
         "users.UpdateUserRequest": {
             "type": "object",
             "properties": {
-                "is_admin": {
+                "isAdmin": {
                     "type": "boolean"
                 },
                 "password": {
@@ -2268,7 +2268,7 @@ const docTemplate = `{
         "users.UserResponse": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
                 "email": {
@@ -2277,10 +2277,10 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "is_admin": {
+                "isAdmin": {
                     "type": "boolean"
                 },
-                "updated_at": {
+                "updatedAt": {
                     "type": "string"
                 }
             }

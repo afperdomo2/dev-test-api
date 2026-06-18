@@ -19,49 +19,49 @@ type CreateSessionRequest struct {
 	Name          string      `json:"name" binding:"required,min=1,max=200"`
 	Mode          string      `json:"mode" binding:"required,oneof=generate review"`
 	Difficulty    string      `json:"difficulty" binding:"required,oneof=beginner intermediate advanced"`
-	TopicIDs      []uuid.UUID `json:"topic_ids" binding:"required,min=1"`
-	QuestionLimit *int        `json:"question_limit" binding:"omitempty,min=1,max=50"`
+	TopicIDs      []uuid.UUID `json:"topicIds" binding:"required,min=1"`
+	QuestionLimit *int        `json:"questionLimit" binding:"omitempty,min=1,max=50"`
 }
 
 type AnswerRequest struct {
-	QuestionID      uuid.UUID   `json:"question_id" binding:"required"`
-	IsCorrect       bool        `json:"is_correct"`
-	AnswerText      string      `json:"answer_text,omitempty"`
-	SelectedOptions []uuid.UUID `json:"selected_options,omitempty"`
-	ResponseTimeMs  int         `json:"response_time_ms"`
+	QuestionID      uuid.UUID   `json:"questionId" binding:"required"`
+	IsCorrect       bool        `json:"isCorrect"`
+	AnswerText      string      `json:"answerText,omitempty"`
+	SelectedOptions []uuid.UUID `json:"selectedOptions,omitempty"`
+	ResponseTimeMs  int         `json:"responseTimeMs"`
 }
 
 type SessionResponse struct {
 	ID            uuid.UUID   `json:"id"`
-	UserID        uuid.UUID   `json:"user_id"`
+	UserID        uuid.UUID   `json:"userId"`
 	Name          string      `json:"name"`
 	Status        string      `json:"status"`
 	Mode          string      `json:"mode"`
 	Difficulty    string      `json:"difficulty"`
-	QuestionLimit *int        `json:"question_limit,omitempty"`
+	QuestionLimit *int        `json:"questionLimit,omitempty"`
 	Score         *float64    `json:"score,omitempty"`
-	StartedAt     time.Time   `json:"started_at"`
-	FinishedAt    *time.Time  `json:"finished_at,omitempty"`
+	StartedAt     time.Time   `json:"startedAt"`
+	FinishedAt    *time.Time  `json:"finishedAt,omitempty"`
 	Topics        []TopicInfo `json:"topics"`
-	AnswerCount   int         `json:"answer_count"`
-	CreatedAt     time.Time   `json:"created_at"`
-	UpdatedAt     time.Time   `json:"updated_at"`
+	AnswerCount   int         `json:"answerCount"`
+	CreatedAt     time.Time   `json:"createdAt"`
+	UpdatedAt     time.Time   `json:"updatedAt"`
 }
 
 type SessionListResponse struct {
 	ID            uuid.UUID   `json:"id"`
-	UserID        uuid.UUID   `json:"user_id"`
+	UserID        uuid.UUID   `json:"userId"`
 	Name          string      `json:"name"`
 	Status        string      `json:"status"`
 	Mode          string      `json:"mode"`
 	Difficulty    string      `json:"difficulty"`
-	QuestionLimit *int        `json:"question_limit,omitempty"`
+	QuestionLimit *int        `json:"questionLimit,omitempty"`
 	Score         *float64    `json:"score,omitempty"`
-	StartedAt     time.Time   `json:"started_at"`
-	FinishedAt    *time.Time  `json:"finished_at,omitempty"`
+	StartedAt     time.Time   `json:"startedAt"`
+	FinishedAt    *time.Time  `json:"finishedAt,omitempty"`
 	Topics        []TopicInfo `json:"topics"`
-	AnswerCount   int         `json:"answer_count"`
-	CreatedAt     time.Time   `json:"created_at"`
+	AnswerCount   int         `json:"answerCount"`
+	CreatedAt     time.Time   `json:"createdAt"`
 }
 
 type SessionDetailResponse struct {
@@ -71,14 +71,14 @@ type SessionDetailResponse struct {
 
 type SessionAnswerResponse struct {
 	ID              uuid.UUID                  `json:"id"`
-	QuestionID      uuid.UUID                  `json:"question_id"`
-	AnswerText      string                     `json:"answer_text,omitempty"`
-	SelectedOptions []uuid.UUID                `json:"selected_options,omitempty"`
-	IsCorrect       bool                       `json:"is_correct"`
-	AiFeedback      string                     `json:"ai_feedback,omitempty"`
-	ResponseTimeMs  int                        `json:"response_time_ms"`
+	QuestionID      uuid.UUID                  `json:"questionId"`
+	AnswerText      string                     `json:"answerText,omitempty"`
+	SelectedOptions []uuid.UUID                `json:"selectedOptions,omitempty"`
+	IsCorrect       bool                       `json:"isCorrect"`
+	AiFeedback      string                     `json:"aiFeedback,omitempty"`
+	ResponseTimeMs  int                        `json:"responseTimeMs"`
 	Question        questions.QuestionResponse `json:"question"`
-	CreatedAt       time.Time                  `json:"created_at"`
+	CreatedAt       time.Time                  `json:"createdAt"`
 }
 
 type NextQuestionResponse struct {

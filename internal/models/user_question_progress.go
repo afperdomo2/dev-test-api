@@ -11,17 +11,17 @@ func (UserQuestionProgress) TableName() string {
 }
 
 type UserQuestionProgress struct {
-	UserID         uuid.UUID  `gorm:"type:uuid;primaryKey" json:"user_id"`
-	QuestionID     uuid.UUID  `gorm:"type:uuid;primaryKey" json:"question_id"`
+	UserID         uuid.UUID  `gorm:"type:uuid;primaryKey" json:"userId"`
+	QuestionID     uuid.UUID  `gorm:"type:uuid;primaryKey" json:"questionId"`
 	User           *User      `gorm:"foreignKey:UserID" json:"-"`
 	Question       *Question  `gorm:"foreignKey:QuestionID" json:"-"`
 	Repetitions    int        `gorm:"not null;default:0" json:"repetitions"`
-	EaseFactor     float64    `gorm:"not null;default:2.5" json:"ease_factor"`
-	IntervalDays   int        `gorm:"not null;default:0" json:"interval_days"`
-	NextReviewAt   *time.Time `json:"next_review_at,omitempty"`
-	LastReviewedAt *time.Time `json:"last_reviewed_at,omitempty"`
-	IsSaved        bool       `gorm:"not null;default:false" json:"is_saved"`
-	IsMastered     bool       `gorm:"not null;default:false" json:"is_mastered"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	EaseFactor     float64    `gorm:"not null;default:2.5" json:"easeFactor"`
+	IntervalDays   int        `gorm:"not null;default:0" json:"intervalDays"`
+	NextReviewAt   *time.Time `json:"nextReviewAt,omitempty"`
+	LastReviewedAt *time.Time `json:"lastReviewedAt,omitempty"`
+	IsSaved        bool       `gorm:"not null;default:false" json:"isSaved"`
+	IsMastered     bool       `gorm:"not null;default:false" json:"isMastered"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
 }

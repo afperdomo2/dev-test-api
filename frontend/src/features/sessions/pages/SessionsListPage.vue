@@ -40,8 +40,8 @@ const createForm = ref<CreateSessionRequest>({
   name: '',
   mode: 'generate',
   difficulty: 'beginner',
-  topic_ids: [],
-  question_limit: undefined,
+  topicIds: [],
+  questionLimit: undefined,
 })
 const createErrors = ref<Record<string, Array<string>>>({})
 const creating = ref(false)
@@ -64,28 +64,28 @@ const topicItems = computed(() =>
 function validateCreate(): boolean {
   const newErrors: Record<string, Array<string>> = {}
   newErrors.name = validateRules([requiredRule()], createForm.value.name)
-  newErrors.topic_ids = validateRules(
+  newErrors.topicIds = validateRules(
     [
       {
-        validate: () => createForm.value.topic_ids.length > 0,
+        validate: () => createForm.value.topicIds.length > 0,
         message: 'Selecciona al menos un tema',
       },
     ],
     '',
   )
-  if (createForm.value.question_limit !== undefined) {
-    newErrors.question_limit = validateRules(
+  if (createForm.value.questionLimit !== undefined) {
+    newErrors.questionLimit = validateRules(
       [
         {
           validate: () => {
-            const v = createForm.value.question_limit
+            const v = createForm.value.questionLimit
             return v !== undefined && v >= 1
           },
           message: 'Minimo 1 pregunta',
         },
         {
           validate: () => {
-            const v = createForm.value.question_limit
+            const v = createForm.value.questionLimit
             return v !== undefined && v <= 50
           },
           message: 'Maximo 50 preguntas',
@@ -109,8 +109,8 @@ async function handleCreate() {
       name: '',
       mode: 'generate',
       difficulty: 'beginner',
-      topic_ids: [],
-      question_limit: undefined,
+      topicIds: [],
+      questionLimit: undefined,
     }
     appStore.showSnackbar('Sesión creada')
   } catch (err: unknown) {
@@ -203,12 +203,12 @@ async function handleCreate() {
             <v-row>
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model.number="createForm.question_limit"
+                  v-model.number="createForm.questionLimit"
                   label="Limite de preguntas (opcional)"
                   type="number"
                   min="1"
                   max="50"
-                  :error-messages="createErrors.question_limit"
+                  :error-messages="createErrors.questionLimit"
                   :disabled="creating"
                   hint="Deja en blanco para preguntas ilimitadas"
                   persistent-hint
@@ -217,12 +217,12 @@ async function handleCreate() {
             </v-row>
 
             <v-select
-              v-model="createForm.topic_ids"
+              v-model="createForm.topicIds"
               label="Temas"
               :items="topicItems"
               item-title="title"
               item-props="props"
-              :error-messages="createErrors.topic_ids"
+              :error-messages="createErrors.topicIds"
               :disabled="creating"
               multiple
               chips

@@ -13,7 +13,7 @@ export async function listQuestions(
   filters?: QuestionsFilters,
 ): Promise<PaginatedResponse<Question>> {
   const res = await apiClient.get<PaginatedResponse<Question>>('/api/v1/questions', {
-    params: { page, per_page: perPage, ...filters },
+    params: { page, perPage, ...filters },
   })
   return res.data
 }

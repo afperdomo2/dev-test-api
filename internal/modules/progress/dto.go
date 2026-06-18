@@ -19,18 +19,18 @@ var savedSortConfig = common.SortConfig{
 }
 
 type AnswerRequest struct {
-	IsCorrect bool `json:"is_correct" binding:"required"`
+	IsCorrect bool `json:"isCorrect" binding:"required"`
 }
 
 type ProgressResponse struct {
-	QuestionID     uuid.UUID  `json:"question_id"`
+	QuestionID     uuid.UUID  `json:"questionId"`
 	Repetitions    int        `json:"repetitions"`
-	EaseFactor     float64    `json:"ease_factor"`
-	IntervalDays   int        `json:"interval_days"`
-	NextReviewAt   *time.Time `json:"next_review_at,omitempty"`
-	LastReviewedAt *time.Time `json:"last_reviewed_at,omitempty"`
-	IsSaved        bool       `json:"is_saved"`
-	IsMastered     bool       `json:"is_mastered"`
+	EaseFactor     float64    `json:"easeFactor"`
+	IntervalDays   int        `json:"intervalDays"`
+	NextReviewAt   *time.Time `json:"nextReviewAt,omitempty"`
+	LastReviewedAt *time.Time `json:"lastReviewedAt,omitempty"`
+	IsSaved        bool       `json:"isSaved"`
+	IsMastered     bool       `json:"isMastered"`
 }
 
 type UpcomingItem struct {

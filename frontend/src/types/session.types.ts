@@ -51,15 +51,15 @@ export interface CreateSessionRequest {
   name: string
   mode: SessionMode
   difficulty: SessionDifficulty
-  topic_ids: Array<string>
-  question_limit?: number
+  topicIds: Array<string>
+  questionLimit?: number
 }
 
 export interface SubmitAnswerRequest {
-  question_id: string
-  answer_text?: string
-  selected_options?: Array<string>
-  response_time_ms?: number
+  questionId: string
+  answerText?: string
+  selectedOptions?: Array<string>
+  responseTimeMs?: number
 }
 
 export interface SessionAnswer {

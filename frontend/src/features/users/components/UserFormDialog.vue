@@ -28,7 +28,7 @@ const dialogTitle = computed(() => (isEdit.value ? 'Editar usuario' : 'Nuevo usu
 const form = ref<CreateUserRequest>({
   email: '',
   password: '',
-  is_admin: false,
+  isAdmin: false,
 })
 
 const validationErrors = ref<Record<string, Array<string>>>({})
@@ -46,10 +46,10 @@ watch(
         form.value = {
           email: props.user.email,
           password: '',
-          is_admin: props.user.isAdmin,
+          isAdmin: props.user.isAdmin,
         }
       } else {
-        form.value = { email: '', password: '', is_admin: false }
+        form.value = { email: '', password: '', isAdmin: false }
       }
       validationErrors.value = {}
       serverErrors.value = {}
@@ -89,7 +89,7 @@ async function submit() {
   saving.value = true
   try {
     if (isEdit.value && props.user) {
-      const data: Record<string, unknown> = { is_admin: form.value.is_admin }
+      const data: Record<string, unknown> = { isAdmin: form.value.isAdmin }
       if (form.value.password) {
         data.password = form.value.password
       }
@@ -99,7 +99,7 @@ async function submit() {
       await createMut.mutateAsync({
         email: form.value.email,
         password: form.value.password,
-        is_admin: form.value.is_admin,
+        isAdmin: form.value.isAdmin,
       })
       appStore.showSnackbar('Usuario creado correctamente')
     }
@@ -159,7 +159,7 @@ function close() {
           />
 
           <v-switch
-            v-model="form.is_admin"
+            v-model="form.isAdmin"
             label="Administrador"
             color="primary"
             :disabled="saving"
