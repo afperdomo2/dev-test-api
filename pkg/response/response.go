@@ -8,7 +8,7 @@ import (
 type Meta struct {
 	Total   int64 `json:"total,omitempty"`
 	Page    int   `json:"page,omitempty"`
-	PerPage int   `json:"per_page,omitempty"`
+	PerPage int   `json:"perPage,omitempty"`
 }
 
 func Success(c *gin.Context, status int, data any) {

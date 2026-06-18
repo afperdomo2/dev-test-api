@@ -281,5 +281,5 @@ Vuetify `v-data-table` uses dotted slot names like `item.is_admin`. ESLint's `vu
 <template #item.is_admin="{ item }">
 
 <!-- ✅ Correct -->
-<template #[`item.is_admin`]="{ item }">
+<template #[`item.isAdmin`]="{ item }">
 ```

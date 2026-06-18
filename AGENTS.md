@@ -47,6 +47,7 @@ Always run `make fe-check` and `make fe-lint` after any frontend change. `make f
   - `internal/modules/*/dto.go` response shapes → `frontend/src/api/services/*.service.ts` return types
   - New/removed endpoints → update `frontend/src/api/services/` + `frontend/src/queries/`
   - If unsure about endpoint shapes, read `docs/swagger.yaml`
+  - **Naming convention**: both sides use camelCase for JSON keys. Go struct tags (`json:"camelCase"`) and frontend TypeScript interfaces use the same casing — no conversion needed.
 - **Context7 MCP** — available for Gin, GORM, jwt, swag docs. Always `resolve-library-id` first, then `query-docs`.
 - **Vuetify MCP** — available via `opencode.json`. Query component APIs with `vuetify_get_component_api_by_version` or `vuetify_get_feature_guide`.
 - **Log icons** — prefix Go `log.*` calls with emoji (❌ errors, ✅ success, 🚀 startup, 🛢️ database, 🌱 seed). Pick the most descriptive icon per context.
@@ -69,6 +70,6 @@ Backend and frontend have separate rule files with detailed conventions:
 | File | Purpose |
 |------|---------|
 | `architecture.md` | Directory ownership, data flow (api → queries → features), feature structure, wiring checklist |
-| `api-client.md` | Axios interceptors, envelope unwrap gotcha (`meta` key), error mapping, `useFormErrors` |
+| `api-client.md` | Axios interceptors, envelope unwrap, camelCase convention, `useFormErrors` |
 | `patterns.md` | TanStack Query patterns, debounce 500ms, Vue/TS conventions, Pinia stores, pagination, v-slot bracket syntax |
 | `dependencies.md` | Safety checks before `pnpm add` — security, maintenance, licensing |

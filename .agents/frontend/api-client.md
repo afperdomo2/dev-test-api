@@ -8,21 +8,20 @@ The client automatically handles two concerns:
 
 Attaches `Authorization: Bearer <token>` from `localStorage` to every request. Tokens are managed via `utils/storage.ts` (`getToken`, `setToken`, `removeToken`).
 
-### Response interceptor — processing order
+### Response interceptor — envelope unwrap
 
-The interceptor applies two transformations in sequence on every response:
+The interceptor unwraps the API envelope on every response:
 
 ```
-1. Envelope unwrap  →  { data: ... } extracted if not paginated
-2. snake→camel      →  all keys deep-transformed via snakeToCamel()
+{ data: ... } → extracted value (if no meta key)
 ```
 
-**Critical gotcha — paginated responses**: the unwrap step checks for `data` without `meta`. Paginated responses pass through step 1 unchanged, then get camelized in step 2 (including `meta.per_page` → `meta.perPage`).
+**Critical gotcha — paginated responses**: the unwrap only triggers when the response has `data` but NOT `meta`. Paginated responses `{ data: [...], meta: { total, page, perPage } }` pass through unchanged so components can access `data.value?.meta?.total`.
 
-| Backend returns | After unwrap | After camelize |
-|---|---|---|
-| `{ data: { token: "...", user: { is_admin: true } } }` | `{ token: "...", user: { is_admin: true } }` | `{ token: "...", user: { isAdmin: true } }` |
-| `{ data: [...], meta: { total: 1, per_page: 20 } }` | `{ data: [...], meta: { total: 1, per_page: 20 } }` | `{ data: [...], meta: { total: 1, perPage: 20 } }` |
+| Backend returns | After interceptor |
+|---|---|
+| `{ data: { token: "...", user: { isAdmin: true } } }` | `{ token: "...", user: { isAdmin: true } }` |
+| `{ data: [...], meta: { total: 1, perPage: 20 } }` | `{ data: [...], meta: { total: 1, perPage: 20 } }` |
 
 **Never** add a `meta` field to non-paginated backend responses.
 
@@ -32,27 +31,30 @@ The interceptor applies two transformations in sequence on every response:
 - On 401: auto-removes the token from localStorage (forcing re-login)
 - The rejected promise carries the `ApiError` object, not the raw Axios error
 
-## Naming convention: snake_case vs camelCase
+## Naming convention: camelCase everywhere
 
-The backend (Go) uses `snake_case` in JSON (`is_admin`, `created_at`). The frontend (TypeScript/Vue) MUST use `camelCase` (`isAdmin`, `createdAt`).
+Both the backend (Go) and frontend (TypeScript/Vue) use **camelCase** for all JSON keys. No conversion is needed.
 
 ### Rule
 
 | Direction | Convention | Where |
 |-----------|-----------|-------|
-| **Response data** (API → frontend) | `camelCase` | All `types/*.types.ts` interfaces, all template bindings, all headers keys, all slot names |
-| **Request bodies** (frontend → API) | `snake_case` | POST/PUT data, query params, form submissions |
+| **Response data** (API → frontend) | `camelCase` | All `types/*.types.ts` response interfaces, template bindings, slot names |
+| **Request bodies** (frontend → API) | `camelCase` | POST/PUT data, query params, form submissions |
+| **Query params** (frontend → API)  | `camelCase` | `perPage`, `sortBy`, `sortOrder`, filters |
 
 ### How it works
 
-The `snakeToCamel()` utility in `utils/transform.ts` runs inside the response interceptor (`api/client.ts`). It recursively converts all object keys from `snake_case` to `camelCase`. This happens automatically — services and components receive already-camelized data.
+The backend's `json:"camelCase"` struct tags define the serialization for both directions:
+- **Responses**: serialized by Go's `encoding/json` using those tags → frontend receives camelCase
+- **Requests**: deserialized by Gin's `ShouldBindJSON` using those tags → backend reads camelCase
 
-Request bodies are NOT transformed. They are sent as-is to the backend, which expects `snake_case` JSON tags.
+No runtime transformation (like `snakeToCamel`) exists. Data flows as-is.
 
 ### When adding a new type
 
-1. Define the **response type** with `camelCase` properties matching the camelized output of `snakeToCamel()`
-2. Define the **request type** with `snake_case` properties matching the backend's JSON tags
+1. Read `docs/swagger.yaml` to see the exact JSON shape (it mirrors the Go struct tags)
+2. Define both **response** and **request** types with `camelCase` properties matching the backend's JSON tags
 3. Data table header `key` values use `camelCase` (they match response object keys)
 4. Template slot names for data table columns use `camelCase`: `#[`item.isAdmin`]`, `#[`item.createdAt`]`
 
@@ -61,15 +63,15 @@ Example:
 // Response type — camelCase
 export interface User {
   id: string
-  isAdmin: boolean      // backend: is_admin
-  createdAt: string     // backend: created_at
+  isAdmin: boolean
+  createdAt: string
 }
 
-// Request type — snake_case (sent to backend as-is)
+// Request type — camelCase (same as backend's json tags)
 export interface CreateUserRequest {
   email: string
   password: string
-  is_admin?: boolean    // backend expects this key name
+  isAdmin?: boolean
 }
 
 // Data table header — key matches response type
@@ -87,13 +89,15 @@ Service files export plain async functions. They receive typed inputs and return
 // api/services/users.service.ts
 export async function listUsers(page: number, perPage: number): Promise<PaginatedResponse<User>> {
   const res = await apiClient.get<PaginatedResponse<User>>('/api/v1/users', {
-    params: { page, per_page: perPage },
+    params: { page, perPage },
   })
   return res.data
 }
 ```
 
 Always use `res.data` (the interceptor already unwrapped the envelope). The type annotation on `apiClient.get<T>()` is the type of the unwrapped data.
+
+Query param keys use camelCase (`perPage`, `sortBy`, `sortOrder`, filter names) — the backend parses them from `c.Query("perPage")` / `c.Query("sortBy")`.
 
 ## Form error mapping
 

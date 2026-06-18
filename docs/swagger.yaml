@@ -227,7 +227,7 @@ definitions:
     properties:
       page:
         type: integer
-      per_page:
+      perPage:
         type: integer
       total:
         type: integer

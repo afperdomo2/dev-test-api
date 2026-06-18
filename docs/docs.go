@@ -1965,7 +1965,7 @@ const docTemplate = `{
                 "page": {
                     "type": "integer"
                 },
-                "per_page": {
+                "perPage": {
                     "type": "integer"
                 },
                 "total": {
