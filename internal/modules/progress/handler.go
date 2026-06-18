@@ -89,7 +89,7 @@ func (h *Handler) Upcoming(c *gin.Context) {
 		return
 	}
 
-	items, total, err := h.service.Upcoming(userID, params.Page, params.PerPage, params.SortBy, params.SortOrder)
+	items, total, err := h.service.Upcoming(userID, params)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
@@ -127,7 +127,7 @@ func (h *Handler) Saved(c *gin.Context) {
 		return
 	}
 
-	items, total, err := h.service.Saved(userID, params.Page, params.PerPage, params.SortBy, params.SortOrder)
+	items, total, err := h.service.Saved(userID, params)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path

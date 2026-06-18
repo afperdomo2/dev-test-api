@@ -46,7 +46,7 @@ func (h *Handler) List(c *gin.Context) {
 		return
 	}
 
-	topics, total, err := h.service.List(params.Page, params.PerPage, params.SortBy, params.SortOrder, isAdmin, userID)
+	topics, total, err := h.service.List(params, isAdmin, userID)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path

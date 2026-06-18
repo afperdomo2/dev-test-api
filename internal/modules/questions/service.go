@@ -1,6 +1,7 @@
 package questions
 
 import (
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
@@ -8,7 +9,7 @@ import (
 )
 
 type Service interface {
-	List(page, perPage int, sortBy, sortOrder string, filters QuestionFilters) ([]QuestionListResponse, int64, error)
+	List(params common.PaginationParams, filters QuestionFilters) ([]QuestionListResponse, int64, error)
 	GetByID(id uuid.UUID) (*QuestionResponse, error)
 	Create(userID uuid.UUID, input CreateQuestionRequest) (*QuestionResponse, error)
 	Update(id uuid.UUID, input UpdateQuestionRequest) (*QuestionResponse, error)
@@ -23,8 +24,8 @@ func NewService(store Store) Service {
 	return &questionService{store: store}
 }
 
-func (s *questionService) List(page, perPage int, sortBy, sortOrder string, filters QuestionFilters) ([]QuestionListResponse, int64, error) {
-	questions, total, err := s.store.FindPage(page, perPage, sortBy, sortOrder, filters)
+func (s *questionService) List(params common.PaginationParams, filters QuestionFilters) ([]QuestionListResponse, int64, error) {
+	questions, total, err := s.store.FindPage(params, filters)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar las preguntas", "")
 	}

@@ -1,6 +1,7 @@
 package topics
 
 import (
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -8,8 +9,8 @@ import (
 
 type Store interface {
 	FindAll() ([]models.Topic, error)
-	FindPage(page, perPage int, sortBy, sortOrder string) ([]models.Topic, int64, error)
-	FindPageFiltered(page, perPage int, sortBy, sortOrder string, isAdmin bool, userID uuid.UUID) ([]models.Topic, int64, error)
+	FindPage(params common.PaginationParams) ([]models.Topic, int64, error)
+	FindPageFiltered(params common.PaginationParams, isAdmin bool, userID uuid.UUID) ([]models.Topic, int64, error)
 	FindByID(id uuid.UUID) (*models.Topic, error)
 	FindBySlugAndUser(slug string, createdBy *uuid.UUID) (*models.Topic, error)
 	Create(topic *models.Topic) error
@@ -31,17 +32,17 @@ func (s *gormStore) FindAll() ([]models.Topic, error) {
 	return topics, err
 }
 
-func (s *gormStore) FindPage(page, perPage int, sortBy, sortOrder string) ([]models.Topic, int64, error) {
+func (s *gormStore) FindPage(params common.PaginationParams) ([]models.Topic, int64, error) {
 	var topics []models.Topic
 	var total int64
 	s.db.Model(&models.Topic{}).Count(&total)
-	err := s.db.Offset((page - 1) * perPage).Limit(perPage).
-		Order(sortConfig.OrderClause(sortBy, sortOrder)).
+	err := s.db.Offset((params.Page - 1) * params.PerPage).Limit(params.PerPage).
+		Order(sortConfig.OrderClause(params.SortBy, params.SortOrder)).
 		Find(&topics).Error
 	return topics, total, err
 }
 
-func (s *gormStore) FindPageFiltered(page, perPage int, sortBy, sortOrder string, isAdmin bool, userID uuid.UUID) ([]models.Topic, int64, error) {
+func (s *gormStore) FindPageFiltered(params common.PaginationParams, isAdmin bool, userID uuid.UUID) ([]models.Topic, int64, error) {
 	var topics []models.Topic
 	var total int64
 
@@ -53,8 +54,8 @@ func (s *gormStore) FindPageFiltered(page, perPage int, sortBy, sortOrder string
 	}
 	query.Count(&total)
 
-	err := query.Offset((page - 1) * perPage).Limit(perPage).
-		Order(sortConfig.OrderClause(sortBy, sortOrder)).
+	err := query.Offset((params.Page - 1) * params.PerPage).Limit(params.PerPage).
+		Order(sortConfig.OrderClause(params.SortBy, params.SortOrder)).
 		Find(&topics).Error
 	return topics, total, err
 }

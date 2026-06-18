@@ -46,7 +46,7 @@ func (h *Handler) List(c *gin.Context) {
 		Difficulty: c.Query("difficulty"),
 	}
 
-	questions, total, err := h.service.List(params.Page, params.PerPage, params.SortBy, params.SortOrder, filters)
+	questions, total, err := h.service.List(params, filters)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path

@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
@@ -10,7 +11,7 @@ import (
 
 type Service interface {
 	Create(email, password string, isAdmin bool) (*models.User, error)
-	List(page, perPage int, sortBy, sortOrder string) ([]models.User, int64, error)
+	List(params common.PaginationParams) ([]models.User, int64, error)
 	GetByID(id uuid.UUID) (*models.User, error)
 	Update(id uuid.UUID, req UpdateUserRequest) (*models.User, error)
 	Delete(id uuid.UUID) error
@@ -48,8 +49,8 @@ func (s *userService) Create(email, password string, isAdmin bool) (*models.User
 	return user, nil
 }
 
-func (s *userService) List(page, perPage int, sortBy, sortOrder string) ([]models.User, int64, error) {
-	users, total, err := s.store.FindPage(page, perPage, sortBy, sortOrder)
+func (s *userService) List(params common.PaginationParams) ([]models.User, int64, error) {
+	users, total, err := s.store.FindPage(params)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar los usuarios", "")
 	}

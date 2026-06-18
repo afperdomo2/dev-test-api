@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -9,7 +10,7 @@ import (
 type Store interface {
 	Create(user *models.User) error
 	FindAll() ([]models.User, error)
-	FindPage(page, perPage int, sortBy, sortOrder string) ([]models.User, int64, error)
+	FindPage(params common.PaginationParams) ([]models.User, int64, error)
 	FindByID(id uuid.UUID) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
 	Update(user *models.User) error
@@ -35,12 +36,12 @@ func (s *gormStore) FindAll() ([]models.User, error) {
 	return users, err
 }
 
-func (s *gormStore) FindPage(page, perPage int, sortBy, sortOrder string) ([]models.User, int64, error) {
+func (s *gormStore) FindPage(params common.PaginationParams) ([]models.User, int64, error) {
 	var users []models.User
 	var total int64
 	s.db.Model(&models.User{}).Count(&total)
-	err := s.db.Offset((page - 1) * perPage).Limit(perPage).
-		Order(sortConfig.OrderClause(sortBy, sortOrder)).
+	err := s.db.Offset((params.Page - 1) * params.PerPage).Limit(params.PerPage).
+		Order(sortConfig.OrderClause(params.SortBy, params.SortOrder)).
 		Find(&users).Error
 	return users, total, err
 }

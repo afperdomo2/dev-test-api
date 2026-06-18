@@ -1,13 +1,14 @@
 package sessions
 
 import (
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Store interface {
-	FindPage(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]models.Session, int64, error)
+	FindPage(userID uuid.UUID, params common.PaginationParams) ([]models.Session, int64, error)
 	FindByID(id uuid.UUID) (*models.Session, error)
 	Create(session *models.Session) error
 	Update(session *models.Session) error
@@ -25,17 +26,17 @@ func NewStore(db *gorm.DB) Store {
 	return &gormStore{db: db}
 }
 
-func (s *gormStore) FindPage(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]models.Session, int64, error) {
+func (s *gormStore) FindPage(userID uuid.UUID, params common.PaginationParams) ([]models.Session, int64, error) {
 	var sessions []models.Session
 	var total int64
 
 	base := s.db.Where("user_id = ?", userID)
 	base.Model(&models.Session{}).Count(&total)
 
-	err := base.Offset((page - 1) * perPage).Limit(perPage).
+	err := base.Offset((params.Page - 1) * params.PerPage).Limit(params.PerPage).
 		Preload("Topics").
 		Preload("Answers").
-		Order(sortConfig.OrderClause(sortBy, sortOrder)).
+		Order(sortConfig.OrderClause(params.SortBy, params.SortOrder)).
 		Find(&sessions).Error
 	return sessions, total, err
 }

@@ -4,6 +4,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
 	"github.com/felipe/dev-test-api/pkg/apierr"
@@ -13,8 +14,8 @@ import (
 
 type Service interface {
 	Answer(userID, questionID uuid.UUID, isCorrect bool) (*ProgressResponse, error)
-	Upcoming(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]UpcomingItem, int64, error)
-	Saved(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]UpcomingItem, int64, error)
+	Upcoming(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error)
+	Saved(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error)
 	ToggleSave(userID, questionID uuid.UUID) (*ProgressResponse, error)
 }
 
@@ -48,8 +49,8 @@ func (s *progressService) Answer(userID, questionID uuid.UUID, isCorrect bool) (
 	return toProgressResponse(p), nil
 }
 
-func (s *progressService) Upcoming(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]UpcomingItem, int64, error) {
-	items, total, err := s.store.FindUpcoming(userID, page, perPage, sortBy, sortOrder)
+func (s *progressService) Upcoming(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error) {
+	items, total, err := s.store.FindUpcoming(userID, params)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar las preguntas pendientes", "")
 	}
@@ -64,8 +65,8 @@ func (s *progressService) Upcoming(userID uuid.UUID, page, perPage int, sortBy, 
 	return result, total, nil
 }
 
-func (s *progressService) Saved(userID uuid.UUID, page, perPage int, sortBy, sortOrder string) ([]UpcomingItem, int64, error) {
-	items, total, err := s.store.FindSaved(userID, page, perPage, sortBy, sortOrder)
+func (s *progressService) Saved(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error) {
+	items, total, err := s.store.FindSaved(userID, params)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar las preguntas guardadas", "")
 	}
