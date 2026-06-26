@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Session } from '@/types/session.types'
 import {
   SESSION_STATUS_LABELS,
@@ -11,7 +12,14 @@ interface Props {
   session: Session
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const isGenerating = computed(
+  () =>
+    props.session.mode === 'generate' &&
+    props.session.status === 'in_progress' &&
+    props.session.questionsGenerated < 2,
+)
 </script>
 
 <template>
@@ -37,6 +45,10 @@ defineProps<Props>()
         </v-chip>
         <v-chip size="x-small" variant="text">
           {{ session.difficulty }}
+        </v-chip>
+        <v-chip v-if="isGenerating" size="x-small" variant="flat" color="warning" class="ml-1">
+          <v-icon start size="14">mdi-cog</v-icon>
+          Generando...
         </v-chip>
       </v-card-subtitle>
     </v-card-item>

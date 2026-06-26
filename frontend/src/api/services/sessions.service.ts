@@ -4,6 +4,7 @@ import type {
   CreateSessionRequest,
   SubmitAnswerRequest,
   SessionAnswer,
+  SessionSummary,
 } from '@/types/session.types'
 import type { Question } from '@/types/question.types'
 import type { PaginatedResponse } from '@/types/api.types'
@@ -22,8 +23,10 @@ export async function listSessions(
 }
 
 export async function getSessionById(id: string): Promise<Session> {
-  const res = await apiClient.get<Session>(`/api/v1/sessions/${id}`)
-  return res.data
+  const res = await apiClient.get<{ session: Session; answers: Array<SessionAnswer> }>(
+    `/api/v1/sessions/${id}`,
+  )
+  return res.data.session
 }
 
 export async function createSession(data: CreateSessionRequest): Promise<Session> {
@@ -37,8 +40,8 @@ export async function finishSession(id: string): Promise<Session> {
 }
 
 export async function getNextQuestion(id: string): Promise<Question> {
-  const res = await apiClient.get<Question>(`/api/v1/sessions/${id}/next`)
-  return res.data
+  const res = await apiClient.get<{ question: Question }>(`/api/v1/sessions/${id}/next`)
+  return res.data.question
 }
 
 export async function submitAnswer(
@@ -46,5 +49,10 @@ export async function submitAnswer(
   data: SubmitAnswerRequest,
 ): Promise<SessionAnswer> {
   const res = await apiClient.post<SessionAnswer>(`/api/v1/sessions/${sessionId}/answer`, data)
+  return res.data
+}
+
+export async function getSessionSummary(id: string): Promise<SessionSummary> {
+  const res = await apiClient.get<SessionSummary>(`/api/v1/sessions/${id}/summary`)
   return res.data
 }

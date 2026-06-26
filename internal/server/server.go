@@ -17,6 +17,7 @@ import (
 	"github.com/felipe/dev-test-api/internal/modules/sessions"
 	"github.com/felipe/dev-test-api/internal/modules/topics"
 	"github.com/felipe/dev-test-api/internal/modules/users"
+	"github.com/felipe/dev-test-api/internal/services/ai"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
@@ -42,7 +43,8 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	userHandler := users.NewHandler(userService)
 
 	sessionStore := sessions.NewStore(db)
-	sessionService := sessions.NewService(sessionStore, progressService)
+	aiGenerator := ai.NewGenerator(db, cfg.AI)
+	sessionService := sessions.NewService(sessionStore, progressService, aiGenerator)
 	sessionHandler := sessions.NewHandler(sessionService)
 
 	authService := auth.NewService(userStore, cfg.JWT.SecretBytes(), cfg.JWT.ExpiryHrs)

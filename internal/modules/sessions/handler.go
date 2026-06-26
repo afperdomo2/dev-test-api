@@ -228,6 +228,33 @@ func (h *Handler) Answer(c *gin.Context) {
 	response.Success(c, http.StatusOK, resp)
 }
 
+// @Summary      Resumen de sesión
+// @Description  Obtiene un resumen liviano de la sesión (contadores, estado)
+// @Tags         sessions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path  string  true  "Session ID"
+// @Success      200  {object}  SessionSummaryResponse
+// @Failure      404  {object}  apierr.APIError
+// @Router       /api/v1/sessions/{id}/summary [get]
+func (h *Handler) Summary(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.NotFound(c, "Sesion", c.Request.URL.Path)
+		return
+	}
+
+	summary, err := h.service.Summary(id)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, summary)
+}
+
 func getUserID(c *gin.Context) (uuid.UUID, *apierr.APIError) {
 	claims, exists := c.Get("user_claims")
 	if !exists {

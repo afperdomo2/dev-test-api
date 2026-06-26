@@ -29,7 +29,7 @@ export const TYPE_ICONS: Record<QuestionType, string> = {
 export interface QuestionOption {
   id: string
   content: string
-  isCorrect: boolean
+  isCorrect?: boolean
 }
 
 export interface CodeChallenge {

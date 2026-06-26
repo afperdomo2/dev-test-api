@@ -2,11 +2,12 @@ package sessions
 
 import (
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
-	"github.com/felipe/dev-test-api/internal/modules/questions"
+	"github.com/felipe/dev-test-api/internal/services/ai"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
@@ -20,15 +21,17 @@ type Service interface {
 	Finish(sessionID uuid.UUID) (*SessionResponse, error)
 	NextQuestion(sessionID uuid.UUID) (*NextQuestionResponse, error)
 	Answer(sessionID, userID uuid.UUID, input AnswerRequest) (*SessionAnswerResponse, error)
+	Summary(sessionID uuid.UUID) (*SessionSummaryResponse, error)
 }
 
 type sessionService struct {
 	store           Store
 	progressService progress.Service
+	aiGenerator     *ai.Generator
 }
 
-func NewService(store Store, progressService progress.Service) Service {
-	return &sessionService{store: store, progressService: progressService}
+func NewService(store Store, progressService progress.Service, aiGenerator *ai.Generator) Service {
+	return &sessionService{store: store, progressService: progressService, aiGenerator: aiGenerator}
 }
 
 func (s *sessionService) List(userID uuid.UUID, params ListSessionsParams) ([]SessionListResponse, int64, error) {
@@ -86,6 +89,10 @@ func (s *sessionService) Create(userID uuid.UUID, input CreateSessionRequest) (*
 	session, err := s.store.FindByID(session.ID)
 	if err != nil {
 		return nil, apierr.ErrInternal("Error al obtener la sesion creada", "")
+	}
+
+	if session.Mode == "generate" {
+		go s.generateBatch(session, 2)
 	}
 
 	resp := ToSessionResponse(*session)
@@ -165,13 +172,25 @@ func (s *sessionService) NextQuestion(sessionID uuid.UUID) (*NextQuestionRespons
 	question, err := s.store.FindNextQuestion(topicIDs, answeredIDs, sess.Difficulty, sess.Mode, sess.UserID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, apierr.ErrNotFound("Pregunta", "No hay mas preguntas disponibles para esta sesion")
+			if sess.Mode == "generate" {
+				if err := s.aiGenerator.GenerateQuestion(sess); err != nil {
+					log.Printf("⚠️ Error generando pregunta para sesión %s: %v", sess.ID, err)
+					return nil, apierr.ErrNotFound("Pregunta", "No hay mas preguntas disponibles para esta sesion")
+				}
+				question, err = s.store.FindNextQuestion(topicIDs, answeredIDs, sess.Difficulty, sess.Mode, sess.UserID)
+				if err != nil {
+					return nil, apierr.ErrNotFound("Pregunta", "No hay mas preguntas disponibles para esta sesion")
+				}
+			} else {
+				return nil, apierr.ErrNotFound("Pregunta", "No hay mas preguntas disponibles para esta sesion")
+			}
+		} else {
+			return nil, apierr.ErrInternal("Error al obtener la siguiente pregunta", "")
 		}
-		return nil, apierr.ErrInternal("Error al obtener la siguiente pregunta", "")
 	}
 
 	resp := NextQuestionResponse{
-		Question: questions.ToQuestionResponse(*question),
+		Question: toNextQuestionItem(*question),
 	}
 	return &resp, nil
 }
@@ -183,13 +202,19 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 		selectedJSON = string(b)
 	}
 
+	isCorrect := false
+	question, err := s.store.FindQuestionByID(input.QuestionID)
+	if err == nil {
+		isCorrect = evaluateCorrectness(question, input.SelectedOptions)
+	}
+
 	answer := &models.SessionAnswer{
 		SessionID:       sessionID,
 		UserID:          userID,
 		QuestionID:      input.QuestionID,
 		AnswerText:      input.AnswerText,
 		SelectedOptions: selectedJSON,
-		IsCorrect:       input.IsCorrect,
+		IsCorrect:       isCorrect,
 		ResponseTimeMs:  input.ResponseTimeMs,
 	}
 
@@ -197,8 +222,79 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 		return nil, apierr.ErrInternal("Error al guardar la respuesta", "")
 	}
 
-	s.progressService.Answer(userID, input.QuestionID, input.IsCorrect)
+	s.progressService.Answer(userID, input.QuestionID, isCorrect)
+
+	sess, err := s.store.FindByID(sessionID)
+	if err == nil && sess.Mode == "generate" {
+		answeredIDs, err := s.store.FindAnsweredQuestionIDs(sessionID)
+		if err == nil {
+			topicIDs := make([]uuid.UUID, len(sess.Topics))
+			for i, t := range sess.Topics {
+				topicIDs[i] = t.ID
+			}
+			available, _ := s.store.CountAvailableQuestions(topicIDs, answeredIDs, sess.Difficulty, sess.Mode, sess.UserID)
+			if available < 2 {
+				go s.generateBatch(sess, 1)
+			}
+		}
+	}
 
 	resp := ToAnswerResponse(*answer)
 	return &resp, nil
+}
+
+func evaluateCorrectness(question *models.Question, selectedOptions []uuid.UUID) bool {
+	switch question.Type {
+	case "single_choice":
+		for _, opt := range question.Options {
+			if opt.IsCorrect {
+				return len(selectedOptions) == 1 && selectedOptions[0] == opt.ID
+			}
+		}
+		return false
+	case "multiple_choice":
+		correctIDs := make(map[uuid.UUID]bool)
+		for _, opt := range question.Options {
+			if opt.IsCorrect {
+				correctIDs[opt.ID] = true
+			}
+		}
+		if len(selectedOptions) != len(correctIDs) {
+			return false
+		}
+		for _, id := range selectedOptions {
+			if !correctIDs[id] {
+				return false
+			}
+		}
+		return len(correctIDs) > 0
+	default:
+		return false
+	}
+}
+
+func (s *sessionService) generateBatch(sess *models.Session, count int) {
+	for i := 0; i < count; i++ {
+		if sess.QuestionLimit != nil && sess.QuestionsGenerated >= *sess.QuestionLimit {
+			break
+		}
+		s.aiGenerator.GenerateQuestion(sess)
+	}
+}
+
+func (s *sessionService) Summary(sessionID uuid.UUID) (*SessionSummaryResponse, error) {
+	data, err := s.store.FindSummary(sessionID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, apierr.ErrNotFound("Sesion", "")
+		}
+		return nil, apierr.ErrInternal("Error al obtener el resumen de la sesion", "")
+	}
+
+	return &SessionSummaryResponse{
+		AnswerCount:        int(data.AnswerCount),
+		QuestionsGenerated: data.QuestionsGenerated,
+		Status:             data.Status,
+		QuestionLimit:      data.QuestionLimit,
+	}, nil
 }

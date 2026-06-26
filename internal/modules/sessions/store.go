@@ -15,6 +15,9 @@ type Store interface {
 	CreateAnswer(answer *models.SessionAnswer) error
 	FindAnsweredQuestionIDs(sessionID uuid.UUID) ([]uuid.UUID, error)
 	FindNextQuestion(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty string, mode string, userID uuid.UUID) (*models.Question, error)
+	CountAvailableQuestions(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty string, mode string, userID uuid.UUID) (int64, error)
+	FindQuestionByID(id uuid.UUID) (*models.Question, error)
+	FindSummary(id uuid.UUID) (*SessionSummaryData, error)
 }
 
 type gormStore struct {
@@ -117,4 +120,57 @@ func (s *gormStore) FindNextQuestion(topicIDs []uuid.UUID, answeredIDs []uuid.UU
 		return nil, err
 	}
 	return &question, nil
+}
+
+func (s *gormStore) CountAvailableQuestions(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty string, mode string, userID uuid.UUID) (int64, error) {
+	query := s.db.Model(&models.Question{}).
+		Joins("JOIN question_topics ON question_topics.question_id = questions.id").
+		Where("question_topics.topic_id IN ?", topicIDs).
+		Where("questions.deleted_at IS NULL")
+
+	if difficulty != "" {
+		query = query.Where("questions.difficulty = ?", difficulty)
+	}
+	if len(answeredIDs) > 0 {
+		query = query.Where("questions.id NOT IN ?", answeredIDs)
+	}
+
+	if mode == "review" {
+		query = query.
+			Joins("JOIN user_question_progress ON user_question_progress.question_id = questions.id").
+			Where("user_question_progress.user_id = ? AND user_question_progress.is_saved = true", userID)
+	}
+
+	var count int64
+	err := query.Count(&count).Error
+	return count, err
+}
+
+func (s *gormStore) FindQuestionByID(id uuid.UUID) (*models.Question, error) {
+	var question models.Question
+	err := s.db.Preload("Options").First(&question, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &question, nil
+}
+
+type SessionSummaryData struct {
+	Status             string
+	QuestionLimit      *int
+	QuestionsGenerated int
+	AnswerCount        int64
+}
+
+func (s *gormStore) FindSummary(id uuid.UUID) (*SessionSummaryData, error) {
+	var data SessionSummaryData
+	err := s.db.Raw(`
+		SELECT s.status, s.question_limit, s.questions_generated,
+			(SELECT COUNT(*) FROM session_answers WHERE session_id = ?) as answer_count
+		FROM sessions s WHERE s.id = ?
+	`, id, id).Scan(&data).Error
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
 }

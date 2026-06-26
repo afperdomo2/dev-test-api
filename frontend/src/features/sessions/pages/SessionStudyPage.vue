@@ -5,12 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import {
   sessionDetailOptions,
   nextQuestionOptions,
+  sessionSummaryOptions,
   submitAnswerMutation,
   finishSessionMutation,
 } from '@/queries/sessions.queries'
 import { useAppStore } from '@/stores/app.store'
 import { DIFFICULTY_COLORS, TYPE_ICONS } from '@/types/question.types'
 import type { SessionAnswer } from '@/types/session.types'
+import CodeContent from '@/components/CodeContent.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,17 +25,21 @@ const { data: session, isLoading: sessionLoading } = useQuery(
   sessionDetailOptions(() => sessionId.value),
 )
 
+const { data: summary } = useQuery(sessionSummaryOptions(() => sessionId.value))
+
 const currentQuestionNumber = computed(() => {
-  const sessionData = session.value
-  if (!sessionData) return 0
-  return (sessionData.answerCount ?? 0) + 1
+  const count = summary.value?.answerCount ?? 0
+  const limit = summary.value?.questionLimit
+  if (limit !== null && count >= limit) return limit
+  return count + 1
 })
 
-const questionLimit = computed(() => session.value?.questionLimit ?? null)
+const questionLimit = computed(() => summary.value?.questionLimit ?? null)
 
 const {
   data: currentQuestion,
   isLoading: questionLoading,
+  isFetching: questionFetching,
   refetch: refetchNext,
 } = useQuery(nextQuestionOptions(() => sessionId.value))
 
@@ -107,7 +113,7 @@ async function submitAnswer() {
     })
     lastResult.value = result
     answerState.value = 'result'
-    queryClient.invalidateQueries({ queryKey: ['sessions', 'detail', sessionId] })
+    queryClient.invalidateQueries({ queryKey: ['sessions', 'summary', sessionId] })
   } catch (err: unknown) {
     const detail =
       err && typeof err === 'object' && 'detail' in err
@@ -120,7 +126,8 @@ async function submitAnswer() {
 
 async function nextQuestion() {
   lastResult.value = null
-  await refetchNext()
+  const result = await refetchNext()
+  if (!result.data) return
 }
 
 async function finishSession() {
@@ -156,7 +163,7 @@ async function finishSession() {
 
     <template v-else-if="session">
       <!-- Question area -->
-      <v-skeleton-loader v-if="questionLoading" type="card" class="mb-4" />
+      <v-skeleton-loader v-if="questionLoading || questionFetching" type="card" class="mb-4" />
 
       <template v-else-if="currentQuestion">
         <!-- Question card -->
@@ -166,7 +173,7 @@ async function finishSession() {
               <v-icon :icon="TYPE_ICONS[currentQuestion.type]" color="primary" size="28" />
             </template>
             <v-card-title class="text-wrap text-body-1">
-              {{ currentQuestion.content }}
+              <CodeContent :text="currentQuestion.content" />
             </v-card-title>
             <v-card-subtitle>
               <v-chip
@@ -225,7 +232,9 @@ async function finishSession() {
                     density="compact"
                   />
                 </template>
-                <v-list-item-title>{{ option.content }}</v-list-item-title>
+                <v-list-item-title>
+                  <CodeContent :text="option.content" />
+                </v-list-item-title>
                 <template v-if="answerState === 'result'" #append>
                   <v-icon v-if="isCorrectOption(option.id)" color="success" size="small">
                     mdi-check-circle
@@ -242,6 +251,18 @@ async function finishSession() {
         <!-- Code completion -->
         <v-card v-if="isCodeCompletion" class="mb-4">
           <v-card-text>
+            <div
+              v-if="currentQuestion.codeChallenge"
+              class="text-caption text-medium-emphasis mb-2"
+            >
+              Código inicial:
+            </div>
+            <pre
+              v-if="currentQuestion.codeChallenge"
+              class="rounded pa-4 overflow-auto bg-grey-lighten-4 mb-4"
+            ><code
+              v-highlight="currentQuestion.codeChallenge.language"
+            >{{ currentQuestion.codeChallenge.starterCode }}</code></pre>
             <v-textarea
               v-model="answerText"
               label="Tu código"
@@ -266,12 +287,21 @@ async function finishSession() {
               {{ lastResult.isCorrect ? '¡Correcto!' : 'Incorrecto' }}
             </v-card-title>
             <v-card-subtitle v-if="lastResult.aiFeedback">
-              {{ lastResult.aiFeedback }}
+              <CodeContent :text="lastResult.aiFeedback" />
             </v-card-subtitle>
           </v-card-item>
           <v-card-actions>
             <v-spacer />
-            <v-btn color="primary" variant="text" @click="nextQuestion"> Siguiente pregunta </v-btn>
+            <v-btn
+              v-if="currentQuestionNumber >= (questionLimit ?? Infinity)"
+              color="primary"
+              @click="finishSession"
+            >
+              Finalizar sesión
+            </v-btn>
+            <v-btn v-else color="primary" variant="text" @click="nextQuestion">
+              Siguiente pregunta
+            </v-btn>
           </v-card-actions>
         </v-card>
 
@@ -297,12 +327,34 @@ async function finishSession() {
       <!-- No more questions -->
       <v-card v-else>
         <v-card-text class="text-center py-8">
-          <v-icon size="64" color="success" class="mb-4"> mdi-check-circle </v-icon>
-          <h2 class="text-h5 mb-2">¡No hay más preguntas!</h2>
-          <p class="text-body-1 text-medium-emphasis mb-4">
-            Has completado todas las preguntas disponibles en esta sesión.
-          </p>
-          <v-btn color="primary" @click="finishSession"> Finalizar sesión </v-btn>
+          <template
+            v-if="
+              session.mode === 'generate' &&
+              (summary?.questionsGenerated ?? 0) < (summary?.questionLimit ?? Infinity)
+            "
+          >
+            <v-progress-circular indeterminate color="primary" size="48" class="mb-4" />
+            <h2 class="text-h5 mb-2">Generando preguntas...</h2>
+            <p class="text-body-1 text-medium-emphasis mb-4">
+              La IA está creando más preguntas para esta sesión. Esto toma unos segundos.
+            </p>
+            <v-btn
+              color="primary"
+              variant="tonal"
+              :loading="questionLoading"
+              @click="refetchNext()"
+            >
+              Reintentar
+            </v-btn>
+          </template>
+          <template v-else>
+            <v-icon size="64" color="success" class="mb-4"> mdi-check-circle </v-icon>
+            <h2 class="text-h5 mb-2">¡No hay más preguntas!</h2>
+            <p class="text-body-1 text-medium-emphasis mb-4">
+              Has completado todas las preguntas disponibles en esta sesión.
+            </p>
+            <v-btn color="primary" @click="finishSession"> Finalizar sesión </v-btn>
+          </template>
         </v-card-text>
       </v-card>
     </template>

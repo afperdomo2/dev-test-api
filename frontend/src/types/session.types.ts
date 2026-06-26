@@ -45,6 +45,7 @@ export interface Session {
   mode: SessionMode
   difficulty: SessionDifficulty
   questionLimit: number | null
+  questionsGenerated: number
   score: number
   startedAt: string
   finishedAt: string | null
@@ -79,4 +80,11 @@ export interface SessionAnswer {
   isCorrect: boolean
   aiFeedback: string
   responseTimeMs: number
+}
+
+export interface SessionSummary {
+  answerCount: number
+  questionsGenerated: number
+  status: SessionStatus
+  questionLimit: number | null
 }

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { questionDetailOptions } from '@/queries/questions.queries'
 import { DIFFICULTY_COLORS, TYPE_ICONS } from '@/types/question.types'
 import { formatDateTime } from '@/utils/format'
+import CodeContent from '@/components/CodeContent.vue'
 
 const route = useRoute()
 const questionId = computed(() => route.params.id as string)
@@ -37,7 +38,9 @@ function typeLabel(type: string): string {
           <template #prepend>
             <v-icon :icon="TYPE_ICONS[question.type]" color="primary" size="32" />
           </template>
-          <v-card-title class="text-wrap">{{ question.content }}</v-card-title>
+          <v-card-title class="text-wrap">
+            <CodeContent :text="question.content" />
+          </v-card-title>
           <v-card-subtitle>
             <v-chip
               :color="DIFFICULTY_COLORS[question.difficulty]"
@@ -69,7 +72,9 @@ function typeLabel(type: string): string {
                 </v-icon>
                 <v-icon v-else color="grey" size="small"> mdi-circle-outline </v-icon>
               </template>
-              <v-list-item-title>{{ option.content }}</v-list-item-title>
+              <v-list-item-title>
+                <CodeContent :text="option.content" />
+              </v-list-item-title>
             </v-list-item>
           </v-list>
         </v-card-text>
@@ -82,9 +87,9 @@ function typeLabel(type: string): string {
           <v-chip size="small" variant="tonal" class="mb-2">
             {{ question.codeChallenge.language }}
           </v-chip>
-          <pre class="bg-grey-lighten-4 pa-4 rounded text-caption overflow-auto">{{
-            question.codeChallenge.starterCode
-          }}</pre>
+          <pre class="rounded pa-4 overflow-auto bg-grey-lighten-4"><code
+            v-highlight="question.codeChallenge.language"
+          >{{ question.codeChallenge.starterCode }}</code></pre>
         </v-card-text>
       </v-card>
 
@@ -92,7 +97,9 @@ function typeLabel(type: string): string {
       <v-card v-if="question.explanation" class="mb-4">
         <v-card-title class="text-h6">Explicación</v-card-title>
         <v-card-text>
-          <p class="text-body-1">{{ question.explanation }}</p>
+          <p class="text-body-1">
+            <CodeContent :text="question.explanation" />
+          </p>
         </v-card-text>
       </v-card>
 

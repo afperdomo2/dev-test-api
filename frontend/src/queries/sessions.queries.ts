@@ -45,6 +45,14 @@ export function nextQuestionOptions(sessionId: () => string) {
   })
 }
 
+export function sessionSummaryOptions(sessionId: () => string) {
+  return queryOptions({
+    queryKey: ['sessions', 'summary', sessionId],
+    queryFn: () => sessionsService.getSessionSummary(sessionId()),
+    staleTime: 0,
+  })
+}
+
 export function createSessionMutation() {
   return {
     mutationKey: ['sessions', 'create'],

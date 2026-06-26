@@ -12,12 +12,19 @@ type CorsConfig struct {
 	AllowedOrigins string
 }
 
+type AIConfig struct {
+	APIURL string
+	APIKey string
+	Model  string
+}
+
 type Config struct {
 	Port    string
 	GinMode string
 	DB      DBConfig
 	JWT     JWTConfig
 	Cors    CorsConfig
+	AI      AIConfig
 }
 
 type DBConfig struct {
@@ -66,6 +73,11 @@ func Load() *Config {
 		Cors: CorsConfig{
 			AllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
 		},
+		AI: AIConfig{
+			APIURL: getEnv("AI_API_URL", ""),
+			APIKey: getEnv("AI_API_KEY", ""),
+			Model:  getEnv("AI_MODEL", "gpt-4o-mini"),
+		},
 	}
 
 	os.Setenv("GIN_MODE", cfg.GinMode)
@@ -75,6 +87,12 @@ func Load() *Config {
 	}
 	if cfg.DB.Password == "" {
 		log.Fatal("❌ DB_PASSWORD environment variable is required")
+	}
+
+	if cfg.AI.APIURL != "" && cfg.AI.APIKey != "" {
+		log.Printf("🤖 AI configured: url=%s model=%s", cfg.AI.APIURL, cfg.AI.Model)
+	} else {
+		log.Println("⚠️ AI not configured — question generation disabled. Set AI_API_URL and AI_API_KEY.")
 	}
 
 	return cfg
