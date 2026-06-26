@@ -19,7 +19,7 @@ const { page, perPage, reset: resetPagination } = usePagination()
 const { value: searchText, debouncedValue: debouncedSearch } = useDebounce('', 500)
 const myOnly = ref(false)
 
-const { data, isLoading, refetch } = useQuery(
+const { data, isLoading } = useQuery(
   topicsListOptions(
     () => page.value,
     () => perPage.value,
@@ -51,7 +51,6 @@ function onPerPageChange(val: number) {
 function handleRefresh() {
   resetPagination()
   queryClient.invalidateQueries({ queryKey: ['topics', 'list'] })
-  refetch()
 }
 
 watch(debouncedSearch, () => {
