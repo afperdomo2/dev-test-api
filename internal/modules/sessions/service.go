@@ -10,6 +10,7 @@ import (
 	"github.com/felipe/dev-test-api/internal/modules/questions"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 )
 
@@ -123,18 +124,36 @@ func (s *sessionService) Finish(sessionID uuid.UUID) (*SessionResponse, error) {
 }
 
 func (s *sessionService) NextQuestion(sessionID uuid.UUID) (*NextQuestionResponse, error) {
-	sess, err := s.store.FindByID(sessionID)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, apierr.ErrNotFound("Sesion", "")
+	var sess *models.Session
+	var answeredIDs []uuid.UUID
+
+	g := new(errgroup.Group)
+
+	g.Go(func() error {
+		var err error
+		sess, err = s.store.FindByID(sessionID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return apierr.ErrNotFound("Sesion", "")
+			}
+			return apierr.ErrInternal("Error al obtener la sesion", "")
 		}
-		return nil, apierr.ErrInternal("Error al obtener la sesion", "")
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		answeredIDs, err = s.store.FindAnsweredQuestionIDs(sessionID)
+		if err != nil {
+			return apierr.ErrInternal("Error al obtener las preguntas respondidas", "")
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
-	answeredIDs, err := s.store.FindAnsweredQuestionIDs(sessionID)
-	if err != nil {
-		return nil, apierr.ErrInternal("Error al obtener las preguntas respondidas", "")
-	}
 	if sess.QuestionLimit != nil && len(answeredIDs) >= *sess.QuestionLimit {
 		return nil, apierr.ErrNotFound("Pregunta", "Has alcanzado el limite de preguntas de esta sesion")
 	}
