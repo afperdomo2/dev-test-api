@@ -738,6 +738,12 @@ const docTemplate = `{
                         "description": "Dirección: asc o desc (default: desc)",
                         "name": "sortOrder",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtro por estado: in_progress, completed, cancelled",
+                        "name": "status",
+                        "in": "query"
                     }
                 ],
                 "responses": {

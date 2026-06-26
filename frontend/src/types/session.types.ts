@@ -30,6 +30,13 @@ export const SESSION_DIFFICULTIES: Array<{ title: string; value: SessionDifficul
   { title: 'Avanzado', value: 'advanced' },
 ]
 
+export const SESSION_STATUS_FILTERS: Array<{ title: string; value: SessionStatus | undefined }> = [
+  { title: 'Todas', value: undefined },
+  { title: 'En progreso', value: 'in_progress' },
+  { title: 'Completada', value: 'completed' },
+  { title: 'Cancelada', value: 'cancelled' },
+]
+
 export interface Session {
   id: string
   userId: string

@@ -10,6 +10,11 @@ var sortConfig = common.SortConfig{
 	Default: "started_at DESC",
 }
 
+type ListSessionsParams struct {
+	common.PaginationParams
+	Status string
+}
+
 type CreateSessionRequest struct {
 	Name          string      `json:"name" binding:"required,min=1,max=200"`
 	Mode          string      `json:"mode" binding:"required,oneof=generate review"`

@@ -28,6 +28,7 @@ func NewHandler(service Service) *Handler {
 // @Param        perPage     query  int     false  "Elementos por página (default: 20, max: 100)"
 // @Param        sortBy       query  string  false  "Campo de ordenación: status, score, started_at, created_at"
 // @Param        sortOrder query  string  false  "Dirección: asc o desc (default: desc)"
+// @Param        status    query  string  false  "Filtro por estado: in_progress, completed, cancelled"
 // @Success      200  {object}  response.Meta  "Lista de sesiones (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
@@ -46,7 +47,12 @@ func (h *Handler) List(c *gin.Context) {
 		return
 	}
 
-	sessions, total, err := h.service.List(userID, params)
+	listParams := ListSessionsParams{
+		PaginationParams: params,
+		Status:           c.Query("status"),
+	}
+
+	sessions, total, err := h.service.List(userID, listParams)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path

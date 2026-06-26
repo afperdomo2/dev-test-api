@@ -11,9 +11,12 @@ import type { PaginatedResponse } from '@/types/api.types'
 export async function listSessions(
   page: number,
   perPage: number,
+  status?: string,
 ): Promise<PaginatedResponse<Session>> {
+  const params: Record<string, string | number> = { page, perPage }
+  if (status) params.status = status
   const res = await apiClient.get<PaginatedResponse<Session>>('/api/v1/sessions', {
-    params: { page, perPage },
+    params,
   })
   return res.data
 }

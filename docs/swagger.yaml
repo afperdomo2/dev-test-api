@@ -914,6 +914,10 @@ paths:
         in: query
         name: sortOrder
         type: string
+      - description: 'Filtro por estado: in_progress, completed, cancelled'
+        in: query
+        name: status
+        type: string
       produces:
       - application/json
       responses:

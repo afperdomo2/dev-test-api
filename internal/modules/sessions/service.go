@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
@@ -15,7 +14,7 @@ import (
 )
 
 type Service interface {
-	List(userID uuid.UUID, params common.PaginationParams) ([]SessionListResponse, int64, error)
+	List(userID uuid.UUID, params ListSessionsParams) ([]SessionListResponse, int64, error)
 	GetByID(sessionID uuid.UUID) (*SessionDetailResponse, error)
 	Create(userID uuid.UUID, input CreateSessionRequest) (*SessionResponse, error)
 	Finish(sessionID uuid.UUID) (*SessionResponse, error)
@@ -32,7 +31,7 @@ func NewService(store Store, progressService progress.Service) Service {
 	return &sessionService{store: store, progressService: progressService}
 }
 
-func (s *sessionService) List(userID uuid.UUID, params common.PaginationParams) ([]SessionListResponse, int64, error) {
+func (s *sessionService) List(userID uuid.UUID, params ListSessionsParams) ([]SessionListResponse, int64, error) {
 	sessions, total, err := s.store.FindPage(userID, params)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar las sesiones", "")

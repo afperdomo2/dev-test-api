@@ -1,40 +1,36 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { sessionsListOptions, createSessionMutation } from '@/queries/sessions.queries'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { sessionsInfiniteOptions, createSessionMutation } from '@/queries/sessions.queries'
 import { useAppStore } from '@/stores/app.store'
-import { usePagination } from '@/composables/usePagination'
 import ListPageHeader from '@/components/ListPageHeader.vue'
-import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import SessionCard from '../components/SessionCard.vue'
-import type { Session, CreateSessionRequest } from '@/types/session.types'
-import { SESSION_MODES, SESSION_DIFFICULTIES } from '@/types/session.types'
+import type { Session, CreateSessionRequest, SessionStatus } from '@/types/session.types'
+import { SESSION_MODES, SESSION_DIFFICULTIES, SESSION_STATUS_FILTERS } from '@/types/session.types'
 import { requiredRule, validateRules } from '@/utils/validators'
 import { listTopics } from '@/api/services/topics.service'
 
 const appStore = useAppStore()
 const queryClient = useQueryClient()
-const { page, perPage, reset: resetPagination } = usePagination()
 
-const { data, isLoading } = useQuery(
-  sessionsListOptions(
-    () => page.value,
-    () => perPage.value,
-  ),
+const selectedStatus = ref<SessionStatus | undefined>(undefined)
+
+const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery(
+  sessionsInfiniteOptions(() => selectedStatus.value),
 )
 
-const sessionList = computed<Array<Session>>(() => {
-  return data.value?.data ?? []
-})
+const sessionList = computed<Array<Session>>(() => data.value?.pages.flatMap((p) => p.data) ?? [])
 
-const totalSessions = computed(() => data.value?.meta?.total ?? 0)
-
-function handleRefresh() {
-  resetPagination()
-  queryClient.invalidateQueries({ queryKey: ['sessions', 'list'] })
+function onIntersect(isIntersecting: boolean) {
+  if (isIntersecting && hasNextPage.value && !isFetchingNextPage.value) {
+    fetchNextPage()
+  }
 }
 
-// Create dialog
+function handleRefresh() {
+  queryClient.invalidateQueries({ queryKey: ['sessions', 'list', 'infinite'] })
+}
+
 const createDialog = ref(false)
 const createForm = ref<CreateSessionRequest>({
   name: '',
@@ -103,7 +99,7 @@ async function handleCreate() {
   creating.value = true
   try {
     await createMut.mutateAsync(createForm.value)
-    queryClient.invalidateQueries({ queryKey: ['sessions', 'list'] })
+    queryClient.invalidateQueries({ queryKey: ['sessions', 'list', 'infinite'] })
     createDialog.value = false
     createForm.value = {
       name: '',
@@ -134,37 +130,46 @@ async function handleCreate() {
       @create="createDialog = true"
     />
 
-    <v-card variant="flat" border class="mt-0">
-      <v-row v-if="isLoading" class="ma-0">
-        <v-col v-for="n in 4" :key="n" cols="12" sm="6">
-          <v-skeleton-loader type="card" />
-        </v-col>
-      </v-row>
+    <div class="d-flex ga-2 mb-4 flex-wrap">
+      <v-chip
+        v-for="filter in SESSION_STATUS_FILTERS"
+        :key="filter.value ?? 'all'"
+        :variant="selectedStatus === filter.value ? 'flat' : 'outlined'"
+        :color="selectedStatus === filter.value ? 'primary' : undefined"
+        filter
+        @click="selectedStatus = filter.value"
+      >
+        {{ filter.title }}
+      </v-chip>
+    </div>
 
-      <v-row v-else-if="sessionList.length" class="ma-0">
-        <v-col v-for="session in sessionList" :key="session.id" cols="12" sm="6" lg="4">
-          <SessionCard :session="session" />
-        </v-col>
-      </v-row>
+    <v-row v-if="isLoading">
+      <v-col v-for="n in 4" :key="n" cols="12" sm="6">
+        <v-skeleton-loader type="card" />
+      </v-col>
+    </v-row>
 
-      <v-card-text v-else class="text-center py-8">
-        <v-icon size="48" color="grey-lighten-1" class="mb-2"> mdi-play-circle-outline </v-icon>
-        <p class="text-body-1 text-medium-emphasis">No hay sesiones aún</p>
-      </v-card-text>
+    <v-row v-else-if="sessionList.length">
+      <v-col v-for="session in sessionList" :key="session.id" cols="12" sm="6" lg="4">
+        <SessionCard :session="session" />
+      </v-col>
+    </v-row>
 
-      <template v-if="!isLoading && sessionList.length">
-        <PaginatedFooter
-          :page="page"
-          :per-page="perPage"
-          :total="totalSessions"
-          :in-table="true"
-          @update:page="page = $event"
-          @update:per-page="perPage = $event"
-        />
-      </template>
-    </v-card>
+    <div v-else class="text-center py-8">
+      <v-icon size="48" color="grey-lighten-1" class="mb-2"> mdi-play-circle-outline </v-icon>
+      <p class="text-body-1 text-medium-emphasis">No hay sesiones aún</p>
+    </div>
 
-    <!-- Create Session Dialog -->
+    <div v-intersect="onIntersect" class="d-flex justify-center py-4">
+      <v-progress-circular v-if="isFetchingNextPage" indeterminate color="primary" size="32" />
+      <span
+        v-else-if="!hasNextPage && sessionList.length > 0"
+        class="text-caption text-medium-emphasis"
+      >
+        No hay más sesiones
+      </span>
+    </div>
+
     <v-dialog v-model="createDialog" max-width="640">
       <v-card>
         <v-card-title>Nueva sesión de estudio</v-card-title>
