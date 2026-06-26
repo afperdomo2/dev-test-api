@@ -1,8 +1,13 @@
 package server
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/felipe/dev-test-api/internal/config"
 	"github.com/felipe/dev-test-api/internal/middleware"
@@ -71,10 +76,32 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		}
 	}
 
-	log.Println("🚀 Server starting on :" + cfg.Port)
-	if err := r.Run(":" + cfg.Port); err != nil {
-		log.Fatalf("❌ failed to run server: %v", err)
+	srv := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: r,
 	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		log.Println("🚀 Server starting on :" + cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("❌ failed to run server: %v", err)
+		}
+	}()
+
+	<-quit
+	log.Println("🛑 Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("❌ server forced to shutdown: %v", err)
+	}
+
+	log.Println("✅ Server exited gracefully")
 }
 
 // @Summary      Health check
