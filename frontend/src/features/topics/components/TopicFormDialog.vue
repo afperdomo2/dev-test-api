@@ -35,6 +35,7 @@ const form = ref<CreateTopicRequest>({
 const validationErrors = ref<Record<string, Array<string>>>({})
 const serverErrors = ref<Record<string, string>>({})
 const saving = ref(false)
+const slugManuallyEdited = ref(false)
 
 const createMut = useMutation(createTopicMutation())
 const updateMut = useMutation(updateTopicMutation())
@@ -56,6 +57,7 @@ watch(
       }
       validationErrors.value = {}
       serverErrors.value = {}
+      slugManuallyEdited.value = false
     }
   },
 )
@@ -84,12 +86,14 @@ function slugify(value: string): string {
 }
 
 function onNameInput() {
-  if (!isEdit.value && form.value.slug === slugify(form.value.name)) {
-    return
-  }
-  if (!isEdit.value && !form.value.slug) {
+  if (isEdit.value) return
+  if (!slugManuallyEdited.value) {
     form.value.slug = slugify(form.value.name)
   }
+}
+
+function onSlugInput() {
+  slugManuallyEdited.value = true
 }
 
 async function submit() {
@@ -159,6 +163,7 @@ function close() {
             required
             hint="Identificador único (solo letras, números y guiones)"
             persistent-hint
+            @input="onSlugInput"
           />
 
           <v-combobox
