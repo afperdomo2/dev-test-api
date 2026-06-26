@@ -2,6 +2,7 @@ package questions
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/pkg/apierr"
@@ -25,28 +26,39 @@ func NewHandler(service Service) *Handler {
 // @Security     BearerAuth
 // @Produce      json
 // @Param        page       query  int     false  "Número de página (default: 1)"
-// @Param        perPage     query  int     false  "Elementos por página (default: 20, max: 100)"
+// @Param        perPage    query  int     false  "Elementos por página (default: 20, max: 100)"
 // @Param        type       query  string  false  "Filtrar por tipo (single_choice, multiple_choice, code_completion)"
 // @Param        difficulty query  string  false  "Filtrar por dificultad (beginner, intermediate, advanced)"
-// @Param        sortBy       query  string  false  "Campo de ordenación: type, difficulty, created_at, updated_at"
-// @Param        sortOrder query  string  false  "Dirección: asc o desc (default: desc)"
+// @Param        topicIds   query  string  false  "Filtrar por temas (UUIDs separados por coma)"
+// @Param        sortBy     query  string  false  "Campo de ordenación: type, difficulty, created_at, updated_at"
+// @Param        sortOrder  query  string  false  "Dirección: asc o desc (default: desc)"
 // @Success      200  {object}  response.Meta  "Lista de preguntas (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/questions [get]
 func (h *Handler) List(c *gin.Context) {
-	params, err := common.ParsePagination(c, sortConfig)
+	pagination, err := common.ParsePagination(c, sortConfig)
 	if err != nil {
 		response.ValidationError(c, err.Error(), c.Request.URL.Path)
 		return
 	}
 
-	filters := QuestionFilters{
-		Type:       c.Query("type"),
-		Difficulty: c.Query("difficulty"),
+	params := ListQuestionsParams{
+		PaginationParams: pagination,
+		Type:             c.Query("type"),
+		Difficulty:       c.Query("difficulty"),
 	}
 
-	questions, total, err := h.service.List(params, filters)
+	if raw := c.Query("topicIds"); raw != "" {
+		for _, s := range strings.Split(raw, ",") {
+			s = strings.TrimSpace(s)
+			if id, err2 := uuid.Parse(s); err2 == nil {
+				params.TopicIDs = append(params.TopicIDs, id)
+			}
+		}
+	}
+
+	questions, total, err := h.service.List(params)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path

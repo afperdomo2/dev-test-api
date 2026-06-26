@@ -40,7 +40,7 @@ func (s *sessionService) List(userID uuid.UUID, params common.PaginationParams) 
 
 	result := make([]SessionListResponse, len(sessions))
 	for i, sess := range sessions {
-		result[i] = toSessionListResponse(sess)
+		result[i] = ToSessionListResponse(sess)
 	}
 	return result, total, nil
 }
@@ -56,10 +56,10 @@ func (s *sessionService) GetByID(sessionID uuid.UUID) (*SessionDetailResponse, e
 
 	answers := make([]SessionAnswerResponse, len(sess.Answers))
 	for i, a := range sess.Answers {
-		answers[i] = toAnswerResponse(a)
+		answers[i] = ToAnswerResponse(a)
 	}
 
-	sessionResp := toSessionResponse(*sess)
+	sessionResp := ToSessionResponse(*sess)
 	return &SessionDetailResponse{
 		Session: sessionResp,
 		Answers: answers,
@@ -89,7 +89,7 @@ func (s *sessionService) Create(userID uuid.UUID, input CreateSessionRequest) (*
 		return nil, apierr.ErrInternal("Error al obtener la sesion creada", "")
 	}
 
-	resp := toSessionResponse(*session)
+	resp := ToSessionResponse(*session)
 	return &resp, nil
 }
 
@@ -119,7 +119,7 @@ func (s *sessionService) Finish(sessionID uuid.UUID) (*SessionResponse, error) {
 		return nil, apierr.ErrInternal("Error al obtener la sesion actualizada", "")
 	}
 
-	resp := toSessionResponse(*sess)
+	resp := ToSessionResponse(*sess)
 	return &resp, nil
 }
 
@@ -200,6 +200,6 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 
 	s.progressService.Answer(userID, input.QuestionID, input.IsCorrect)
 
-	resp := toAnswerResponse(*answer)
+	resp := ToAnswerResponse(*answer)
 	return &resp, nil
 }

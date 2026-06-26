@@ -435,6 +435,12 @@
                     },
                     {
                         "type": "string",
+                        "description": "Filtrar por temas (UUIDs separados por coma)",
+                        "name": "topicIds",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "Campo de ordenación: type, difficulty, created_at, updated_at",
                         "name": "sortBy",
                         "in": "query"

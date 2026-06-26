@@ -719,6 +719,10 @@ paths:
         in: query
         name: difficulty
         type: string
+      - description: Filtrar por temas (UUIDs separados por coma)
+        in: query
+        name: topicIds
+        type: string
       - description: 'Campo de ordenación: type, difficulty, created_at, updated_at'
         in: query
         name: sortBy

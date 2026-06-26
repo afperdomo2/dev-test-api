@@ -1,20 +1,13 @@
 package questions
 
 import (
-	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-type QuestionFilters struct {
-	TopicIDs   []uuid.UUID
-	Difficulty string
-	Type       string
-}
-
 type Store interface {
-	FindPage(params common.PaginationParams, filters QuestionFilters) ([]models.Question, int64, error)
+	FindPage(params ListQuestionsParams) ([]models.Question, int64, error)
 	FindAll() ([]models.Question, error)
 	FindByID(id uuid.UUID) (*models.Question, error)
 	Create(question *models.Question) error
@@ -33,20 +26,20 @@ func NewStore(db *gorm.DB) Store {
 	return &gormStore{db: db}
 }
 
-func (s *gormStore) FindPage(params common.PaginationParams, filters QuestionFilters) ([]models.Question, int64, error) {
+func (s *gormStore) FindPage(params ListQuestionsParams) ([]models.Question, int64, error) {
 	var questions []models.Question
 	var total int64
 
 	query := s.db.Model(&models.Question{})
 
-	if filters.Type != "" {
-		query = query.Where("type = ?", filters.Type)
+	if params.Type != "" {
+		query = query.Where("type = ?", params.Type)
 	}
-	if filters.Difficulty != "" {
-		query = query.Where("difficulty = ?", filters.Difficulty)
+	if params.Difficulty != "" {
+		query = query.Where("difficulty = ?", params.Difficulty)
 	}
-	if len(filters.TopicIDs) > 0 {
-		query = query.Where("id IN (SELECT question_id FROM question_topics WHERE topic_id IN ?)", filters.TopicIDs)
+	if len(params.TopicIDs) > 0 {
+		query = query.Where("id IN (SELECT question_id FROM question_topics WHERE topic_id IN ?)", params.TopicIDs)
 	}
 
 	query.Count(&total)

@@ -19,10 +19,20 @@
 
 Every business module follows this structure:
 
-### `dto.go`
+### `request.go`
 - Request DTOs (with `binding:"required,email"` validation tags)
+- `sortConfig` variable (`common.SortConfig`) for allowed sort fields and default order
+- `ListXxxParams` struct (if the module has a paginated list endpoint) that embeds `common.PaginationParams` and adds module-specific filter fields (e.g., `Search`, `MyOnly`, `Type`, `Difficulty`, `TopicIDs`). The handler parses query params into this struct, then passes it to service → store.
+
+### `response.go`
 - Response DTOs (with `json:"..."` tags)
+- Sub-response types nested inside responses (e.g., `OptionResponse`, `TopicInfo`)
+- Both full detail (`XxxResponse`) and list (`XxxListResponse`) variants when they differ
+
+### `mapper.go`
 - Helper functions like `ToUserResponse(models.User) UserResponse` for safe serialization (hides password hash, etc.)
+- Always exported (`ToXxxResponse`, not `toXxxResponse`)
+- Modules with no mapper functions (e.g., `auth`, `progress`) omit this file
 
 ### `internal/models/<model>.go`
 - GORM model struct (with `gorm:"..."` tags, `BeforeCreate` hook for UUID)
