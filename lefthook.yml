@@ -9,3 +9,5 @@ pre-commit:
       run: cd frontend && pnpm prettier --write src/
     fe-lint:
       run: cd frontend && pnpm eslint . --ext .vue,.ts,.tsx
+    fe-type-check:
+      run: cd frontend && pnpm vue-tsc --build --noEmit

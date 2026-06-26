@@ -29,7 +29,7 @@ const { data: summary } = useQuery(sessionSummaryOptions(() => sessionId.value))
 
 const currentQuestionNumber = computed(() => {
   const count = summary.value?.answerCount ?? 0
-  const limit = summary.value?.questionLimit
+  const limit = summary.value?.questionLimit ?? null
   if (limit !== null && count >= limit) return limit
   return count + 1
 })
