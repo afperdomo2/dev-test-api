@@ -13,6 +13,12 @@ var sortConfig = common.SortConfig{
 	Default: "category, name",
 }
 
+type ListTopicsParams struct {
+	common.PaginationParams
+	Search string
+	MyOnly bool
+}
+
 type CreateTopicRequest struct {
 	Slug     string `json:"slug"     binding:"required,min=2,max=100"`
 	Name     string `json:"name"     binding:"required,min=1,max=150"`

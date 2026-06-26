@@ -1020,7 +1020,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista los temas según el rol del usuario. Admin ve solo temas del sistema (is_system=true). Usuarios normales ven solo sus propios temas personalizados (is_system=false).",
+                "description": "Lista los temas según el rol del usuario. Admin ve solo temas del sistema (is_system=true). Usuarios normales ven temas del sistema y sus propios temas personalizados.",
                 "produces": [
                     "application/json"
                 ],
@@ -1051,6 +1051,18 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Dirección: asc o desc (default: desc)",
                         "name": "sortOrder",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Búsqueda por nombre o slug",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filtrar solo mis temas personalizados",
+                        "name": "myOnly",
                         "in": "query"
                     }
                 ],

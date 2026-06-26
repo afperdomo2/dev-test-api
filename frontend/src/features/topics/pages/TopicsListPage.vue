@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { topicsListOptions, deleteTopicMutation } from '@/queries/topics.queries'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import { usePagination } from '@/composables/usePagination'
+import { useDebounce } from '@/composables/useDebounce'
 import ListPageHeader from '@/components/ListPageHeader.vue'
 import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import TopicFormDialog from '../components/TopicFormDialog.vue'
@@ -15,12 +16,17 @@ const appStore = useAppStore()
 const queryClient = useQueryClient()
 const { page, perPage, reset: resetPagination } = usePagination()
 
-const { data, isLoading } = useQuery(
+const { value: searchText, debouncedValue: debouncedSearch } = useDebounce('', 500)
+const myOnly = ref(false)
+
+const { data, isLoading, refetch } = useQuery(
   topicsListOptions(
     () => page.value,
     () => perPage.value,
     () => 'name',
     () => 'asc',
+    () => debouncedSearch.value || '',
+    () => myOnly.value,
   ),
 )
 
@@ -45,6 +51,17 @@ function onPerPageChange(val: number) {
 function handleRefresh() {
   resetPagination()
   queryClient.invalidateQueries({ queryKey: ['topics', 'list'] })
+  refetch()
+}
+
+watch(debouncedSearch, () => {
+  resetPagination()
+})
+
+function onMyOnlyChange(val: boolean | null) {
+  if (val === null) return
+  myOnly.value = val
+  resetPagination()
 }
 
 const headers = [
@@ -102,6 +119,31 @@ function canModify(topic: Topic): boolean {
       @refresh="handleRefresh"
       @create="openCreate"
     />
+
+    <v-row class="mb-4" dense>
+      <v-col cols="12" md="5" lg="4">
+        <v-text-field
+          v-model="searchText"
+          prepend-inner-icon="mdi-magnify"
+          label="Buscar"
+          clearable
+          hide-details
+          density="compact"
+          @click:clear="searchText = ''"
+        />
+      </v-col>
+      <v-col v-if="!authStore.isAdmin" cols="auto">
+        <v-switch
+          :model-value="myOnly"
+          label="Mis temas"
+          color="primary"
+          hide-details
+          density="compact"
+          inset
+          @update:model-value="onMyOnlyChange"
+        />
+      </v-col>
+    </v-row>
 
     <v-card>
       <v-card-text>

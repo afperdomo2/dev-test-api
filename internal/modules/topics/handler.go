@@ -20,20 +20,22 @@ func NewHandler(service Service) *Handler {
 }
 
 // @Summary      Listar temas (con paginación)
-// @Description  Lista los temas según el rol del usuario. Admin ve solo temas del sistema (is_system=true). Usuarios normales ven solo sus propios temas personalizados (is_system=false).
+// @Description  Lista los temas según el rol del usuario. Admin ve solo temas del sistema (is_system=true). Usuarios normales ven temas del sistema y sus propios temas personalizados.
 // @Tags         topics
 // @Security     BearerAuth
 // @Produce      json
 // @Param        page       query  int     false  "Número de página (default: 1)"
-// @Param        perPage     query  int     false  "Elementos por página (default: 20, max: 100)"
-// @Param        sortBy       query  string  false  "Campo de ordenación: name, slug, category, created_at"
-// @Param        sortOrder query  string  false  "Dirección: asc o desc (default: desc)"
+// @Param        perPage    query  int     false  "Elementos por página (default: 20, max: 100)"
+// @Param        sortBy     query  string  false  "Campo de ordenación: name, slug, category, created_at"
+// @Param        sortOrder  query  string  false  "Dirección: asc o desc (default: desc)"
+// @Param        search     query  string  false  "Búsqueda por nombre o slug"
+// @Param        myOnly     query  bool    false  "Filtrar solo mis temas personalizados"
 // @Success      200  {object}  response.Meta  "Lista de temas (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/topics [get]
 func (h *Handler) List(c *gin.Context) {
-	params, err := common.ParsePagination(c, sortConfig)
+	pagination, err := common.ParsePagination(c, sortConfig)
 	if err != nil {
 		response.ValidationError(c, err.Error(), c.Request.URL.Path)
 		return
@@ -44,6 +46,12 @@ func (h *Handler) List(c *gin.Context) {
 		apiErr.Instance = c.Request.URL.Path
 		response.Problem(c, apiErr)
 		return
+	}
+
+	params := ListTopicsParams{
+		PaginationParams: pagination,
+		Search:           c.Query("search"),
+		MyOnly:           c.Query("myOnly") == "true" || c.Query("myOnly") == "1",
 	}
 
 	topics, total, err := h.service.List(params, isAdmin, userID)

@@ -7,10 +7,15 @@ export async function listTopics(
   perPage: number,
   sortBy?: string,
   sortOrder?: string,
+  search?: string,
+  myOnly?: boolean,
 ): Promise<PaginatedResponse<Topic>> {
-  const res = await apiClient.get<PaginatedResponse<Topic>>('/api/v1/topics', {
-    params: { page, perPage, sortBy, sortOrder },
-  })
+  const params: Record<string, string | number | boolean> = { page, perPage }
+  if (sortBy) params.sortBy = sortBy
+  if (sortOrder) params.sortOrder = sortOrder
+  if (search) params.search = search
+  if (myOnly) params.myOnly = myOnly
+  const res = await apiClient.get<PaginatedResponse<Topic>>('/api/v1/topics', { params })
   return res.data
 }
 

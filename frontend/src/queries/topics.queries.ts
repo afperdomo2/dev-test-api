@@ -6,10 +6,20 @@ export function topicsListOptions(
   perPage: () => number,
   sortBy?: () => string,
   sortOrder?: () => string,
+  search?: () => string,
+  myOnly?: () => boolean,
 ) {
   return queryOptions({
-    queryKey: ['topics', 'list', page, perPage, sortBy?.(), sortOrder?.()],
-    queryFn: () => topicsService.listTopics(page(), perPage(), sortBy?.(), sortOrder?.()),
+    queryKey: ['topics', 'list', page, perPage, sortBy, sortOrder, search, myOnly],
+    queryFn: () =>
+      topicsService.listTopics(
+        page(),
+        perPage(),
+        sortBy?.(),
+        sortOrder?.(),
+        search?.(),
+        myOnly?.(),
+      ),
     staleTime: 60 * 1000,
   })
 }

@@ -1096,8 +1096,8 @@ paths:
   /api/v1/topics:
     get:
       description: Lista los temas según el rol del usuario. Admin ve solo temas del
-        sistema (is_system=true). Usuarios normales ven solo sus propios temas personalizados
-        (is_system=false).
+        sistema (is_system=true). Usuarios normales ven temas del sistema y sus propios
+        temas personalizados.
       parameters:
       - description: 'Número de página (default: 1)'
         in: query
@@ -1115,6 +1115,14 @@ paths:
         in: query
         name: sortOrder
         type: string
+      - description: Búsqueda por nombre o slug
+        in: query
+        name: search
+        type: string
+      - description: Filtrar solo mis temas personalizados
+        in: query
+        name: myOnly
+        type: boolean
       produces:
       - application/json
       responses:

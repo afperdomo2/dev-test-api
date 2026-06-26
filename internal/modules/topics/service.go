@@ -1,7 +1,6 @@
 package topics
 
 import (
-	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
@@ -9,7 +8,7 @@ import (
 )
 
 type Service interface {
-	List(params common.PaginationParams, isAdmin bool, userID uuid.UUID) ([]TopicListResponse, int64, error)
+	List(params ListTopicsParams, isAdmin bool, userID uuid.UUID) ([]TopicListResponse, int64, error)
 	GetByID(id uuid.UUID, isAdmin bool, userID uuid.UUID) (*TopicResponse, error)
 	Create(userID uuid.UUID, input CreateTopicRequest, isAdmin bool) (*TopicResponse, error)
 	Update(id uuid.UUID, input UpdateTopicRequest, isAdmin bool, userID uuid.UUID) (*TopicResponse, error)
@@ -24,7 +23,7 @@ func NewService(store Store) Service {
 	return &topicService{store: store}
 }
 
-func (s *topicService) List(params common.PaginationParams, isAdmin bool, userID uuid.UUID) ([]TopicListResponse, int64, error) {
+func (s *topicService) List(params ListTopicsParams, isAdmin bool, userID uuid.UUID) ([]TopicListResponse, int64, error) {
 	topics, total, err := s.store.FindPageFiltered(params, isAdmin, userID)
 	if err != nil {
 		return nil, 0, apierr.ErrInternal("Error al listar los temas", "")

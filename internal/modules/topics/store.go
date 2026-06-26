@@ -10,7 +10,7 @@ import (
 type Store interface {
 	FindAll() ([]models.Topic, error)
 	FindPage(params common.PaginationParams) ([]models.Topic, int64, error)
-	FindPageFiltered(params common.PaginationParams, isAdmin bool, userID uuid.UUID) ([]models.Topic, int64, error)
+	FindPageFiltered(params ListTopicsParams, isAdmin bool, userID uuid.UUID) ([]models.Topic, int64, error)
 	FindByID(id uuid.UUID) (*models.Topic, error)
 	FindBySlugAndUser(slug string, createdBy *uuid.UUID) (*models.Topic, error)
 	Create(topic *models.Topic) error
@@ -42,16 +42,25 @@ func (s *gormStore) FindPage(params common.PaginationParams) ([]models.Topic, in
 	return topics, total, err
 }
 
-func (s *gormStore) FindPageFiltered(params common.PaginationParams, isAdmin bool, userID uuid.UUID) ([]models.Topic, int64, error) {
+func (s *gormStore) FindPageFiltered(params ListTopicsParams, isAdmin bool, userID uuid.UUID) ([]models.Topic, int64, error) {
 	var topics []models.Topic
 	var total int64
 
 	query := s.db.Model(&models.Topic{})
-	if isAdmin {
+
+	if params.MyOnly && !isAdmin {
+		query = query.Where("is_system = ? AND created_by = ?", false, userID)
+	} else if isAdmin {
 		query = query.Where("is_system = ?", true)
 	} else {
 		query = query.Where("is_system = ? OR (is_system = ? AND created_by = ?)", true, false, userID)
 	}
+
+	if params.Search != "" {
+		like := "%" + params.Search + "%"
+		query = query.Where("name ILIKE ? OR slug ILIKE ?", like, like)
+	}
+
 	query.Count(&total)
 
 	err := query.Offset((params.Page - 1) * params.PerPage).Limit(params.PerPage).
