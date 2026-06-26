@@ -10,7 +10,7 @@ import SessionCard from '../components/SessionCard.vue'
 import type { Session, CreateSessionRequest } from '@/types/session.types'
 import { SESSION_MODES, SESSION_DIFFICULTIES } from '@/types/session.types'
 import { requiredRule, validateRules } from '@/utils/validators'
-import { topicsListOptions } from '@/queries/topics.queries'
+import { listTopics } from '@/api/services/topics.service'
 
 const appStore = useAppStore()
 const queryClient = useQueryClient()
@@ -47,12 +47,12 @@ const createErrors = ref<Record<string, Array<string>>>({})
 const creating = ref(false)
 const createMut = useMutation(createSessionMutation())
 
-const { data: topicsData } = useQuery(
-  topicsListOptions(
-    () => 1,
-    () => 100,
-  ),
-)
+const { data: topicsData, isLoading: topicsLoading } = useQuery({
+  queryKey: ['topics', 'list', 1, 100, 'name', 'asc'],
+  queryFn: () => listTopics(1, 100, 'name', 'asc'),
+  staleTime: 60 * 1000,
+  enabled: computed(() => createDialog.value),
+})
 const topicItems = computed(() =>
   (topicsData.value?.data ?? []).map((t) => ({
     title: t.name,
@@ -216,7 +216,7 @@ async function handleCreate() {
               </v-col>
             </v-row>
 
-            <v-select
+            <v-autocomplete
               v-model="createForm.topicIds"
               label="Temas"
               :items="topicItems"
@@ -224,10 +224,12 @@ async function handleCreate() {
               item-props="props"
               :error-messages="createErrors.topicIds"
               :disabled="creating"
+              :loading="topicsLoading"
               multiple
               chips
+              clearable
               required
-              hint="Selecciona los temas a incluir"
+              hint="Busca y selecciona los temas a incluir"
               persistent-hint
             />
           </v-form>
