@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/felipe/dev-test-api/internal/config"
 	"github.com/felipe/dev-test-api/internal/models"
@@ -54,17 +55,7 @@ func (g *Generator) GenerateQuestion(session *models.Session) error {
 		return fmt.Errorf("la sesión no tiene temas asociados")
 	}
 
-	result := g.db.Model(&models.Session{}).
-		Where("id = ? AND (question_limit IS NULL OR questions_generated < question_limit)", session.ID).
-		UpdateColumn("questions_generated", gorm.Expr("questions_generated + 1"))
-	if result.Error != nil {
-		return fmt.Errorf("error al reservar slot de generación: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		log.Printf("🛢️ Sesión %s: límite de preguntas alcanzado (%d/%s)", session.ID, session.QuestionsGenerated, limitStr(session))
-		return nil
-	}
-	session.QuestionsGenerated++
+	start := time.Now()
 
 	existingContent, err := g.existingContent(session)
 	if err != nil {
@@ -76,7 +67,7 @@ func (g *Generator) GenerateQuestion(session *models.Session) error {
 
 	responseText, err := g.client.Chat(systemPrompt, userPrompt)
 	if err != nil {
-		return fmt.Errorf("error al llamar a la IA: %w", err)
+		return err
 	}
 
 	generated, err := parseAIResponse(responseText)
@@ -89,8 +80,20 @@ func (g *Generator) GenerateQuestion(session *models.Session) error {
 		return fmt.Errorf("error al guardar pregunta: %w", err)
 	}
 
-	log.Printf("✅ Pregunta generada para sesión %s: %s (%d/%s)",
+	result := g.db.Model(&models.Session{}).
+		Where("id = ? AND (question_limit IS NULL OR questions_generated < question_limit)", session.ID).
+		UpdateColumn("questions_generated", gorm.Expr("questions_generated + 1"))
+	if result.Error != nil {
+		return fmt.Errorf("error al incrementar contador: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		log.Printf("🛢️ Sesión %s: límite de preguntas alcanzado (%d/%s), pregunta huérfana generada", session.ID, session.QuestionsGenerated, limitStr(session))
+	}
+	session.QuestionsGenerated++
+
+	log.Printf("✅ Pregunta generada para sesión %s en %v: %s (%d/%s)",
 		session.ID,
+		time.Since(start).Round(time.Millisecond),
 		truncate(question.Content, 80),
 		session.QuestionsGenerated,
 		limitStr(session),

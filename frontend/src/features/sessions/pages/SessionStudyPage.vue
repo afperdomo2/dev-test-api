@@ -194,7 +194,18 @@ async function finishSession() {
 
     <template v-else-if="session">
       <!-- Question area -->
-      <v-skeleton-loader v-if="questionLoading || questionFetching" type="card" class="mb-4" />
+      <template v-if="questionLoading || questionFetching">
+        <v-skeleton-loader v-if="session?.mode !== 'generate'" type="card" class="mb-4" />
+        <v-card v-else class="mb-4">
+          <v-card-text class="text-center py-8">
+            <v-progress-circular indeterminate color="primary" size="48" class="mb-4" />
+            <h2 class="text-h5 mb-2">Generando preguntas...</h2>
+            <p class="text-body-1 text-medium-emphasis mb-4">
+              La IA está creando más preguntas para esta sesión. Esto toma unos segundos.
+            </p>
+          </v-card-text>
+        </v-card>
+      </template>
 
       <template v-else-if="currentQuestion">
         <!-- Question card -->

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { finishSessionMutation } from '@/queries/sessions.queries'
 import { useAppStore } from '@/stores/app.store'
 import type { Session } from '@/types/session.types'
 import {
@@ -10,6 +12,7 @@ import {
   SESSION_DIFFICULTY_LABELS,
 } from '@/types/session.types'
 import { formatDate, formatScore } from '@/utils/format'
+import { DIFFICULTY_COLORS } from '@/types/question.types'
 
 interface Props {
   session: Session
@@ -17,7 +20,10 @@ interface Props {
 
 const props = defineProps<Props>()
 const router = useRouter()
+const queryClient = useQueryClient()
 const appStore = useAppStore()
+
+const finishMut = useMutation(finishSessionMutation())
 
 const isGenerating = computed(
   () =>
@@ -36,14 +42,33 @@ const STATUS_ICONS: Record<string, string> = {
 }
 
 const MODE_ICONS: Record<string, string> = {
-  generate: 'mdi-robot',
-  review: 'mdi-book-refresh-outline',
+  generate: 'mdi-auto-fix',
+  review: 'mdi-book-clock-outline',
+}
+
+const MODE_COLORS: Record<string, string> = {
+  generate: 'deep-purple',
+  review: 'blue',
 }
 
 const DIFFICULTY_ICONS: Record<string, string> = {
-  beginner: 'mdi-school-outline',
-  intermediate: 'mdi-chart-line',
-  advanced: 'mdi-fire',
+  beginner: 'mdi-signal-cellular-1',
+  intermediate: 'mdi-signal-cellular-2',
+  advanced: 'mdi-signal-cellular-3',
+}
+
+async function handleFinish() {
+  try {
+    await finishMut.mutateAsync(props.session.id)
+    queryClient.invalidateQueries({ queryKey: ['sessions', 'list', 'infinite'] })
+    appStore.showSnackbar('Sesión finalizada')
+  } catch (err: unknown) {
+    const detail =
+      err && typeof err === 'object' && 'detail' in err
+        ? (err as { detail: string }).detail
+        : 'Error al finalizar sesión'
+    appStore.showSnackbar(detail, 'error')
+  }
 }
 
 function handleClick() {
@@ -68,16 +93,38 @@ const cardClasses = computed(() => ({
   <v-card :class="cardClasses" hover :ripple="!isGenerating" @click="handleClick">
     <v-card-item>
       <template #prepend>
-        <v-icon color="primary" size="32">
-          {{ session.mode === 'generate' ? 'mdi-play-circle' : 'mdi-refresh-circle' }}
+        <v-icon :color="MODE_COLORS[session.mode]" size="32">
+          {{ MODE_ICONS[session.mode] }}
         </v-icon>
       </template>
       <v-card-title>{{ session.name }}</v-card-title>
+      <template #append>
+        <v-menu>
+          <template #activator="{ props: menuProps }">
+            <v-btn
+              v-bind="menuProps"
+              icon="mdi-dots-vertical"
+              variant="text"
+              size="small"
+              @click.stop
+            />
+          </template>
+          <v-list density="compact">
+            <v-list-item
+              v-if="session.status === 'in_progress'"
+              prepend-icon="mdi-check-circle"
+              title="Finalizar sesión"
+              :disabled="finishMut.isPending.value"
+              @click="handleFinish"
+            />
+          </v-list>
+        </v-menu>
+      </template>
       <v-card-subtitle class="d-flex flex-wrap ga-1">
         <v-chip
           :color="SESSION_STATUS_COLORS[session.status]"
           size="x-small"
-          variant="tonal"
+          variant="flat"
           class="mr-1"
         >
           <v-icon start size="14">{{ STATUS_ICONS[session.status] }}</v-icon>
@@ -87,10 +134,13 @@ const cardClasses = computed(() => ({
           <v-icon start size="14">{{ MODE_ICONS[session.mode] }}</v-icon>
           {{ SESSION_MODE_LABELS[session.mode] }}
         </v-chip>
-        <v-chip size="x-small" variant="text">
-          <v-icon start size="14">{{ DIFFICULTY_ICONS[session.difficulty] }}</v-icon>
-          {{ SESSION_DIFFICULTY_LABELS[session.difficulty] }}
-        </v-chip>
+        <v-tooltip location="bottom" :text="SESSION_DIFFICULTY_LABELS[session.difficulty]">
+          <template #activator="{ props: tooltipProps }">
+            <v-icon v-bind="tooltipProps" :color="DIFFICULTY_COLORS[session.difficulty]" size="16">
+              {{ DIFFICULTY_ICONS[session.difficulty] }}
+            </v-icon>
+          </template>
+        </v-tooltip>
         <v-chip v-if="isGenerating" size="x-small" variant="flat" color="warning" class="ml-1">
           <v-icon start size="14">mdi-cog</v-icon>
           Generando...

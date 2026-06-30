@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -13,9 +14,10 @@ type CorsConfig struct {
 }
 
 type AIConfig struct {
-	APIURL string
-	APIKey string
-	Model  string
+	APIURL         string
+	APIKey         string
+	Model          string
+	RequestTimeout int
 }
 
 type Config struct {
@@ -74,9 +76,10 @@ func Load() *Config {
 			AllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
 		},
 		AI: AIConfig{
-			APIURL: getEnv("AI_API_URL", ""),
-			APIKey: getEnv("AI_API_KEY", ""),
-			Model:  getEnv("AI_MODEL", "gpt-4o-mini"),
+			APIURL:         getEnv("AI_API_URL", ""),
+			APIKey:         getEnv("AI_API_KEY", ""),
+			Model:          getEnv("AI_MODEL", "gpt-4o-mini"),
+			RequestTimeout: getIntEnv("AI_REQUEST_TIMEOUT", 120),
 		},
 	}
 
@@ -101,6 +104,15 @@ func Load() *Config {
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func getIntEnv(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
 	}
 	return fallback
 }

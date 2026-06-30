@@ -157,7 +157,7 @@ func (h *Handler) Finish(c *gin.Context) {
 }
 
 // @Summary      Siguiente pregunta
-// @Description  Obtiene la siguiente pregunta sin responder en la sesión
+// @Description  Obtiene la siguiente pregunta sin responder de la sesión. Si no hay preguntas disponibles y la sesión es modo "generate", genera una nueva pregunta por IA en tiempo real. Puede devolver 404 si se alcanzó el límite de preguntas o no hay más disponibles, y 409 si la sesión ya fue completada.
 // @Tags         sessions
 // @Security     BearerAuth
 // @Produce      json
@@ -166,6 +166,7 @@ func (h *Handler) Finish(c *gin.Context) {
 // @Failure      401  {object}  apierr.APIError
 // @Failure      404  {object}  apierr.APIError
 // @Failure      409  {object}  apierr.APIError
+// @Failure      500  {object}  apierr.APIError
 // @Router       /api/v1/sessions/{id}/next [get]
 func (h *Handler) NextQuestion(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))

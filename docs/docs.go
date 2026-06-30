@@ -992,7 +992,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene la siguiente pregunta sin responder en la sesión",
+                "description": "Obtiene la siguiente pregunta sin responder de la sesión. Si no hay preguntas disponibles y la sesión es modo \"generate\", genera una nueva pregunta por IA en tiempo real. Puede devolver 404 si se alcanzó el límite de preguntas o no hay más disponibles, y 409 si la sesión ya fue completada.",
                 "produces": [
                     "application/json"
                 ],
@@ -1030,6 +1030,12 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -2169,6 +2175,87 @@ const docTemplate = `{
                 }
             }
         },
+        "sessions.QuestionSnapshot": {
+            "type": "object",
+            "properties": {
+                "codeChallenge": {
+                    "$ref": "#/definitions/questions.CodeChallengeResponse"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "difficulty": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sessions.QuestionSnapshotOption"
+                    }
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "sessions.QuestionSnapshotOption": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isCorrect": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "sessions.SessionAnswerDetailResponse": {
+            "type": "object",
+            "properties": {
+                "aiFeedback": {
+                    "type": "string"
+                },
+                "answerText": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "explanation": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isCorrect": {
+                    "type": "boolean"
+                },
+                "question": {
+                    "$ref": "#/definitions/sessions.QuestionSnapshot"
+                },
+                "questionId": {
+                    "type": "string"
+                },
+                "responseTimeMs": {
+                    "type": "integer"
+                },
+                "selectedOptions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "sessions.SessionAnswerResponse": {
             "type": "object",
             "properties": {
@@ -2210,7 +2297,7 @@ const docTemplate = `{
                 "answers": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/sessions.SessionAnswerResponse"
+                        "$ref": "#/definitions/sessions.SessionAnswerDetailResponse"
                     }
                 },
                 "session": {

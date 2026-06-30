@@ -314,6 +314,59 @@ definitions:
       question:
         $ref: '#/definitions/sessions.NextQuestionItem'
     type: object
+  sessions.QuestionSnapshot:
+    properties:
+      codeChallenge:
+        $ref: '#/definitions/questions.CodeChallengeResponse'
+      content:
+        type: string
+      difficulty:
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/sessions.QuestionSnapshotOption'
+        type: array
+      topics:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+    type: object
+  sessions.QuestionSnapshotOption:
+    properties:
+      content:
+        type: string
+      id:
+        type: string
+      isCorrect:
+        type: boolean
+    type: object
+  sessions.SessionAnswerDetailResponse:
+    properties:
+      aiFeedback:
+        type: string
+      answerText:
+        type: string
+      createdAt:
+        type: string
+      explanation:
+        type: string
+      id:
+        type: string
+      isCorrect:
+        type: boolean
+      question:
+        $ref: '#/definitions/sessions.QuestionSnapshot'
+      questionId:
+        type: string
+      responseTimeMs:
+        type: integer
+      selectedOptions:
+        items:
+          type: string
+        type: array
+    type: object
   sessions.SessionAnswerResponse:
     properties:
       aiFeedback:
@@ -341,7 +394,7 @@ definitions:
     properties:
       answers:
         items:
-          $ref: '#/definitions/sessions.SessionAnswerResponse'
+          $ref: '#/definitions/sessions.SessionAnswerDetailResponse'
         type: array
       session:
         $ref: '#/definitions/sessions.SessionResponse'
@@ -1110,7 +1163,10 @@ paths:
       - sessions
   /api/v1/sessions/{id}/next:
     get:
-      description: Obtiene la siguiente pregunta sin responder en la sesión
+      description: Obtiene la siguiente pregunta sin responder de la sesión. Si no
+        hay preguntas disponibles y la sesión es modo "generate", genera una nueva
+        pregunta por IA en tiempo real. Puede devolver 404 si se alcanzó el límite
+        de preguntas o no hay más disponibles, y 409 si la sesión ya fue completada.
       parameters:
       - description: Session ID
         in: path
@@ -1134,6 +1190,10 @@ paths:
             $ref: '#/definitions/apierr.APIError'
         "409":
           description: Conflict
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/apierr.APIError'
       security:

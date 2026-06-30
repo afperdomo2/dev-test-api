@@ -45,7 +45,7 @@ func newAIClient(cfg config.AIConfig) *aiClient {
 		apiKey: cfg.APIKey,
 		model:  cfg.Model,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: time.Duration(cfg.RequestTimeout) * time.Second,
 		},
 	}
 }
