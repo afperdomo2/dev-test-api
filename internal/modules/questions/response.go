@@ -17,7 +17,7 @@ type QuestionResponse struct {
 	Source        string                 `json:"source"`
 	Options       []OptionResponse       `json:"options,omitempty"`
 	CodeChallenge *CodeChallengeResponse `json:"codeChallenge,omitempty"`
-	Topics        []TopicInfo            `json:"topics"`
+	Topics        []string               `json:"topics"`
 	CreatedAt     time.Time              `json:"createdAt"`
 	UpdatedAt     time.Time              `json:"updatedAt"`
 }
@@ -31,9 +31,8 @@ type QuestionListResponse struct {
 	Difficulty    string                 `json:"difficulty"`
 	IsPublic      bool                   `json:"isPublic"`
 	Source        string                 `json:"source"`
-	Options       []OptionResponse       `json:"options,omitempty"`
 	CodeChallenge *CodeChallengeResponse `json:"codeChallenge,omitempty"`
-	Topics        []TopicInfo            `json:"topics"`
+	Topics        []string               `json:"topics"`
 	CreatedAt     time.Time              `json:"createdAt"`
 }
 
@@ -49,10 +48,4 @@ type CodeChallengeResponse struct {
 	ExpectedOutput string    `json:"expectedOutput,omitempty"`
 	Language       string    `json:"language"`
 	TestCasesJSON  string    `json:"testCases,omitempty"`
-}
-
-type TopicInfo struct {
-	ID   uuid.UUID `json:"id"`
-	Slug string    `json:"slug"`
-	Name string    `json:"name"`
 }

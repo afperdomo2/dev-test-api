@@ -2,6 +2,17 @@ package questions
 
 import "github.com/felipe/dev-test-api/internal/models"
 
+func topicsToStrings(topics []models.Topic) []string {
+	if topics == nil {
+		return nil
+	}
+	names := make([]string, len(topics))
+	for i, t := range topics {
+		names[i] = t.Name
+	}
+	return names
+}
+
 func ToQuestionResponse(q models.Question) QuestionResponse {
 	resp := QuestionResponse{
 		ID:          q.ID,
@@ -12,6 +23,7 @@ func ToQuestionResponse(q models.Question) QuestionResponse {
 		Difficulty:  q.Difficulty,
 		IsPublic:    q.IsPublic,
 		Source:      q.Source,
+		Topics:      topicsToStrings(q.Topics),
 		CreatedAt:   q.CreatedAt,
 		UpdatedAt:   q.UpdatedAt,
 	}
@@ -37,17 +49,6 @@ func ToQuestionResponse(q models.Question) QuestionResponse {
 		}
 	}
 
-	if q.Topics != nil {
-		resp.Topics = make([]TopicInfo, len(q.Topics))
-		for i, t := range q.Topics {
-			resp.Topics[i] = TopicInfo{
-				ID:   t.ID,
-				Slug: t.Slug,
-				Name: t.Name,
-			}
-		}
-	}
-
 	return resp
 }
 
@@ -61,18 +62,8 @@ func ToQuestionListResponse(q models.Question) QuestionListResponse {
 		Difficulty:  q.Difficulty,
 		IsPublic:    q.IsPublic,
 		Source:      q.Source,
+		Topics:      topicsToStrings(q.Topics),
 		CreatedAt:   q.CreatedAt,
-	}
-
-	if q.Options != nil {
-		resp.Options = make([]OptionResponse, len(q.Options))
-		for i, o := range q.Options {
-			resp.Options[i] = OptionResponse{
-				ID:        o.ID,
-				Content:   o.Content,
-				IsCorrect: o.IsCorrect,
-			}
-		}
 	}
 
 	if q.CodeChallenge != nil {
@@ -82,17 +73,6 @@ func ToQuestionListResponse(q models.Question) QuestionListResponse {
 			ExpectedOutput: q.CodeChallenge.ExpectedOutput,
 			Language:       q.CodeChallenge.Language,
 			TestCasesJSON:  q.CodeChallenge.TestCasesJSON,
-		}
-	}
-
-	if q.Topics != nil {
-		resp.Topics = make([]TopicInfo, len(q.Topics))
-		for i, t := range q.Topics {
-			resp.Topics[i] = TopicInfo{
-				ID:   t.ID,
-				Slug: t.Slug,
-				Name: t.Name,
-			}
 		}
 	}
 

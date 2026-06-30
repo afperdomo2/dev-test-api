@@ -2023,7 +2023,7 @@ const docTemplate = `{
                 "topics": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/questions.TopicInfo"
+                        "type": "string"
                     }
                 },
                 "type": {
@@ -2033,20 +2033,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "userId": {
-                    "type": "string"
-                }
-            }
-        },
-        "questions.TopicInfo": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "slug": {
                     "type": "string"
                 }
             }

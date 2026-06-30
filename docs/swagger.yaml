@@ -176,22 +176,13 @@ definitions:
         type: string
       topics:
         items:
-          $ref: '#/definitions/questions.TopicInfo'
+          type: string
         type: array
       type:
         type: string
       updatedAt:
         type: string
       userId:
-        type: string
-    type: object
-  questions.TopicInfo:
-    properties:
-      id:
-        type: string
-      name:
-        type: string
-      slug:
         type: string
     type: object
   questions.UpdateQuestionRequest:

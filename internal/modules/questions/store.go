@@ -45,14 +45,14 @@ func (s *gormStore) FindPage(params ListQuestionsParams) ([]models.Question, int
 	query.Count(&total)
 	err := query.Offset((params.Page - 1) * params.PerPage).Limit(params.PerPage).
 		Order(sortConfig.OrderClause(params.SortBy, params.SortOrder)).
-		Preload("Options").Preload("CodeChallenge").Preload("Topics").
+		Preload("CodeChallenge").Preload("Topics").
 		Find(&questions).Error
 	return questions, total, err
 }
 
 func (s *gormStore) FindAll() ([]models.Question, error) {
 	var questions []models.Question
-	err := s.db.Preload("Options").Preload("CodeChallenge").Preload("Topics").
+	err := s.db.Preload("CodeChallenge").Preload("Topics").
 		Order("created_at desc").Find(&questions).Error
 	return questions, err
 }

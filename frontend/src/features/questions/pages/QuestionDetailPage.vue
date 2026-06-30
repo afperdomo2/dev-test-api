@@ -61,11 +61,11 @@ function typeLabel(type: string): string {
       </v-card>
 
       <!-- Options -->
-      <v-card v-if="question.options.length" class="mb-4">
+      <v-card v-if="question.options?.length" class="mb-4">
         <v-card-title class="text-h6">Opciones</v-card-title>
         <v-card-text>
           <v-list density="compact">
-            <v-list-item v-for="option in question.options" :key="option.id">
+            <v-list-item v-for="option in question.options ?? []" :key="option.id">
               <template #prepend>
                 <v-icon v-if="option.isCorrect" color="success" size="small">
                   mdi-check-circle
@@ -110,12 +110,12 @@ function typeLabel(type: string): string {
           <div class="d-flex flex-wrap ga-1">
             <v-chip
               v-for="topic in question.topics"
-              :key="topic.id"
+              :key="topic"
               size="small"
               variant="outlined"
               color="primary"
             >
-              {{ topic.name }}
+              {{ topic }}
             </v-chip>
           </div>
         </v-card-text>

@@ -40,12 +40,6 @@ export interface CodeChallenge {
   testCases: string
 }
 
-export interface QuestionTopic {
-  id: string
-  slug: string
-  name: string
-}
-
 export interface Question {
   id: string
   userId: string
@@ -55,9 +49,9 @@ export interface Question {
   difficulty: QuestionDifficulty
   isPublic: boolean
   source: QuestionSource
-  options: Array<QuestionOption>
+  options?: Array<QuestionOption>
   codeChallenge: CodeChallenge | null
-  topics: Array<QuestionTopic>
+  topics: Array<string>
   createdAt: string
   updatedAt: string
 }
