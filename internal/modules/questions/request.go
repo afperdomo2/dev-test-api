@@ -15,6 +15,7 @@ type ListQuestionsParams struct {
 	Type       string
 	Difficulty string
 	TopicIDs   []uuid.UUID
+	UserID     uuid.UUID
 }
 
 type CreateQuestionRequest struct {

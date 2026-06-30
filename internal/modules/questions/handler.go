@@ -58,6 +58,9 @@ func (h *Handler) List(c *gin.Context) {
 		}
 	}
 
+	userID, _ := getUserID(c)
+	params.UserID = userID
+
 	questions, total, err := h.service.List(params)
 	if err != nil {
 		e := err.(*apierr.APIError)

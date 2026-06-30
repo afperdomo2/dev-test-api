@@ -109,6 +109,8 @@ func (s *gormStore) FindNextQuestion(topicIDs []uuid.UUID, answeredIDs []uuid.UU
 		query = query.
 			Joins("JOIN user_question_progress ON user_question_progress.question_id = questions.id").
 			Where("user_question_progress.user_id = ? AND user_question_progress.is_saved = true", userID)
+	} else {
+		query = query.Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID)
 	}
 
 	var question models.Question
@@ -140,6 +142,8 @@ func (s *gormStore) CountAvailableQuestions(topicIDs []uuid.UUID, answeredIDs []
 		query = query.
 			Joins("JOIN user_question_progress ON user_question_progress.question_id = questions.id").
 			Where("user_question_progress.user_id = ? AND user_question_progress.is_saved = true", userID)
+	} else {
+		query = query.Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID)
 	}
 
 	var count int64

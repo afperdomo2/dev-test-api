@@ -41,6 +41,9 @@ func (s *gormStore) FindPage(params ListQuestionsParams) ([]models.Question, int
 	if len(params.TopicIDs) > 0 {
 		query = query.Where("id IN (SELECT question_id FROM question_topics WHERE topic_id IN ?)", params.TopicIDs)
 	}
+	if params.UserID != uuid.Nil {
+		query = query.Where("(source = ? OR user_id = ?)", "ai_generated", params.UserID)
+	}
 
 	query.Count(&total)
 	err := query.Offset((params.Page - 1) * params.PerPage).Limit(params.PerPage).
