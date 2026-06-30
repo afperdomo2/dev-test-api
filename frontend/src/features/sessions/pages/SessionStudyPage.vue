@@ -76,6 +76,7 @@ const {
 
 const submitMut = useMutation(submitAnswerMutation())
 const finishMut = useMutation(finishSessionMutation())
+const finishDialog = ref(false)
 
 type AnswerState = 'answering' | 'submitting' | 'result' | 'done'
 const answerState = ref<AnswerState>('answering')
@@ -161,7 +162,8 @@ async function nextQuestion() {
   if (!result.data) return
 }
 
-async function finishSession() {
+async function submitFinish() {
+  finishDialog.value = false
   try {
     await finishMut.mutateAsync(sessionId.value)
     appStore.showSnackbar('Sesión finalizada')
@@ -174,6 +176,10 @@ async function finishSession() {
         : 'Error al finalizar sesión'
     appStore.showSnackbar(detail, 'error')
   }
+}
+
+function finishSession() {
+  finishDialog.value = true
 }
 </script>
 
@@ -404,5 +410,21 @@ async function finishSession() {
         </v-card-text>
       </v-card>
     </template>
+
+    <v-dialog v-model="finishDialog" max-width="400">
+      <v-card>
+        <v-card-title>¿Finalizar sesión?</v-card-title>
+        <v-card-text>
+          Al finalizar se cerrará la sesión y podrás ver tu resumen de respuestas.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="finishDialog = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="finishMut.isPending.value" @click="submitFinish">
+            Finalizar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>

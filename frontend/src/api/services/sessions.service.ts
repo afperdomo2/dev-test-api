@@ -60,3 +60,7 @@ export async function getSessionSummary(id: string): Promise<SessionSummary> {
   const res = await apiClient.get<SessionSummary>(`/api/v1/sessions/${id}/summary`)
   return res.data
 }
+
+export async function deleteSession(id: string): Promise<void> {
+  await apiClient.delete(`/api/v1/sessions/${id}`)
+}

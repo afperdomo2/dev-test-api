@@ -74,6 +74,13 @@ export function finishSessionMutation() {
   }
 }
 
+export function deleteSessionMutation() {
+  return {
+    mutationKey: ['sessions', 'delete'],
+    mutationFn: sessionsService.deleteSession,
+  }
+}
+
 export function submitAnswerMutation() {
   return {
     mutationKey: ['sessions', 'answer'],

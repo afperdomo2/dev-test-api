@@ -18,6 +18,7 @@ type Store interface {
 	CountAvailableQuestions(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty string, mode string, userID uuid.UUID) (int64, error)
 	FindQuestionByID(id uuid.UUID) (*models.Question, error)
 	FindSummary(id uuid.UUID) (*SessionSummaryData, error)
+	Delete(id uuid.UUID) error
 }
 
 type gormStore struct {
@@ -160,6 +161,18 @@ type SessionSummaryData struct {
 	QuestionLimit      *int
 	QuestionsGenerated int
 	AnswerCount        int64
+}
+
+func (s *gormStore) Delete(id uuid.UUID) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("session_id = ?", id).Delete(&models.SessionAnswer{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("session_id = ?", id).Delete(&models.SessionTopic{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&models.Session{ID: id}).Error
+	})
 }
 
 func (s *gormStore) FindSummary(id uuid.UUID) (*SessionSummaryData, error) {

@@ -127,6 +127,42 @@ func (h *Handler) Get(c *gin.Context) {
 	response.Success(c, http.StatusOK, session)
 }
 
+// @Summary      Eliminar sesión
+// @Description  Elimina una sesión sin respuestas creada en las últimas 24 horas
+// @Tags         sessions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path  string  true  "Session ID"
+// @Success      204  "No Content"
+// @Failure      401  {object}  apierr.APIError
+// @Failure      403  {object}  apierr.APIError
+// @Failure      404  {object}  apierr.APIError
+// @Failure      409  {object}  apierr.APIError
+// @Router       /api/v1/sessions/{id} [delete]
+func (h *Handler) Delete(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.NotFound(c, "Sesion", c.Request.URL.Path)
+		return
+	}
+
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	if err := h.service.Delete(id, userID); err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 // @Summary      Finalizar sesión
 // @Description  Finaliza una sesión — el score se calcula automáticamente
 // @Tags         sessions

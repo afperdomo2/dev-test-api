@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const maxGeneratedPerSession = 10
+
 type Service interface {
 	List(userID uuid.UUID, params ListSessionsParams) ([]SessionListResponse, int64, error)
 	GetByID(sessionID uuid.UUID) (*SessionDetailResponse, error)
@@ -21,6 +24,7 @@ type Service interface {
 	NextQuestion(sessionID uuid.UUID) (*NextQuestionResponse, error)
 	Answer(sessionID, userID uuid.UUID, input AnswerRequest) (*SessionAnswerResponse, error)
 	Summary(sessionID uuid.UUID) (*SessionSummaryResponse, error)
+	Delete(sessionID, userID uuid.UUID) error
 }
 
 type sessionService struct {
@@ -68,6 +72,20 @@ func (s *sessionService) GetByID(sessionID uuid.UUID) (*SessionDetailResponse, e
 }
 
 func (s *sessionService) Create(userID uuid.UUID, input CreateSessionRequest) (*SessionResponse, error) {
+	if input.Mode == "review" {
+		available, err := s.store.CountAvailableQuestions(input.TopicIDs, nil, input.Difficulty, "review", userID)
+		if err != nil {
+			return nil, apierr.ErrInternal("Error al validar preguntas disponibles", "")
+		}
+		if available == 0 {
+			return nil, apierr.ErrValidation("No tienes preguntas guardadas para estos temas. Repasa preguntas primero o usa modo 'generate'.", "")
+		}
+		if input.QuestionLimit != nil && available < int64(*input.QuestionLimit) {
+			msg := fmt.Sprintf("Solo tienes %d preguntas guardadas para estos temas, pero pediste %d. Reduce el límite o elige más temas.", available, *input.QuestionLimit)
+			return nil, apierr.ErrValidation(msg, "")
+		}
+	}
+
 	session := &models.Session{
 		UserID:        userID,
 		Name:          input.Name,
@@ -158,7 +176,7 @@ func (s *sessionService) NextQuestion(sessionID uuid.UUID) (*NextQuestionRespons
 	question, err := s.store.FindNextQuestion(topicIDs, answeredIDs, sess.Difficulty, sess.Mode, sess.UserID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			if sess.Mode == "generate" {
+			if sess.Mode == "generate" && sess.QuestionsGenerated < maxGeneratedPerSession {
 				if err := s.aiGenerator.GenerateQuestion(sess); err != nil {
 					log.Printf("⚠️ Error generando pregunta para sesión %s: %v", sess.ID, err)
 					return nil, apierr.ErrNotFound("Pregunta", "No hay mas preguntas disponibles para esta sesion")
@@ -226,7 +244,7 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 		answer.Question = question
 	}
 
-	if sess.Mode == "generate" {
+	if sess.Mode == "generate" && sess.QuestionsGenerated < maxGeneratedPerSession {
 		answeredIDs, err := s.store.FindAnsweredQuestionIDs(sessionID)
 		if err == nil {
 			topicIDs := make([]uuid.UUID, len(sess.Topics))
@@ -279,8 +297,35 @@ func (s *sessionService) generateBatch(sess *models.Session, count int) {
 		if sess.QuestionLimit != nil && sess.QuestionsGenerated >= *sess.QuestionLimit {
 			break
 		}
+		if sess.QuestionsGenerated >= maxGeneratedPerSession {
+			break
+		}
 		s.aiGenerator.GenerateQuestion(sess)
 	}
+}
+
+func (s *sessionService) Delete(sessionID, userID uuid.UUID) error {
+	sess, err := s.store.FindByID(sessionID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return apierr.ErrNotFound("Sesion", "")
+		}
+		return apierr.ErrInternal("Error al obtener la sesion", "")
+	}
+
+	if sess.UserID != userID {
+		return apierr.ErrForbidden("No puedes eliminar una sesión que no te pertenece", "")
+	}
+
+	if len(sess.Answers) > 0 {
+		return apierr.ErrConflict("Session Has Answers", "No puedes eliminar una sesión que tiene respuestas. Finalízala en su lugar.", "")
+	}
+
+	if sess.CreatedAt.Before(time.Now().Add(-24 * time.Hour)) {
+		return apierr.ErrForbidden("Solo se pueden eliminar sesiones creadas en las últimas 24 horas", "")
+	}
+
+	return s.store.Delete(sessionID)
 }
 
 func (s *sessionService) Summary(sessionID uuid.UUID) (*SessionSummaryResponse, error) {

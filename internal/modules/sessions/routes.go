@@ -12,5 +12,6 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler) {
 		s.PUT("/:id/finish", h.Finish)
 		s.GET("/:id/next", h.NextQuestion)
 		s.POST("/:id/answer", h.Answer)
+		s.DELETE("/:id", h.Delete)
 	}
 }

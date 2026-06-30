@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { finishSessionMutation } from '@/queries/sessions.queries'
+import { finishSessionMutation, deleteSessionMutation } from '@/queries/sessions.queries'
 import { useAppStore } from '@/stores/app.store'
 import type { Session } from '@/types/session.types'
 import {
@@ -24,6 +24,17 @@ const queryClient = useQueryClient()
 const appStore = useAppStore()
 
 const finishMut = useMutation(finishSessionMutation())
+const deleteMut = useMutation(deleteSessionMutation())
+
+const finishDialog = ref(false)
+const deleteDialog = ref(false)
+
+const canDelete = computed(() => {
+  if (props.session.answerCount > 0) return false
+  const created = new Date(props.session.createdAt)
+  const limit = Date.now() - 24 * 60 * 60 * 1000
+  return created.getTime() > limit
+})
 
 const isGenerating = computed(
   () =>
@@ -58,6 +69,7 @@ const DIFFICULTY_ICONS: Record<string, string> = {
 }
 
 async function handleFinish() {
+  finishDialog.value = false
   try {
     await finishMut.mutateAsync(props.session.id)
     queryClient.invalidateQueries({ queryKey: ['sessions', 'list', 'infinite'] })
@@ -67,6 +79,21 @@ async function handleFinish() {
       err && typeof err === 'object' && 'detail' in err
         ? (err as { detail: string }).detail
         : 'Error al finalizar sesión'
+    appStore.showSnackbar(detail, 'error')
+  }
+}
+
+async function handleDelete() {
+  deleteDialog.value = false
+  try {
+    await deleteMut.mutateAsync(props.session.id)
+    queryClient.invalidateQueries({ queryKey: ['sessions', 'list', 'infinite'] })
+    appStore.showSnackbar('Sesión eliminada')
+  } catch (err: unknown) {
+    const detail =
+      err && typeof err === 'object' && 'detail' in err
+        ? (err as { detail: string }).detail
+        : 'Error al eliminar sesión'
     appStore.showSnackbar(detail, 'error')
   }
 }
@@ -115,7 +142,14 @@ const cardClasses = computed(() => ({
               prepend-icon="mdi-check-circle"
               title="Finalizar sesión"
               :disabled="finishMut.isPending.value"
-              @click="handleFinish"
+              @click="finishDialog = true"
+            />
+            <v-list-item
+              v-if="canDelete"
+              prepend-icon="mdi-delete"
+              title="Eliminar sesión"
+              :disabled="deleteMut.isPending.value"
+              @click="deleteDialog = true"
             />
           </v-list>
         </v-menu>
@@ -189,6 +223,38 @@ const cardClasses = computed(() => ({
         {{ formatDate(session.createdAt) }}
       </span>
     </v-card-actions>
+
+    <v-dialog v-model="finishDialog" max-width="400">
+      <v-card>
+        <v-card-title>¿Finalizar sesión?</v-card-title>
+        <v-card-text>
+          Al finalizar se cerrará la sesión y podrás ver tu resumen de respuestas.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="finishDialog = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="finishMut.isPending.value" @click="handleFinish">
+            Finalizar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="deleteDialog" max-width="400">
+      <v-card>
+        <v-card-title>¿Eliminar sesión?</v-card-title>
+        <v-card-text>
+          Esta acción no se puede deshacer. La sesión se borrará permanentemente.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="deleteDialog = false">Cancelar</v-btn>
+          <v-btn color="error" :loading="deleteMut.isPending.value" @click="handleDelete">
+            Eliminar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 

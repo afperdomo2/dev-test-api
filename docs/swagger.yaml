@@ -1055,6 +1055,40 @@ paths:
       tags:
       - sessions
   /api/v1/sessions/{id}:
+    delete:
+      description: Elimina una sesión sin respuestas creada en las últimas 24 horas
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Eliminar sesión
+      tags:
+      - sessions
     get:
       description: Obtiene el detalle de una sesión con sus respuestas
       parameters:
