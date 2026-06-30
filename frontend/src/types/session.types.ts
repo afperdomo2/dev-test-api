@@ -2,6 +2,12 @@ export type SessionStatus = 'in_progress' | 'completed' | 'cancelled'
 export type SessionMode = 'generate' | 'review'
 export type SessionDifficulty = 'beginner' | 'intermediate' | 'advanced'
 
+export const SESSION_DIFFICULTY_LABELS: Record<SessionDifficulty, string> = {
+  beginner: 'Principiante',
+  intermediate: 'Intermedio',
+  advanced: 'Avanzado',
+}
+
 export const SESSION_STATUS_LABELS: Record<SessionStatus, string> = {
   in_progress: 'En progreso',
   completed: 'Completada',
@@ -49,7 +55,7 @@ export interface Session {
   score: number
   startedAt: string
   finishedAt: string | null
-  topics: Array<{ id: string; slug: string; name: string }>
+  topics: Array<string>
   answerCount: number
   createdAt: string
   updatedAt: string
@@ -87,4 +93,22 @@ export interface SessionSummary {
   questionsGenerated: number
   status: SessionStatus
   questionLimit: number | null
+}
+
+export interface NextQuestionItem {
+  id: string
+  type: string
+  content: string
+  difficulty: string
+  options: Array<{ id: string; content: string; isCorrect?: boolean }>
+  codeChallenge: CodeChallenge | null
+  topics: Array<string>
+}
+
+export interface CodeChallenge {
+  id: string
+  starterCode: string
+  expectedOutput: string
+  language: string
+  testCases: string
 }

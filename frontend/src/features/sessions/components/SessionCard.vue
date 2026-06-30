@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAppStore } from '@/stores/app.store'
 import type { Session } from '@/types/session.types'
 import {
   SESSION_STATUS_LABELS,
   SESSION_STATUS_COLORS,
   SESSION_MODE_LABELS,
+  SESSION_DIFFICULTY_LABELS,
 } from '@/types/session.types'
 import { formatDate, formatScore } from '@/utils/format'
 
@@ -13,6 +16,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const router = useRouter()
+const appStore = useAppStore()
 
 const isGenerating = computed(
   () =>
@@ -20,10 +25,43 @@ const isGenerating = computed(
     props.session.status === 'in_progress' &&
     props.session.questionsGenerated < 2,
 )
+
+const displayedTopics = computed(() => props.session.topics.slice(0, 2))
+const hiddenCount = computed(() => Math.max(0, props.session.topics.length - 2))
+
+const STATUS_ICONS: Record<string, string> = {
+  in_progress: 'mdi-progress-clock',
+  completed: 'mdi-check-circle',
+  cancelled: 'mdi-cancel',
+}
+
+const MODE_ICONS: Record<string, string> = {
+  generate: 'mdi-robot',
+  review: 'mdi-book-refresh-outline',
+}
+
+const DIFFICULTY_ICONS: Record<string, string> = {
+  beginner: 'mdi-school-outline',
+  intermediate: 'mdi-chart-line',
+  advanced: 'mdi-fire',
+}
+
+function handleClick() {
+  if (isGenerating.value) {
+    appStore.showSnackbar('Las preguntas aún se están generando. Espera unos segundos.', 'info')
+    return
+  }
+  router.push(`/sessions/${props.session.id}/study`)
+}
+
+const cardClasses = computed(() => ({
+  'session-card': true,
+  'session-card--blocked': isGenerating.value,
+}))
 </script>
 
 <template>
-  <v-card :to="`/sessions/${session.id}/study`" hover>
+  <v-card :class="cardClasses" hover :ripple="!isGenerating" @click="handleClick">
     <v-card-item>
       <template #prepend>
         <v-icon color="primary" size="32">
@@ -31,20 +69,23 @@ const isGenerating = computed(
         </v-icon>
       </template>
       <v-card-title>{{ session.name }}</v-card-title>
-      <v-card-subtitle>
+      <v-card-subtitle class="d-flex flex-wrap ga-1">
         <v-chip
           :color="SESSION_STATUS_COLORS[session.status]"
           size="x-small"
           variant="tonal"
           class="mr-1"
         >
+          <v-icon start size="14">{{ STATUS_ICONS[session.status] }}</v-icon>
           {{ SESSION_STATUS_LABELS[session.status] }}
         </v-chip>
         <v-chip size="x-small" variant="tonal" class="mr-1">
+          <v-icon start size="14">{{ MODE_ICONS[session.mode] }}</v-icon>
           {{ SESSION_MODE_LABELS[session.mode] }}
         </v-chip>
         <v-chip size="x-small" variant="text">
-          {{ session.difficulty }}
+          <v-icon start size="14">{{ DIFFICULTY_ICONS[session.difficulty] }}</v-icon>
+          {{ SESSION_DIFFICULTY_LABELS[session.difficulty] }}
         </v-chip>
         <v-chip v-if="isGenerating" size="x-small" variant="flat" color="warning" class="ml-1">
           <v-icon start size="14">mdi-cog</v-icon>
@@ -67,7 +108,23 @@ const isGenerating = computed(
         </div>
         <div v-if="session.topics.length">
           <span class="text-caption text-medium-emphasis">Temas</span>
-          <div class="text-body-2">{{ session.topics.length }}</div>
+          <div class="text-body-2 d-flex flex-wrap ga-1 mt-1">
+            <v-chip
+              v-for="(topic, idx) in displayedTopics"
+              :key="idx"
+              size="x-small"
+              variant="outlined"
+            >
+              {{ topic }}
+            </v-chip>
+            <v-tooltip v-if="hiddenCount > 0" location="bottom" :text="session.topics.join(', ')">
+              <template #activator="{ props: tooltipProps }">
+                <v-chip v-bind="tooltipProps" size="x-small" variant="tonal" color="grey">
+                  +{{ hiddenCount }} más
+                </v-chip>
+              </template>
+            </v-tooltip>
+          </div>
         </div>
       </div>
     </v-card-text>
@@ -80,3 +137,15 @@ const isGenerating = computed(
     </v-card-actions>
   </v-card>
 </template>
+
+<style scoped>
+.session-card--blocked {
+  opacity: 0.6;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.session-card--blocked :deep(.v-card-item__prepend .v-icon) {
+  color: rgb(var(--v-theme-warning)) !important;
+}
+</style>

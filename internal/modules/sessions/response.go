@@ -8,38 +8,38 @@ import (
 )
 
 type SessionResponse struct {
-	ID                 uuid.UUID   `json:"id"`
-	UserID             uuid.UUID   `json:"userId"`
-	Name               string      `json:"name"`
-	Status             string      `json:"status"`
-	Mode               string      `json:"mode"`
-	Difficulty         string      `json:"difficulty"`
-	QuestionLimit      *int        `json:"questionLimit,omitempty"`
-	QuestionsGenerated int         `json:"questionsGenerated"`
-	Score              *float64    `json:"score,omitempty"`
-	StartedAt          time.Time   `json:"startedAt"`
-	FinishedAt         *time.Time  `json:"finishedAt,omitempty"`
-	Topics             []TopicInfo `json:"topics"`
-	AnswerCount        int         `json:"answerCount"`
-	CreatedAt          time.Time   `json:"createdAt"`
-	UpdatedAt          time.Time   `json:"updatedAt"`
+	ID                 uuid.UUID  `json:"id"`
+	UserID             uuid.UUID  `json:"userId"`
+	Name               string     `json:"name"`
+	Status             string     `json:"status"`
+	Mode               string     `json:"mode"`
+	Difficulty         string     `json:"difficulty"`
+	QuestionLimit      *int       `json:"questionLimit,omitempty"`
+	QuestionsGenerated int        `json:"questionsGenerated"`
+	Score              *float64   `json:"score,omitempty"`
+	StartedAt          time.Time  `json:"startedAt"`
+	FinishedAt         *time.Time `json:"finishedAt,omitempty"`
+	Topics             []string   `json:"topics"`
+	AnswerCount        int        `json:"answerCount"`
+	CreatedAt          time.Time  `json:"createdAt"`
+	UpdatedAt          time.Time  `json:"updatedAt"`
 }
 
 type SessionListResponse struct {
-	ID                 uuid.UUID   `json:"id"`
-	UserID             uuid.UUID   `json:"userId"`
-	Name               string      `json:"name"`
-	Status             string      `json:"status"`
-	Mode               string      `json:"mode"`
-	Difficulty         string      `json:"difficulty"`
-	QuestionLimit      *int        `json:"questionLimit,omitempty"`
-	QuestionsGenerated int         `json:"questionsGenerated"`
-	Score              *float64    `json:"score,omitempty"`
-	StartedAt          time.Time   `json:"startedAt"`
-	FinishedAt         *time.Time  `json:"finishedAt,omitempty"`
-	Topics             []TopicInfo `json:"topics"`
-	AnswerCount        int         `json:"answerCount"`
-	CreatedAt          time.Time   `json:"createdAt"`
+	ID                 uuid.UUID  `json:"id"`
+	UserID             uuid.UUID  `json:"userId"`
+	Name               string     `json:"name"`
+	Status             string     `json:"status"`
+	Mode               string     `json:"mode"`
+	Difficulty         string     `json:"difficulty"`
+	QuestionLimit      *int       `json:"questionLimit,omitempty"`
+	QuestionsGenerated int        `json:"questionsGenerated"`
+	Score              *float64   `json:"score,omitempty"`
+	StartedAt          time.Time  `json:"startedAt"`
+	FinishedAt         *time.Time `json:"finishedAt,omitempty"`
+	Topics             []string   `json:"topics"`
+	AnswerCount        int        `json:"answerCount"`
+	CreatedAt          time.Time  `json:"createdAt"`
 }
 
 type SessionDetailResponse struct {
@@ -71,17 +71,11 @@ type NextQuestionItem struct {
 	Difficulty    string                           `json:"difficulty"`
 	Options       []NextQuestionOption             `json:"options,omitempty"`
 	CodeChallenge *questions.CodeChallengeResponse `json:"codeChallenge,omitempty"`
-	Topics        []TopicInfo                      `json:"topics"`
+	Topics        []string                         `json:"topics"`
 }
 
 type NextQuestionResponse struct {
 	Question NextQuestionItem `json:"question"`
-}
-
-type TopicInfo struct {
-	ID   uuid.UUID `json:"id"`
-	Slug string    `json:"slug"`
-	Name string    `json:"name"`
 }
 
 type SessionSummaryResponse struct {

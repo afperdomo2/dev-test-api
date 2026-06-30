@@ -25,6 +25,23 @@ const { data: session, isLoading: sessionLoading } = useQuery(
   sessionDetailOptions(() => sessionId.value),
 )
 
+const isGenerating = computed(
+  () =>
+    session.value?.mode === 'generate' &&
+    session.value?.status === 'in_progress' &&
+    (session.value?.questionsGenerated ?? 0) < 2,
+)
+
+watch(isGenerating, (generating) => {
+  if (generating) {
+    appStore.showSnackbar(
+      'Las preguntas aún se están generando. Intenta de nuevo en unos segundos.',
+      'info',
+    )
+    router.push('/sessions')
+  }
+})
+
 const { data: summary } = useQuery(sessionSummaryOptions(() => sessionId.value))
 
 const currentQuestionNumber = computed(() => {
@@ -170,14 +187,20 @@ async function finishSession() {
         <v-card class="mb-4">
           <v-card-item>
             <template #prepend>
-              <v-icon :icon="TYPE_ICONS[currentQuestion.type]" color="primary" size="28" />
+              <v-icon
+                :icon="TYPE_ICONS[currentQuestion.type as keyof typeof TYPE_ICONS]"
+                color="primary"
+                size="28"
+              />
             </template>
             <v-card-title class="text-wrap text-body-1">
               <CodeContent :text="currentQuestion.content" />
             </v-card-title>
             <v-card-subtitle>
               <v-chip
-                :color="DIFFICULTY_COLORS[currentQuestion.difficulty]"
+                :color="
+                  DIFFICULTY_COLORS[currentQuestion.difficulty as keyof typeof DIFFICULTY_COLORS]
+                "
                 size="x-small"
                 variant="tonal"
                 class="mr-1"
@@ -185,13 +208,13 @@ async function finishSession() {
                 {{ currentQuestion.difficulty }}
               </v-chip>
               <v-chip
-                v-for="topic in currentQuestion.topics"
-                :key="topic.id"
+                v-for="(topic, idx) in currentQuestion.topics"
+                :key="idx"
                 size="x-small"
                 variant="outlined"
                 class="mr-1"
               >
-                {{ topic.name }}
+                {{ topic }}
               </v-chip>
             </v-card-subtitle>
           </v-card-item>

@@ -5,8 +5,8 @@ import type {
   SubmitAnswerRequest,
   SessionAnswer,
   SessionSummary,
+  NextQuestionItem,
 } from '@/types/session.types'
-import type { Question } from '@/types/question.types'
 import type { PaginatedResponse } from '@/types/api.types'
 
 export async function listSessions(
@@ -39,8 +39,8 @@ export async function finishSession(id: string): Promise<Session> {
   return res.data
 }
 
-export async function getNextQuestion(id: string): Promise<Question> {
-  const res = await apiClient.get<{ question: Question }>(`/api/v1/sessions/${id}/next`)
+export async function getNextQuestion(id: string): Promise<NextQuestionItem> {
+  const res = await apiClient.get<{ question: NextQuestionItem }>(`/api/v1/sessions/${id}/next`)
   return res.data.question
 }
 

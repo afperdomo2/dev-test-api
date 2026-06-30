@@ -9,9 +9,9 @@ import (
 )
 
 func ToSessionResponse(s models.Session) SessionResponse {
-	topics := make([]TopicInfo, len(s.Topics))
+	topics := make([]string, len(s.Topics))
 	for i, t := range s.Topics {
-		topics[i] = TopicInfo{ID: t.ID, Slug: t.Slug, Name: t.Name}
+		topics[i] = t.Name
 	}
 	return SessionResponse{
 		ID:                 s.ID,
@@ -33,9 +33,9 @@ func ToSessionResponse(s models.Session) SessionResponse {
 }
 
 func ToSessionListResponse(s models.Session) SessionListResponse {
-	topics := make([]TopicInfo, len(s.Topics))
+	topics := make([]string, len(s.Topics))
 	for i, t := range s.Topics {
-		topics[i] = TopicInfo{ID: t.ID, Slug: t.Slug, Name: t.Name}
+		topics[i] = t.Name
 	}
 	return SessionListResponse{
 		ID:                 s.ID,
@@ -108,13 +108,9 @@ func toNextQuestionItem(q models.Question) NextQuestionItem {
 	}
 
 	if q.Topics != nil {
-		item.Topics = make([]TopicInfo, len(q.Topics))
+		item.Topics = make([]string, len(q.Topics))
 		for i, t := range q.Topics {
-			item.Topics[i] = TopicInfo{
-				ID:   t.ID,
-				Slug: t.Slug,
-				Name: t.Name,
-			}
+			item.Topics[i] = t.Name
 		}
 	}
 
