@@ -923,6 +923,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
                     }
                 }
             }
@@ -1014,6 +1020,52 @@ const docTemplate = `{
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sessions/{id}/summary": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene un resumen liviano de la sesión (contadores, estado)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Resumen de sesión",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sessions.SessionSummaryResponse"
                         }
                     },
                     "404": {
@@ -2066,11 +2118,54 @@ const docTemplate = `{
                 }
             }
         },
+        "sessions.NextQuestionItem": {
+            "type": "object",
+            "properties": {
+                "codeChallenge": {
+                    "$ref": "#/definitions/questions.CodeChallengeResponse"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "difficulty": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sessions.NextQuestionOption"
+                    }
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "sessions.NextQuestionOption": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
         "sessions.NextQuestionResponse": {
             "type": "object",
             "properties": {
                 "question": {
-                    "$ref": "#/definitions/questions.QuestionResponse"
+                    "$ref": "#/definitions/sessions.NextQuestionItem"
                 }
             }
         },
@@ -2086,14 +2181,14 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "string"
                 },
+                "explanation": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
                 "isCorrect": {
                     "type": "boolean"
-                },
-                "question": {
-                    "$ref": "#/definitions/questions.QuestionResponse"
                 },
                 "questionId": {
                     "type": "string"
@@ -2150,6 +2245,9 @@ const docTemplate = `{
                 "questionLimit": {
                     "type": "integer"
                 },
+                "questionsGenerated": {
+                    "type": "integer"
+                },
                 "score": {
                     "type": "number"
                 },
@@ -2162,7 +2260,7 @@ const docTemplate = `{
                 "topics": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/sessions.TopicInfo"
+                        "type": "string"
                     }
                 },
                 "updatedAt": {
@@ -2173,16 +2271,19 @@ const docTemplate = `{
                 }
             }
         },
-        "sessions.TopicInfo": {
+        "sessions.SessionSummaryResponse": {
             "type": "object",
             "properties": {
-                "id": {
-                    "type": "string"
+                "answerCount": {
+                    "type": "integer"
                 },
-                "name": {
-                    "type": "string"
+                "questionLimit": {
+                    "type": "integer"
                 },
-                "slug": {
+                "questionsGenerated": {
+                    "type": "integer"
+                },
+                "status": {
                     "type": "string"
                 }
             }

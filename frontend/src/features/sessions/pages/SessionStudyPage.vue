@@ -4,14 +4,15 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import {
   sessionDetailOptions,
-  nextQuestionOptions,
   sessionSummaryOptions,
   submitAnswerMutation,
   finishSessionMutation,
 } from '@/queries/sessions.queries'
+import * as sessionsService from '@/api/services/sessions.service'
 import { useAppStore } from '@/stores/app.store'
 import { DIFFICULTY_COLORS, TYPE_ICONS } from '@/types/question.types'
 import type { SessionAnswer } from '@/types/session.types'
+import { formatDate, formatScore } from '@/utils/format'
 import CodeContent from '@/components/CodeContent.vue'
 
 const route = useRoute()
@@ -31,6 +32,8 @@ const isGenerating = computed(
     session.value?.status === 'in_progress' &&
     (session.value?.questionsGenerated ?? 0) < 2,
 )
+
+const isCompleted = computed(() => session.value?.status === 'completed')
 
 watch(isGenerating, (generating) => {
   if (generating) {
@@ -58,7 +61,15 @@ const {
   isLoading: questionLoading,
   isFetching: questionFetching,
   refetch: refetchNext,
-} = useQuery(nextQuestionOptions(() => sessionId.value))
+} = useQuery({
+  queryKey: ['sessions', 'next', sessionId],
+  queryFn: () => sessionsService.getNextQuestion(sessionId.value),
+  staleTime: 0,
+  enabled: computed(() => {
+    if (!session.value) return false
+    return !isCompleted.value && !isGenerating.value
+  }),
+})
 
 const submitMut = useMutation(submitAnswerMutation())
 const finishMut = useMutation(finishSessionMutation())
@@ -179,205 +190,222 @@ async function finishSession() {
     <v-skeleton-loader v-if="sessionLoading" type="article" />
 
     <template v-else-if="session">
-      <!-- Question area -->
-      <v-skeleton-loader v-if="questionLoading || questionFetching" type="card" class="mb-4" />
-
-      <template v-else-if="currentQuestion">
-        <!-- Question card -->
-        <v-card class="mb-4">
-          <v-card-item>
-            <template #prepend>
-              <v-icon
-                :icon="TYPE_ICONS[currentQuestion.type as keyof typeof TYPE_ICONS]"
-                color="primary"
-                size="28"
-              />
-            </template>
-            <v-card-title class="text-wrap text-body-1">
-              <CodeContent :text="currentQuestion.content" />
-            </v-card-title>
-            <v-card-subtitle>
-              <v-chip
-                :color="
-                  DIFFICULTY_COLORS[currentQuestion.difficulty as keyof typeof DIFFICULTY_COLORS]
-                "
-                size="x-small"
-                variant="tonal"
-                class="mr-1"
-              >
-                {{ currentQuestion.difficulty }}
-              </v-chip>
-              <v-chip
-                v-for="(topic, idx) in currentQuestion.topics"
-                :key="idx"
-                size="x-small"
-                variant="outlined"
-                class="mr-1"
-              >
-                {{ topic }}
-              </v-chip>
-            </v-card-subtitle>
-          </v-card-item>
-        </v-card>
-
-        <!-- Options (single/multiple choice) -->
-        <v-card v-if="!isCodeCompletion" class="mb-4">
-          <v-card-text>
-            <v-list density="compact">
-              <v-list-item
-                v-for="option in optionsArray"
-                :key="option.id"
-                :class="{
-                  'bg-success-lighten-5': answerState === 'result' && isCorrectOption(option.id),
-                  'bg-error-lighten-5':
-                    answerState === 'result' &&
-                    isSelected(option.id) &&
-                    !isCorrectOption(option.id),
-                }"
-                rounded
-                class="mb-1"
-                :disabled="answerState === 'submitting' || answerState === 'result'"
-                @click="toggleOption(option.id)"
-              >
-                <template #prepend>
-                  <v-checkbox
-                    v-if="isMultipleChoice"
-                    :model-value="isSelected(option.id)"
-                    :disabled="answerState === 'submitting' || answerState === 'result'"
-                    hide-details
-                    density="compact"
-                  />
-                  <v-radio
-                    v-else
-                    :model-value="isSelected(option.id)"
-                    :disabled="answerState === 'submitting' || answerState === 'result'"
-                    hide-details
-                    density="compact"
-                  />
-                </template>
-                <v-list-item-title>
-                  <CodeContent :text="option.content" />
-                </v-list-item-title>
-                <template v-if="answerState === 'result'" #append>
-                  <v-icon v-if="isCorrectOption(option.id)" color="success" size="small">
-                    mdi-check-circle
-                  </v-icon>
-                  <v-icon v-else-if="isSelected(option.id)" color="error" size="small">
-                    mdi-close-circle
-                  </v-icon>
-                </template>
-              </v-list-item>
-            </v-list>
+      <template v-if="isCompleted">
+        <v-card>
+          <v-card-text class="text-center py-8">
+            <v-icon size="64" color="success" class="mb-4">mdi-check-circle</v-icon>
+            <h2 class="text-h5 mb-2">Sesión completada</h2>
+            <p class="text-body-1 text-medium-emphasis mb-4">
+              Puntaje: {{ session.score != null ? formatScore(session.score) : '—' }}
+            </p>
+            <p class="text-caption text-medium-emphasis mb-4">
+              Finalizada el {{ session.finishedAt ? formatDate(session.finishedAt) : '—' }}
+            </p>
+            <v-btn color="primary" to="/sessions">Volver a sesiones</v-btn>
           </v-card-text>
         </v-card>
+      </template>
+      <template v-else>
+        <!-- Question area -->
+        <v-skeleton-loader v-if="questionLoading || questionFetching" type="card" class="mb-4" />
 
-        <!-- Code completion -->
-        <v-card v-if="isCodeCompletion" class="mb-4">
-          <v-card-text>
-            <div
-              v-if="currentQuestion.codeChallenge"
-              class="text-caption text-medium-emphasis mb-2"
-            >
-              Código inicial:
-            </div>
-            <pre
-              v-if="currentQuestion.codeChallenge"
-              class="rounded pa-4 overflow-auto bg-grey-lighten-4 mb-4"
-            ><code
+        <template v-else-if="currentQuestion">
+          <!-- Question card -->
+          <v-card class="mb-4">
+            <v-card-item>
+              <template #prepend>
+                <v-icon
+                  :icon="TYPE_ICONS[currentQuestion.type as keyof typeof TYPE_ICONS]"
+                  color="primary"
+                  size="28"
+                />
+              </template>
+              <v-card-title class="text-wrap text-body-1">
+                <CodeContent :text="currentQuestion.content" />
+              </v-card-title>
+              <v-card-subtitle>
+                <v-chip
+                  :color="
+                    DIFFICULTY_COLORS[currentQuestion.difficulty as keyof typeof DIFFICULTY_COLORS]
+                  "
+                  size="x-small"
+                  variant="tonal"
+                  class="mr-1"
+                >
+                  {{ currentQuestion.difficulty }}
+                </v-chip>
+                <v-chip
+                  v-for="(topic, idx) in currentQuestion.topics"
+                  :key="idx"
+                  size="x-small"
+                  variant="outlined"
+                  class="mr-1"
+                >
+                  {{ topic }}
+                </v-chip>
+              </v-card-subtitle>
+            </v-card-item>
+          </v-card>
+
+          <!-- Options (single/multiple choice) -->
+          <v-card v-if="!isCodeCompletion" class="mb-4">
+            <v-card-text>
+              <v-list density="compact">
+                <v-list-item
+                  v-for="option in optionsArray"
+                  :key="option.id"
+                  :class="{
+                    'bg-success-lighten-5': answerState === 'result' && isCorrectOption(option.id),
+                    'bg-error-lighten-5':
+                      answerState === 'result' &&
+                      isSelected(option.id) &&
+                      !isCorrectOption(option.id),
+                  }"
+                  rounded
+                  class="mb-1"
+                  :disabled="answerState === 'submitting' || answerState === 'result'"
+                  @click="toggleOption(option.id)"
+                >
+                  <template #prepend>
+                    <v-checkbox
+                      v-if="isMultipleChoice"
+                      :model-value="isSelected(option.id)"
+                      :disabled="answerState === 'submitting' || answerState === 'result'"
+                      hide-details
+                      density="compact"
+                    />
+                    <v-radio
+                      v-else
+                      :model-value="isSelected(option.id)"
+                      :disabled="answerState === 'submitting' || answerState === 'result'"
+                      hide-details
+                      density="compact"
+                    />
+                  </template>
+                  <v-list-item-title>
+                    <CodeContent :text="option.content" />
+                  </v-list-item-title>
+                  <template v-if="answerState === 'result'" #append>
+                    <v-icon v-if="isCorrectOption(option.id)" color="success" size="small">
+                      mdi-check-circle
+                    </v-icon>
+                    <v-icon v-else-if="isSelected(option.id)" color="error" size="small">
+                      mdi-close-circle
+                    </v-icon>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </v-card-text>
+          </v-card>
+
+          <!-- Code completion -->
+          <v-card v-if="isCodeCompletion" class="mb-4">
+            <v-card-text>
+              <div
+                v-if="currentQuestion.codeChallenge"
+                class="text-caption text-medium-emphasis mb-2"
+              >
+                Código inicial:
+              </div>
+              <pre
+                v-if="currentQuestion.codeChallenge"
+                class="rounded pa-4 overflow-auto bg-grey-lighten-4 mb-4"
+              ><code
               v-highlight="currentQuestion.codeChallenge.language"
             >{{ currentQuestion.codeChallenge.starterCode }}</code></pre>
-            <v-textarea
-              v-model="answerText"
-              label="Tu código"
-              :disabled="answerState === 'submitting' || answerState === 'result'"
-              rows="6"
-              auto-grow
-              variant="outlined"
-              class="font-monospace"
-            />
-          </v-card-text>
-        </v-card>
+              <v-textarea
+                v-model="answerText"
+                label="Tu código"
+                :disabled="answerState === 'submitting' || answerState === 'result'"
+                rows="6"
+                auto-grow
+                variant="outlined"
+                class="font-monospace"
+              />
+            </v-card-text>
+          </v-card>
 
-        <!-- Result feedback -->
-        <v-card v-if="answerState === 'result' && lastResult" class="mb-4">
-          <v-card-item>
-            <template #prepend>
-              <v-icon :color="lastResult.isCorrect ? 'success' : 'error'" size="32">
-                {{ lastResult.isCorrect ? 'mdi-check-circle' : 'mdi-close-circle' }}
-              </v-icon>
-            </template>
-            <v-card-title>
-              {{ lastResult.isCorrect ? '¡Correcto!' : 'Incorrecto' }}
-            </v-card-title>
-            <v-card-subtitle v-if="lastResult.explanation">
-              <CodeContent :text="lastResult.explanation" />
-            </v-card-subtitle>
-          </v-card-item>
-          <v-card-actions>
-            <v-spacer />
-            <v-btn
-              v-if="currentQuestionNumber >= (questionLimit ?? Infinity)"
-              color="primary"
-              @click="finishSession"
-            >
+          <!-- Result feedback -->
+          <v-card v-if="answerState === 'result' && lastResult" class="mb-4">
+            <v-card-item>
+              <template #prepend>
+                <v-icon :color="lastResult.isCorrect ? 'success' : 'error'" size="32">
+                  {{ lastResult.isCorrect ? 'mdi-check-circle' : 'mdi-close-circle' }}
+                </v-icon>
+              </template>
+              <v-card-title>
+                {{ lastResult.isCorrect ? '¡Correcto!' : 'Incorrecto' }}
+              </v-card-title>
+              <v-card-subtitle v-if="lastResult.explanation">
+                <CodeContent :text="lastResult.explanation" />
+              </v-card-subtitle>
+            </v-card-item>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn
+                v-if="currentQuestionNumber >= (questionLimit ?? Infinity)"
+                color="primary"
+                @click="finishSession"
+              >
+                Finalizar sesión
+              </v-btn>
+              <v-btn v-else color="primary" @click="nextQuestion"> Siguiente pregunta </v-btn>
+            </v-card-actions>
+          </v-card>
+
+          <!-- Action buttons (before answer) -->
+          <div
+            v-if="answerState === 'answering' || answerState === 'submitting'"
+            class="d-flex ga-2 justify-end"
+          >
+            <v-btn variant="tonal" :disabled="answerState === 'submitting'" @click="finishSession">
               Finalizar sesión
             </v-btn>
-            <v-btn v-else color="primary" @click="nextQuestion"> Siguiente pregunta </v-btn>
-          </v-card-actions>
-        </v-card>
-
-        <!-- Action buttons (before answer) -->
-        <div
-          v-if="answerState === 'answering' || answerState === 'submitting'"
-          class="d-flex ga-2 justify-end"
-        >
-          <v-btn variant="tonal" :disabled="answerState === 'submitting'" @click="finishSession">
-            Finalizar sesión
-          </v-btn>
-          <v-btn
-            color="primary"
-            :loading="answerState === 'submitting'"
-            :disabled="!canSubmit"
-            @click="submitAnswer"
-          >
-            Responder
-          </v-btn>
-        </div>
-      </template>
-
-      <!-- No more questions -->
-      <v-card v-else>
-        <v-card-text class="text-center py-8">
-          <template
-            v-if="
-              session.mode === 'generate' &&
-              (summary?.questionsGenerated ?? 0) < (summary?.questionLimit ?? Infinity)
-            "
-          >
-            <v-progress-circular indeterminate color="primary" size="48" class="mb-4" />
-            <h2 class="text-h5 mb-2">Generando preguntas...</h2>
-            <p class="text-body-1 text-medium-emphasis mb-4">
-              La IA está creando más preguntas para esta sesión. Esto toma unos segundos.
-            </p>
             <v-btn
               color="primary"
-              variant="tonal"
-              :loading="questionLoading"
-              @click="refetchNext()"
+              :loading="answerState === 'submitting'"
+              :disabled="!canSubmit"
+              @click="submitAnswer"
             >
-              Reintentar
+              Responder
             </v-btn>
-          </template>
-          <template v-else>
-            <v-icon size="64" color="success" class="mb-4"> mdi-check-circle </v-icon>
-            <h2 class="text-h5 mb-2">¡No hay más preguntas!</h2>
-            <p class="text-body-1 text-medium-emphasis mb-4">
-              Has completado todas las preguntas disponibles en esta sesión.
-            </p>
-            <v-btn color="primary" @click="finishSession"> Finalizar sesión </v-btn>
-          </template>
-        </v-card-text>
-      </v-card>
+          </div>
+        </template>
+
+        <!-- No more questions -->
+        <v-card v-else>
+          <v-card-text class="text-center py-8">
+            <template
+              v-if="
+                session.mode === 'generate' &&
+                (summary?.questionsGenerated ?? 0) < (summary?.questionLimit ?? Infinity)
+              "
+            >
+              <v-progress-circular indeterminate color="primary" size="48" class="mb-4" />
+              <h2 class="text-h5 mb-2">Generando preguntas...</h2>
+              <p class="text-body-1 text-medium-emphasis mb-4">
+                La IA está creando más preguntas para esta sesión. Esto toma unos segundos.
+              </p>
+              <v-btn
+                color="primary"
+                variant="tonal"
+                :loading="questionLoading"
+                @click="refetchNext()"
+              >
+                Reintentar
+              </v-btn>
+            </template>
+            <template v-else>
+              <v-icon size="64" color="success" class="mb-4"> mdi-check-circle </v-icon>
+              <h2 class="text-h5 mb-2">¡No hay más preguntas!</h2>
+              <p class="text-body-1 text-medium-emphasis mb-4">
+                Has completado todas las preguntas disponibles en esta sesión.
+              </p>
+              <v-btn color="primary" @click="finishSession"> Finalizar sesión </v-btn>
+            </template>
+          </v-card-text>
+        </v-card>
+      </template>
     </template>
   </v-container>
 </template>

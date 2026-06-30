@@ -160,6 +160,10 @@ func (s *sessionService) NextQuestion(sessionID uuid.UUID) (*NextQuestionRespons
 		return nil, err
 	}
 
+	if sess.Status == "completed" {
+		return nil, apierr.ErrConflict("Session Completed", "La sesion ya fue completada", "")
+	}
+
 	if sess.QuestionLimit != nil && len(answeredIDs) >= *sess.QuestionLimit {
 		return nil, apierr.ErrNotFound("Pregunta", "Has alcanzado el limite de preguntas de esta sesion")
 	}
@@ -196,6 +200,18 @@ func (s *sessionService) NextQuestion(sessionID uuid.UUID) (*NextQuestionRespons
 }
 
 func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest) (*SessionAnswerResponse, error) {
+	sess, err := s.store.FindByID(sessionID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, apierr.ErrNotFound("Sesion", "")
+		}
+		return nil, apierr.ErrInternal("Error al obtener la sesion", "")
+	}
+
+	if sess.Status == "completed" {
+		return nil, apierr.ErrConflict("Session Completed", "La sesion ya fue completada", "")
+	}
+
 	selectedJSON := "[]"
 	if len(input.SelectedOptions) > 0 {
 		b, _ := json.Marshal(input.SelectedOptions)
@@ -228,8 +244,7 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 		answer.Question = question
 	}
 
-	sess, err := s.store.FindByID(sessionID)
-	if err == nil && sess.Mode == "generate" {
+	if sess.Mode == "generate" {
 		answeredIDs, err := s.store.FindAnsweredQuestionIDs(sessionID)
 		if err == nil {
 			topicIDs := make([]uuid.UUID, len(sess.Topics))

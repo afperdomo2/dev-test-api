@@ -165,6 +165,7 @@ func (h *Handler) Finish(c *gin.Context) {
 // @Success      200  {object}  NextQuestionResponse
 // @Failure      401  {object}  apierr.APIError
 // @Failure      404  {object}  apierr.APIError
+// @Failure      409  {object}  apierr.APIError
 // @Router       /api/v1/sessions/{id}/next [get]
 func (h *Handler) NextQuestion(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
@@ -196,6 +197,7 @@ func (h *Handler) NextQuestion(c *gin.Context) {
 // @Failure      400  {object}  apierr.APIError
 // @Failure      401  {object}  apierr.APIError
 // @Failure      404  {object}  apierr.APIError
+// @Failure      409  {object}  apierr.APIError
 // @Router       /api/v1/sessions/{id}/answer [post]
 func (h *Handler) Answer(c *gin.Context) {
 	sessionID, err := uuid.Parse(c.Param("id"))
