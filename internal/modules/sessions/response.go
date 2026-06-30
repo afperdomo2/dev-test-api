@@ -48,15 +48,15 @@ type SessionDetailResponse struct {
 }
 
 type SessionAnswerResponse struct {
-	ID              uuid.UUID                  `json:"id"`
-	QuestionID      uuid.UUID                  `json:"questionId"`
-	AnswerText      string                     `json:"answerText,omitempty"`
-	SelectedOptions []uuid.UUID                `json:"selectedOptions,omitempty"`
-	IsCorrect       bool                       `json:"isCorrect"`
-	AiFeedback      string                     `json:"aiFeedback,omitempty"`
-	ResponseTimeMs  int                        `json:"responseTimeMs"`
-	Question        questions.QuestionResponse `json:"question"`
-	CreatedAt       time.Time                  `json:"createdAt"`
+	ID              uuid.UUID   `json:"id"`
+	QuestionID      uuid.UUID   `json:"questionId"`
+	AnswerText      string      `json:"answerText,omitempty"`
+	SelectedOptions []uuid.UUID `json:"selectedOptions,omitempty"`
+	IsCorrect       bool        `json:"isCorrect"`
+	AiFeedback      string      `json:"aiFeedback,omitempty"`
+	Explanation     string      `json:"explanation,omitempty"`
+	ResponseTimeMs  int         `json:"responseTimeMs"`
+	CreatedAt       time.Time   `json:"createdAt"`
 }
 
 type NextQuestionOption struct {

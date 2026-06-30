@@ -224,6 +224,10 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 
 	s.progressService.Answer(userID, input.QuestionID, isCorrect)
 
+	if question != nil {
+		answer.Question = question
+	}
+
 	sess, err := s.store.FindByID(sessionID)
 	if err == nil && sess.Mode == "generate" {
 		answeredIDs, err := s.store.FindAnsweredQuestionIDs(sessionID)

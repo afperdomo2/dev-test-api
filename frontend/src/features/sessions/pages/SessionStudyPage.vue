@@ -309,8 +309,8 @@ async function finishSession() {
             <v-card-title>
               {{ lastResult.isCorrect ? '¡Correcto!' : 'Incorrecto' }}
             </v-card-title>
-            <v-card-subtitle v-if="lastResult.aiFeedback">
-              <CodeContent :text="lastResult.aiFeedback" />
+            <v-card-subtitle v-if="lastResult.explanation">
+              <CodeContent :text="lastResult.explanation" />
             </v-card-subtitle>
           </v-card-item>
           <v-card-actions>
@@ -322,9 +322,7 @@ async function finishSession() {
             >
               Finalizar sesión
             </v-btn>
-            <v-btn v-else color="primary" variant="text" @click="nextQuestion">
-              Siguiente pregunta
-            </v-btn>
+            <v-btn v-else color="primary" @click="nextQuestion"> Siguiente pregunta </v-btn>
           </v-card-actions>
         </v-card>
 

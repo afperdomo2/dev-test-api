@@ -85,6 +85,7 @@ export interface SessionAnswer {
   selectedOptions: Array<string>
   isCorrect: boolean
   aiFeedback: string
+  explanation: string
   responseTimeMs: number
 }
 

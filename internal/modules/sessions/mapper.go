@@ -73,7 +73,7 @@ func ToAnswerResponse(a models.SessionAnswer) SessionAnswerResponse {
 	}
 
 	if a.Question != nil {
-		resp.Question = questions.ToQuestionResponse(*a.Question)
+		resp.Explanation = a.Question.Explanation
 	}
 
 	return resp
