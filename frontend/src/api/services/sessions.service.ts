@@ -1,6 +1,7 @@
 import apiClient from '@/api/client'
 import type {
   Session,
+  SessionDetail,
   CreateSessionRequest,
   SubmitAnswerRequest,
   SessionAnswer,
@@ -23,10 +24,13 @@ export async function listSessions(
 }
 
 export async function getSessionById(id: string): Promise<Session> {
-  const res = await apiClient.get<{ session: Session; answers: Array<SessionAnswer> }>(
-    `/api/v1/sessions/${id}`,
-  )
+  const res = await apiClient.get<SessionDetail>(`/api/v1/sessions/${id}`)
   return res.data.session
+}
+
+export async function getSessionDetail(id: string): Promise<SessionDetail> {
+  const res = await apiClient.get<SessionDetail>(`/api/v1/sessions/${id}`)
+  return res.data
 }
 
 export async function createSession(data: CreateSessionRequest): Promise<Session> {

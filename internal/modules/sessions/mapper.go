@@ -79,6 +79,65 @@ func ToAnswerResponse(a models.SessionAnswer) SessionAnswerResponse {
 	return resp
 }
 
+func ToAnswerDetailResponse(a models.SessionAnswer) SessionAnswerDetailResponse {
+	var selected []uuid.UUID
+	if a.SelectedOptions != "" {
+		json.Unmarshal([]byte(a.SelectedOptions), &selected)
+	}
+
+	resp := SessionAnswerDetailResponse{
+		ID:              a.ID,
+		QuestionID:      a.QuestionID,
+		AnswerText:      a.AnswerText,
+		SelectedOptions: selected,
+		IsCorrect:       a.IsCorrect,
+		AiFeedback:      a.AiFeedback,
+		ResponseTimeMs:  a.ResponseTimeMs,
+		CreatedAt:       a.CreatedAt,
+	}
+
+	if a.Question != nil {
+		resp.Explanation = a.Question.Explanation
+
+		q := a.Question
+		resp.Question = QuestionSnapshot{
+			Content:    q.Content,
+			Type:       q.Type,
+			Difficulty: q.Difficulty,
+		}
+
+		if q.CodeChallenge != nil {
+			resp.Question.CodeChallenge = &questions.CodeChallengeResponse{
+				ID:             q.CodeChallenge.ID,
+				StarterCode:    q.CodeChallenge.StarterCode,
+				ExpectedOutput: q.CodeChallenge.ExpectedOutput,
+				Language:       q.CodeChallenge.Language,
+				TestCasesJSON:  q.CodeChallenge.TestCasesJSON,
+			}
+		}
+
+		if q.Topics != nil {
+			resp.Question.Topics = make([]string, len(q.Topics))
+			for i, t := range q.Topics {
+				resp.Question.Topics[i] = t.Name
+			}
+		}
+
+		if q.Options != nil {
+			resp.Question.Options = make([]QuestionSnapshotOption, len(q.Options))
+			for i, o := range q.Options {
+				resp.Question.Options[i] = QuestionSnapshotOption{
+					ID:        o.ID,
+					Content:   o.Content,
+					IsCorrect: o.IsCorrect,
+				}
+			}
+		}
+	}
+
+	return resp
+}
+
 func toNextQuestionItem(q models.Question) NextQuestionItem {
 	item := NextQuestionItem{
 		ID:         q.ID,

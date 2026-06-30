@@ -71,6 +71,12 @@ export const routes: Array<RouteRecordRaw> = [
         meta: { requiresNotAdmin: true },
       },
       {
+        path: 'sessions/:id/review',
+        name: 'SessionReview',
+        component: () => import('@/features/sessions/pages/SessionReviewPage.vue'),
+        meta: { requiresNotAdmin: true },
+      },
+      {
         path: 'progress',
         name: 'Progress',
         component: () => import('@/features/progress/pages/ProgressPage.vue'),

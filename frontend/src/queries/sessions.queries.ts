@@ -37,6 +37,13 @@ export function sessionDetailOptions(id: () => string) {
   })
 }
 
+export function sessionDetailReviewOptions(id: () => string) {
+  return queryOptions({
+    queryKey: ['sessions', 'detail', 'review', id],
+    queryFn: () => sessionsService.getSessionDetail(id()),
+  })
+}
+
 export function nextQuestionOptions(sessionId: () => string) {
   return queryOptions({
     queryKey: ['sessions', 'next', sessionId],

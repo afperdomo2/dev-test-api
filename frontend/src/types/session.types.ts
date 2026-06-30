@@ -96,6 +96,39 @@ export interface SessionSummary {
   questionLimit: number | null
 }
 
+export interface QuestionSnapshotOption {
+  id: string
+  content: string
+  isCorrect: boolean
+}
+
+export interface QuestionSnapshot {
+  content: string
+  type: string
+  difficulty: string
+  options: Array<QuestionSnapshotOption>
+  codeChallenge: CodeChallenge | null
+  topics: Array<string>
+}
+
+export interface SessionAnswerDetail {
+  id: string
+  questionId: string
+  answerText: string
+  selectedOptions: Array<string>
+  isCorrect: boolean
+  aiFeedback: string
+  explanation: string
+  responseTimeMs: number
+  question: QuestionSnapshot
+  createdAt: string
+}
+
+export interface SessionDetail {
+  session: Session
+  answers: Array<SessionAnswerDetail>
+}
+
 export interface NextQuestionItem {
   id: string
   type: string

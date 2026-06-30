@@ -56,9 +56,9 @@ func (s *sessionService) GetByID(sessionID uuid.UUID) (*SessionDetailResponse, e
 		return nil, apierr.ErrInternal("Error al obtener la sesion", "")
 	}
 
-	answers := make([]SessionAnswerResponse, len(sess.Answers))
+	answers := make([]SessionAnswerDetailResponse, len(sess.Answers))
 	for i, a := range sess.Answers {
-		answers[i] = ToAnswerResponse(a)
+		answers[i] = ToAnswerDetailResponse(a)
 	}
 
 	sessionResp := ToSessionResponse(*sess)

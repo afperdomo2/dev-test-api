@@ -43,8 +43,8 @@ type SessionListResponse struct {
 }
 
 type SessionDetailResponse struct {
-	Session SessionResponse         `json:"session"`
-	Answers []SessionAnswerResponse `json:"answers"`
+	Session SessionResponse               `json:"session"`
+	Answers []SessionAnswerDetailResponse `json:"answers"`
 }
 
 type SessionAnswerResponse struct {
@@ -57,6 +57,34 @@ type SessionAnswerResponse struct {
 	Explanation     string      `json:"explanation,omitempty"`
 	ResponseTimeMs  int         `json:"responseTimeMs"`
 	CreatedAt       time.Time   `json:"createdAt"`
+}
+
+type QuestionSnapshotOption struct {
+	ID        uuid.UUID `json:"id"`
+	Content   string    `json:"content"`
+	IsCorrect bool      `json:"isCorrect"`
+}
+
+type QuestionSnapshot struct {
+	Content       string                           `json:"content"`
+	Type          string                           `json:"type"`
+	Difficulty    string                           `json:"difficulty"`
+	Options       []QuestionSnapshotOption         `json:"options,omitempty"`
+	CodeChallenge *questions.CodeChallengeResponse `json:"codeChallenge,omitempty"`
+	Topics        []string                         `json:"topics"`
+}
+
+type SessionAnswerDetailResponse struct {
+	ID              uuid.UUID        `json:"id"`
+	QuestionID      uuid.UUID        `json:"questionId"`
+	AnswerText      string           `json:"answerText,omitempty"`
+	SelectedOptions []uuid.UUID      `json:"selectedOptions,omitempty"`
+	IsCorrect       bool             `json:"isCorrect"`
+	AiFeedback      string           `json:"aiFeedback,omitempty"`
+	Explanation     string           `json:"explanation,omitempty"`
+	ResponseTimeMs  int              `json:"responseTimeMs"`
+	Question        QuestionSnapshot `json:"question"`
+	CreatedAt       time.Time        `json:"createdAt"`
 }
 
 type NextQuestionOption struct {

@@ -51,6 +51,10 @@ function handleClick() {
     appStore.showSnackbar('Las preguntas aún se están generando. Espera unos segundos.', 'info')
     return
   }
+  if (props.session.status === 'completed') {
+    router.push(`/sessions/${props.session.id}/review`)
+    return
+  }
   router.push(`/sessions/${props.session.id}/study`)
 }
 
