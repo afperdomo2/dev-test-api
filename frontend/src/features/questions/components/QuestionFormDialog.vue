@@ -42,9 +42,13 @@ const { data: topicsData, isLoading: topicsLoading } = useQuery({
   enabled: computed(() => props.modelValue),
 })
 
-const topicItems = computed(() => {
-  return topicsData.value?.data?.map((t) => ({ title: t.name, value: t.id })) ?? []
-})
+const topicItems = computed(() =>
+  (topicsData.value?.data ?? []).map((t) => ({
+    title: t.name,
+    value: t.id,
+    props: { subtitle: t.category },
+  })),
+)
 
 const selectedType = ref<QuestionType>('single_choice')
 const content = ref('')
@@ -230,15 +234,27 @@ function close() {
 
       <v-card-text>
         <v-form @submit.prevent="submit">
-          <v-select
-            v-model="selectedType"
-            label="Tipo"
-            :items="QUESTION_TYPES"
-            :disabled="saving || isEdit"
-            hide-details
-            density="compact"
-            class="mb-3"
-          />
+          <v-row dense>
+            <v-col cols="6">
+              <v-select
+                v-model="selectedType"
+                label="Tipo"
+                :items="QUESTION_TYPES"
+                :disabled="saving || isEdit"
+                hide-details
+                density="compact"
+              />
+            </v-col>
+            <v-col cols="6">
+              <v-select
+                v-model="difficulty"
+                label="Dificultad"
+                :items="QUESTION_DIFFICULTIES"
+                hide-details
+                density="compact"
+              />
+            </v-col>
+          </v-row>
 
           <v-textarea
             v-model="content"
@@ -248,15 +264,7 @@ function close() {
             auto-grow
             rows="3"
             required
-          />
-
-          <v-select
-            v-model="difficulty"
-            label="Dificultad"
-            :items="QUESTION_DIFFICULTIES"
-            hide-details
-            density="compact"
-            class="mb-3"
+            class="mt-3"
           />
 
           <v-textarea
@@ -273,12 +281,15 @@ function close() {
             v-model="topicIds"
             label="Temas"
             :items="topicItems"
+            item-title="title"
+            item-props="props"
             :loading="topicsLoading"
             :error-messages="fieldError('topicIds')"
             :disabled="saving || !topicItems.length"
             multiple
             chips
             closable-chips
+            clearable
             hide-details
             density="compact"
             class="mb-3"

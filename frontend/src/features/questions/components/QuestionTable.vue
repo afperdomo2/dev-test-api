@@ -28,6 +28,13 @@ function canModify(question: Question): boolean {
   return question.userId === props.currentUserId
 }
 
+function lockReason(question: Question): string {
+  if (question.source !== 'manual' && question.source !== 'imported') {
+    return 'Las preguntas generadas por IA no se pueden modificar'
+  }
+  return 'No tienes permiso para modificar esta pregunta'
+}
+
 const headers = [
   { title: 'Tipo', key: 'type', sortable: false, align: 'center' as const, width: 72 },
   { title: 'Origen', key: 'source', sortable: false, align: 'center' as const, width: 88 },
@@ -102,21 +109,36 @@ const headers = [
     </template>
 
     <template #[`item.actions`]="{ item }">
-      <div v-if="canModify(item)" class="d-flex ga-1 justify-center">
-        <v-btn
-          icon="mdi-pencil"
-          variant="text"
-          size="small"
-          color="primary"
-          @click="emit('edit', item)"
-        />
-        <v-btn
-          icon="mdi-delete"
-          variant="text"
-          size="small"
-          color="error"
-          @click="emit('delete', item)"
-        />
+      <div class="d-flex ga-1 justify-center">
+        <template v-if="canModify(item)">
+          <v-btn
+            icon="mdi-pencil"
+            variant="text"
+            size="small"
+            color="primary"
+            @click="emit('edit', item)"
+          />
+          <v-btn
+            icon="mdi-delete"
+            variant="text"
+            size="small"
+            color="error"
+            @click="emit('delete', item)"
+          />
+        </template>
+        <v-tooltip v-else :text="lockReason(item)">
+          <template #activator="{ props }">
+            <span v-bind="props">
+              <v-btn
+                icon="mdi-lock-outline"
+                variant="text"
+                size="small"
+                color="disabled"
+                disabled
+              />
+            </span>
+          </template>
+        </v-tooltip>
       </div>
     </template>
 

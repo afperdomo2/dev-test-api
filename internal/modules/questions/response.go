@@ -27,7 +27,6 @@ type QuestionListResponse struct {
 	UserID        uuid.UUID              `json:"userId"`
 	Type          string                 `json:"type"`
 	Content       string                 `json:"content"`
-	Explanation   string                 `json:"explanation,omitempty"`
 	Difficulty    string                 `json:"difficulty"`
 	IsPublic      bool                   `json:"isPublic"`
 	Source        string                 `json:"source"`

@@ -1,6 +1,18 @@
 package questions
 
-import "github.com/felipe/dev-test-api/internal/models"
+import (
+	"unicode/utf8"
+
+	"github.com/felipe/dev-test-api/internal/models"
+)
+
+func truncate(s string, maxLen int) string {
+	if utf8.RuneCountInString(s) <= maxLen {
+		return s
+	}
+	runes := []rune(s)
+	return string(runes[:maxLen]) + "..."
+}
 
 func topicsToStrings(topics []models.Topic) []string {
 	if topics == nil {
@@ -54,16 +66,15 @@ func ToQuestionResponse(q models.Question) QuestionResponse {
 
 func ToQuestionListResponse(q models.Question) QuestionListResponse {
 	resp := QuestionListResponse{
-		ID:          q.ID,
-		UserID:      q.UserID,
-		Type:        q.Type,
-		Content:     q.Content,
-		Explanation: q.Explanation,
-		Difficulty:  q.Difficulty,
-		IsPublic:    q.IsPublic,
-		Source:      q.Source,
-		Topics:      topicsToStrings(q.Topics),
-		CreatedAt:   q.CreatedAt,
+		ID:         q.ID,
+		UserID:     q.UserID,
+		Type:       q.Type,
+		Content:    truncate(q.Content, 70),
+		Difficulty: q.Difficulty,
+		IsPublic:   q.IsPublic,
+		Source:     q.Source,
+		Topics:     topicsToStrings(q.Topics),
+		CreatedAt:  q.CreatedAt,
 	}
 
 	if q.CodeChallenge != nil {
