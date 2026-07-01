@@ -3,7 +3,13 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { questionDetailOptions } from '@/queries/questions.queries'
-import { DIFFICULTY_COLORS, TYPE_ICONS } from '@/types/question.types'
+import {
+  DIFFICULTY_COLORS,
+  DIFFICULTY_LABELS,
+  TYPE_ICONS,
+  SOURCE_LABELS,
+  SOURCE_COLORS,
+} from '@/types/question.types'
 import { formatDateTime } from '@/utils/format'
 import CodeContent from '@/components/CodeContent.vue'
 
@@ -48,10 +54,18 @@ function typeLabel(type: string): string {
               variant="tonal"
               class="mr-2"
             >
-              {{ question.difficulty }}
+              {{ DIFFICULTY_LABELS[question.difficulty] }}
             </v-chip>
             <v-chip size="small" variant="tonal" class="mr-2">
               {{ typeLabel(question.type) }}
+            </v-chip>
+            <v-chip
+              :color="SOURCE_COLORS[question.source]"
+              size="small"
+              variant="tonal"
+              class="mr-2"
+            >
+              {{ SOURCE_LABELS[question.source] }}
             </v-chip>
             <v-chip v-if="question.isPublic" size="small" variant="text" color="success">
               Pública

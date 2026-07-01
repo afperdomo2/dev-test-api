@@ -58,7 +58,7 @@ func (h *Handler) List(c *gin.Context) {
 		}
 	}
 
-	userID, _ := getUserID(c)
+	_, userID, _ := getUserRoleAndID(c)
 	params.UserID = userID
 
 	questions, total, err := h.service.List(params)
@@ -100,8 +100,8 @@ func (h *Handler) Get(c *gin.Context) {
 	response.Success(c, http.StatusOK, question)
 }
 
-// @Summary      Crear pregunta (Admin)
-// @Description  Crea una nueva pregunta con opciones o código
+// @Summary      Crear pregunta manual
+// @Description  Crea una nueva pregunta manual (solo usuarios)
 // @Tags         questions
 // @Security     BearerAuth
 // @Accept       json
@@ -119,10 +119,15 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	userID, apiErr := getUserID(c)
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
 	if apiErr != nil {
 		apiErr.Instance = c.Request.URL.Path
 		response.Problem(c, apiErr)
+		return
+	}
+
+	if isAdmin {
+		response.Problem(c, apierr.ErrForbidden("Los administradores no pueden crear preguntas manuales", c.Request.URL.Path))
 		return
 	}
 
@@ -137,8 +142,8 @@ func (h *Handler) Create(c *gin.Context) {
 	response.Success(c, http.StatusCreated, question)
 }
 
-// @Summary      Actualizar pregunta (Admin)
-// @Description  Actualiza una pregunta existente
+// @Summary      Actualizar pregunta
+// @Description  Actualiza una pregunta manual o importada (solo el dueño)
 // @Tags         questions
 // @Security     BearerAuth
 // @Accept       json
@@ -164,7 +169,14 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 
-	question, err := h.service.Update(id, req)
+	_, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	question, err := h.service.Update(id, userID, req)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
@@ -175,8 +187,8 @@ func (h *Handler) Update(c *gin.Context) {
 	response.Success(c, http.StatusOK, question)
 }
 
-// @Summary      Eliminar pregunta (Admin)
-// @Description  Elimina una pregunta (soft delete)
+// @Summary      Eliminar pregunta
+// @Description  Elimina una pregunta manual o importada (solo el dueño)
 // @Tags         questions
 // @Security     BearerAuth
 // @Produce      json
@@ -193,7 +205,14 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(id); err != nil {
+	_, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	if err := h.service.Delete(id, userID); err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
 		response.Problem(c, e)
@@ -203,26 +222,28 @@ func (h *Handler) Delete(c *gin.Context) {
 	response.Success(c, http.StatusOK, gin.H{"message": "Pregunta eliminada"})
 }
 
-func getUserID(c *gin.Context) (uuid.UUID, *apierr.APIError) {
+func getUserRoleAndID(c *gin.Context) (bool, uuid.UUID, *apierr.APIError) {
 	claims, exists := c.Get("user_claims")
 	if !exists {
-		return uuid.Nil, apierr.ErrUnauthorized("Usuario no autenticado", "")
+		return false, uuid.Nil, apierr.ErrUnauthorized("Usuario no autenticado", "")
 	}
 
 	mapClaims, ok := claims.(*jwt.MapClaims)
 	if !ok {
-		return uuid.Nil, apierr.ErrInternal("Error al obtener los claims del usuario", "")
+		return false, uuid.Nil, apierr.ErrInternal("Error al obtener los claims del usuario", "")
 	}
 
 	sub, ok := (*mapClaims)["sub"].(string)
 	if !ok {
-		return uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
+		return false, uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
 	}
 
 	id, err := uuid.Parse(sub)
 	if err != nil {
-		return uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
+		return false, uuid.Nil, apierr.ErrInternal("Error al obtener el ID del usuario", "")
 	}
 
-	return id, nil
+	isAdmin, _ := (*mapClaims)["is_admin"].(bool)
+
+	return isAdmin, id, nil
 }

@@ -20,6 +20,30 @@ export const DIFFICULTY_COLORS: Record<QuestionDifficulty, string> = {
   advanced: 'error',
 }
 
+export const DIFFICULTY_LABELS: Record<QuestionDifficulty, string> = {
+  beginner: 'Principiante',
+  intermediate: 'Intermedio',
+  advanced: 'Avanzado',
+}
+
+export const SOURCE_LABELS: Record<QuestionSource, string> = {
+  ai_generated: 'IA',
+  manual: 'Manual',
+  imported: 'Importada',
+}
+
+export const SOURCE_COLORS: Record<QuestionSource, string> = {
+  ai_generated: 'purple',
+  manual: 'blue',
+  imported: 'orange',
+}
+
+export const SOURCE_ICONS: Record<QuestionSource, string> = {
+  ai_generated: 'mdi-robot',
+  manual: 'mdi-pencil',
+  imported: 'mdi-file-excel',
+}
+
 export const TYPE_ICONS: Record<QuestionType, string> = {
   single_choice: 'mdi-radiobox-marked',
   multiple_choice: 'mdi-checkbox-multiple-marked',
@@ -54,4 +78,35 @@ export interface Question {
   topics: Array<string>
   createdAt: string
   updatedAt: string
+}
+
+export interface CreateQuestionOption {
+  content: string
+  isCorrect: boolean
+}
+
+export interface CreateQuestionRequest {
+  type: QuestionType
+  content: string
+  difficulty: QuestionDifficulty
+  explanation?: string
+  topicIds: Array<string>
+  options?: Array<CreateQuestionOption>
+  starterCode?: string
+  expectedOutput?: string
+  language?: string
+  testCases?: string
+}
+
+export interface UpdateQuestionRequest {
+  type?: QuestionType
+  content?: string
+  difficulty?: QuestionDifficulty
+  explanation?: string
+  topicIds?: Array<string>
+  options?: Array<CreateQuestionOption>
+  starterCode?: string
+  expectedOutput?: string
+  language?: string
+  testCases?: string
 }

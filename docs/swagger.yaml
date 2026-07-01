@@ -830,7 +830,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Crea una nueva pregunta con opciones o código
+      description: Crea una nueva pregunta manual (solo usuarios)
       parameters:
       - description: Datos de la pregunta
         in: body
@@ -859,12 +859,12 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Crear pregunta (Admin)
+      summary: Crear pregunta manual
       tags:
       - questions
   /api/v1/questions/{id}:
     delete:
-      description: Elimina una pregunta (soft delete)
+      description: Elimina una pregunta manual o importada (solo el dueño)
       parameters:
       - description: Question ID
         in: path
@@ -894,7 +894,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Eliminar pregunta (Admin)
+      summary: Eliminar pregunta
       tags:
       - questions
     get:
@@ -929,7 +929,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Actualiza una pregunta existente
+      description: Actualiza una pregunta manual o importada (solo el dueño)
       parameters:
       - description: Question ID
         in: path
@@ -967,7 +967,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Actualizar pregunta (Admin)
+      summary: Actualizar pregunta
       tags:
       - questions
   /api/v1/sessions:

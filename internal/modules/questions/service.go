@@ -11,8 +11,8 @@ type Service interface {
 	List(params ListQuestionsParams) ([]QuestionListResponse, int64, error)
 	GetByID(id uuid.UUID) (*QuestionResponse, error)
 	Create(userID uuid.UUID, input CreateQuestionRequest) (*QuestionResponse, error)
-	Update(id uuid.UUID, input UpdateQuestionRequest) (*QuestionResponse, error)
-	Delete(id uuid.UUID) error
+	Update(id uuid.UUID, userID uuid.UUID, input UpdateQuestionRequest) (*QuestionResponse, error)
+	Delete(id uuid.UUID, userID uuid.UUID) error
 }
 
 type questionService struct {
@@ -106,13 +106,17 @@ func (s *questionService) Create(userID uuid.UUID, input CreateQuestionRequest) 
 	return &resp, nil
 }
 
-func (s *questionService) Update(id uuid.UUID, input UpdateQuestionRequest) (*QuestionResponse, error) {
+func (s *questionService) Update(id uuid.UUID, userID uuid.UUID, input UpdateQuestionRequest) (*QuestionResponse, error) {
 	question, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, apierr.ErrNotFound("Pregunta", "")
 		}
 		return nil, apierr.ErrInternal("Error al obtener la pregunta", "")
+	}
+
+	if !canModify(question, userID) {
+		return nil, apierr.ErrForbidden("No tienes permiso para modificar esta pregunta", "")
 	}
 
 	if input.Content != "" {
@@ -179,13 +183,24 @@ func (s *questionService) Update(id uuid.UUID, input UpdateQuestionRequest) (*Qu
 	return &resp, nil
 }
 
-func (s *questionService) Delete(id uuid.UUID) error {
-	_, err := s.store.FindByID(id)
+func canModify(question *models.Question, userID uuid.UUID) bool {
+	if question.Source != "manual" && question.Source != "imported" {
+		return false
+	}
+	return question.UserID == userID
+}
+
+func (s *questionService) Delete(id uuid.UUID, userID uuid.UUID) error {
+	question, err := s.store.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return apierr.ErrNotFound("Pregunta", "")
 		}
 		return apierr.ErrInternal("Error al obtener la pregunta", "")
+	}
+
+	if !canModify(question, userID) {
+		return apierr.ErrForbidden("No tienes permiso para eliminar esta pregunta", "")
 	}
 
 	if err := s.store.Delete(id); err != nil {

@@ -482,7 +482,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una nueva pregunta con opciones o código",
+                "description": "Crea una nueva pregunta manual (solo usuarios)",
                 "consumes": [
                     "application/json"
                 ],
@@ -492,7 +492,7 @@ const docTemplate = `{
                 "tags": [
                     "questions"
                 ],
-                "summary": "Crear pregunta (Admin)",
+                "summary": "Crear pregunta manual",
                 "parameters": [
                     {
                         "description": "Datos de la pregunta",
@@ -583,7 +583,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza una pregunta existente",
+                "description": "Actualiza una pregunta manual o importada (solo el dueño)",
                 "consumes": [
                     "application/json"
                 ],
@@ -593,7 +593,7 @@ const docTemplate = `{
                 "tags": [
                     "questions"
                 ],
-                "summary": "Actualizar pregunta (Admin)",
+                "summary": "Actualizar pregunta",
                 "parameters": [
                     {
                         "type": "string",
@@ -651,14 +651,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina una pregunta (soft delete)",
+                "description": "Elimina una pregunta manual o importada (solo el dueño)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "questions"
                 ],
-                "summary": "Eliminar pregunta (Admin)",
+                "summary": "Eliminar pregunta",
                 "parameters": [
                     {
                         "type": "string",
