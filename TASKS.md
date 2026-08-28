@@ -6,7 +6,7 @@
 
 ## Estado general
 - [x] Fase 0 — Infraestructura Vitest
-- [ ] Fase 1 — Tests puros (utils / composables / stores / api client)
+- [x] Fase 1 — Tests puros (utils / composables / stores / api client)
 - [ ] Fase 2 — Services + Queries
 - [ ] Fase 3 — Componentes base + features
 - [ ] Fase 4 — Router + layouts + integración
@@ -23,15 +23,15 @@
 - [x] **0.6** Verificar `pnpm test:run` pasa en vacío (smoke test dummy) + `pnpm type-check` verde
 
 ### Fase 1 — Tests puros (sin mount, alto ROI)
-- [ ] **1.1** `src/utils/validators.test.ts` — `isValidEmail`, `isValidPassword`, `isRequired`, `isMinLength/isMaxLength`, `requiredRule/emailRule/passwordRule/confirmPasswordRule/maxLengthRule`, `validateRules`
-- [ ] **1.2** `src/utils/format.test.ts` — `formatDateTime`, `formatDate`, `formatScore`
-- [ ] **1.3** `src/utils/storage.test.ts` — `getToken/setToken/removeToken` con `localStorage` mock + `TOKEN_KEY`
-- [ ] **1.4** `src/composables/useFormErrors.test.ts` — `extractFieldErrors` (split `;` `,` `:`, lowercase keys, detail vacío, error sin detail)
-- [ ] **1.5** `src/composables/useDebounce.test.ts` — valor inicial, debounce 500ms con `vi.useFakeTimers()`, cambio rápido resetea timer, delay custom
-- [ ] **1.6** `src/composables/usePagination.test.ts` — estado inicial, cambios de page
-- [ ] **1.7** `src/stores/auth.store.test.ts` — `setSession/clearSession/setUser`, `isLoggedIn/isAdmin`, `initSession` éxito/401, `checkStatus` initialized true/false/error (mock `users.service` + `auth.service` + `storage`)
-- [ ] **1.8** `src/stores/app.store.test.ts` — estado y acciones del app store
-- [ ] **1.9** `src/api/client.test.ts` — interceptor request añade `Bearer`, no añade sin token, unwrap `{data}` sin `meta`, no unwrap con `meta`, 401 → `removeToken`, `ApiError` fallback 500, rechazo `Promise.reject`
+- [x] **1.1** `src/utils/validators.test.ts` — `isValidEmail`, `isValidPassword`, `isRequired`, `isMinLength/isMaxLength`, `requiredRule/emailRule/passwordRule/confirmPasswordRule/maxLengthRule`, `validateRules`
+- [x] **1.2** `src/utils/format.test.ts` — `formatDateTime`, `formatDate`, `formatScore`
+- [x] **1.3** `src/utils/storage.test.ts` — `getToken/setToken/removeToken` con `localStorage` mock + `TOKEN_KEY`
+- [x] **1.4** `src/composables/useFormErrors.test.ts` — `extractFieldErrors` (split `;` `,` `:`, lowercase keys, detail vacío, error sin detail)
+- [x] **1.5** `src/composables/useDebounce.test.ts` — valor inicial, debounce 500ms con `vi.useFakeTimers()`, cambio rápido resetea timer, delay custom
+- [x] **1.6** `src/composables/usePagination.test.ts` — estado inicial, cambios de page
+- [x] **1.7** `src/stores/auth.store.test.ts` — `setSession/clearSession/setUser`, `isLoggedIn/isAdmin`, `initSession` éxito/401, `checkStatus` initialized true/false/error (mock `users.service` + `auth.service` + `storage`)
+- [x] **1.8** `src/stores/app.store.test.ts` — estado y acciones del app store
+- [x] **1.9** `src/api/client.test.ts` — interceptor request añade `Bearer`, no añade sin token, unwrap `{data}` sin `meta`, no unwrap con `meta`, 401 → `removeToken`, `ApiError` fallback 500, rechazo `Promise.reject`
 
 ### Fase 2 — Services + Queries (mock apiClient)
 - [ ] **2.1** `src/api/services/auth.service.test.ts` — `login`/`setup`/`getStatus` llaman `POST/GET` a `/api/v1/auth/*` y retornan `res.data`
@@ -56,7 +56,7 @@
 ### Fase 5 — CI / DX / E2E opcional
 - [ ] **5.1** Makefile raíz — targets `fe-test` (`pnpm test:run`), `fe-test-cover`, actualizar `fe-check` si hace falta
 - [ ] **5.2** `.github/workflows/frontend.yml` — step `Test` con `pnpm test:run --coverage`
-- [ ] **5.3** `lefthook.yml` — hook pre-commit/push `pnpm test:run` (o `test:cover` con threshold)
+- [x] **5.3** `lefthook.yml` — hook pre-commit `fe-test: pnpm test:run` (hecho en Fase 1 a petición — ver `lefthook.yml:18`)
 - [ ] **5.4** Documentar convención en `.agents/frontend/patterns.md` (co-localizado `.test.ts`, `globals:true`, `vi.mock` vs `msw`)
 - [ ] **5.5** (Opcional) Playwright E2E — flujo `status → setup → login → dashboard → sessions` con `msw` o backend real
 

@@ -15,3 +15,6 @@ pre-commit:
       run: cd frontend && pnpm eslint . --ext .vue,.ts,.tsx
     fe-type-check:
       run: cd frontend && pnpm vue-tsc --build --noEmit
+    fe-test:
+      run: cd frontend && pnpm test:run
+      fail_text: "❌ frontend unit tests failed"
