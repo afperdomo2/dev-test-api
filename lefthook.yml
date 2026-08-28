@@ -2,7 +2,7 @@ pre-commit:
   parallel: true
   commands:
     fmt:
-      run: test -z "$(gofmt -l .)" || { echo "Unformatted files:"; gofmt -l .; exit 1; }
+      run: sh scripts/check-fmt.sh
     vet:
       run: go vet ./...
     test:
