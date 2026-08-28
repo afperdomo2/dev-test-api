@@ -5,6 +5,10 @@ pre-commit:
       run: test -z "$(gofmt -l .)" || { echo "Unformatted files:"; gofmt -l .; exit 1; }
     vet:
       run: go vet ./...
+    test:
+      glob: "*.go"
+      run: go test -short -count=1 -timeout 60s ./...
+      fail_text: "❌ unit tests failed"
     fe-format:
       run: cd frontend && pnpm prettier --write src/
     fe-lint:

@@ -1,4 +1,4 @@
-.PHONY: install dev build swagger clean run fmt vet check setup \
+.PHONY: install dev build swagger clean run fmt vet check setup test test-cover \
         fe-install fe-dev fe-build fe-lint fe-check
 
 # ── Backend ──────────────────────────────────────────────
@@ -41,6 +41,17 @@ vet:
 
 check: fmt vet
 	@echo "✅ All Go checks passed"
+
+test:
+	@echo "🧪 Running unit tests..."
+	go test -short -count=1 -timeout 60s ./...
+	@echo "✅ Unit tests passed"
+
+test-cover:
+	@echo "🧪 Running tests with coverage..."
+	go test -short -count=1 -coverprofile=coverage.out -covermode=atomic ./...
+	@go tool cover -func=coverage.out | tail -1
+	@echo "✅ Coverage report at coverage.out"
 
 setup:
 	@echo "🔗 Installing git hooks..."

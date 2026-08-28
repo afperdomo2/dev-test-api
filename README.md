@@ -91,13 +91,15 @@ cp .env.example .env
 |---------|-------------|
 | `make install` | Instala dependencias Go (`go mod tidy`) |
 | `make dev` | Live reload con Air |
-| `make build` | Compila binario en `./tmp/main` |
+| `make build` | Compila binario en `./tmp/main.exe` |
 | `make run` | Corre el servidor con `go run` |
 | `make swagger` | Regenera docs Swagger |
 | `make clean` | Elimina `tmp/` y `docs/` |
 | `make fmt` | `go fmt ./...` |
 | `make vet` | `go vet ./...` |
 | `make check` | `fmt` + `vet` |
+| `make test` | Pruebas unitarias (`go test -short`) |
+| `make test-cover` | Pruebas con cobertura |
 | `make setup` | Instala git hooks (lefthook) |
 
 ### Frontend
@@ -133,6 +135,21 @@ Con el servidor corriendo: [http://localhost:8080/swagger/index.html](http://loc
 | `swaggo/swag` | Docs OpenAPI |
 | `swaggo/gin-swagger` | Swagger UI |
 | `air-verse/air` | Live reload (project tool) |
+| `stretchr/testify` | Pruebas unitarias |
+
+## 🧪 Testing
+
+Pruebas unitarias con `testing` stdlib + `testify`. Sin BD (mocks de `Store`).
+
+```bash
+make test        # unitarias
+make test-cover  # con cobertura (genera coverage.out)
+go test -race ./...            # con detector de carreras
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+```
+
+Hooks pre-commit (`lefthook.yml`) ejecutan `go vet` + `go test` automáticamente. Pre-push reservado para futuras pruebas de integración con Postgres real.
 
 ## 🧪 Primer uso
 
