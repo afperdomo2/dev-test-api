@@ -14,8 +14,8 @@ dev:
 
 build:
 	@echo "📦 Building Go binary..."
-	go build -o ./tmp/main .
-	@echo "✅ Binary built at ./tmp/main"
+	go build -o ./tmp/main.exe .
+	@echo "✅ Binary built at ./tmp/main.exe"
 
 run:
 	@echo "🚀 Running Go server..."
