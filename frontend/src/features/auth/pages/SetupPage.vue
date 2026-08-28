@@ -5,13 +5,23 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import { setup as setupApi } from '@/api/services/auth.service'
 import type { SetupRequest } from '@/types/auth.types'
-import { emailRule, passwordRule, requiredRule, validateRules } from '@/utils/validators'
+import {
+  confirmPasswordRule,
+  emailRule,
+  passwordRule,
+  requiredRule,
+  validateRules,
+} from '@/utils/validators'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
-const form = ref<SetupRequest>({ email: '', password: '' })
+const form = ref<SetupRequest & { confirmPassword: string }>({
+  email: '',
+  password: '',
+  confirmPassword: '',
+})
 const errors = ref<Record<string, Array<string>>>({})
 const loading = ref(false)
 
@@ -22,6 +32,10 @@ function validate(): boolean {
     [requiredRule(), passwordRule(8, 'Mínimo 8 caracteres')],
     form.value.password,
   )
+  newErrors.confirmPassword = validateRules(
+    [requiredRule('Confirma la contraseña'), confirmPasswordRule(form.value.password)],
+    form.value.confirmPassword,
+  )
   errors.value = newErrors
   return Object.values(newErrors).every((e) => e.length === 0)
 }
@@ -30,7 +44,8 @@ async function submit() {
   if (!validate()) return
   loading.value = true
   try {
-    await setupApi(form.value)
+    const { confirmPassword: _confirm, ...payload } = form.value
+    await setupApi(payload)
     authStore.needsSetup = false
     appStore.showSnackbar('Cuenta creada correctamente. Inicia sesión.', 'success')
     router.push('/login')
@@ -66,6 +81,14 @@ async function submit() {
           label="Contraseña"
           type="password"
           :error-messages="errors.password"
+          :disabled="loading"
+          required
+        />
+        <v-text-field
+          v-model="form.confirmPassword"
+          label="Confirmar contraseña"
+          type="password"
+          :error-messages="errors.confirmPassword"
           :disabled="loading"
           required
         />

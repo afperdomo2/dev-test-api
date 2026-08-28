@@ -4,7 +4,13 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { createUserMutation, updateUserMutation } from '@/queries/users.queries'
 import { useAppStore } from '@/stores/app.store'
 import { useFormErrors } from '@/composables/useFormErrors'
-import { emailRule, passwordRule, requiredRule, validateRules } from '@/utils/validators'
+import {
+  confirmPasswordRule,
+  emailRule,
+  passwordRule,
+  requiredRule,
+  validateRules,
+} from '@/utils/validators'
 import type { User, CreateUserRequest } from '@/types/user.types'
 
 const props = defineProps<{
@@ -25,9 +31,10 @@ const isEdit = computed(() => !!props.user)
 
 const dialogTitle = computed(() => (isEdit.value ? 'Editar usuario' : 'Nuevo usuario'))
 
-const form = ref<CreateUserRequest>({
+const form = ref<CreateUserRequest & { confirmPassword: string }>({
   email: '',
   password: '',
+  confirmPassword: '',
   isAdmin: false,
 })
 
@@ -46,10 +53,11 @@ watch(
         form.value = {
           email: props.user.email,
           password: '',
+          confirmPassword: '',
           isAdmin: props.user.isAdmin,
         }
       } else {
-        form.value = { email: '', password: '', isAdmin: false }
+        form.value = { email: '', password: '', confirmPassword: '', isAdmin: false }
       }
       validationErrors.value = {}
       serverErrors.value = {}
@@ -65,11 +73,19 @@ function validate(): boolean {
       [requiredRule(), passwordRule(8, 'Mínimo 8 caracteres')],
       form.value.password,
     )
+    newErrors.confirmPassword = validateRules(
+      [requiredRule('Confirma la contraseña'), confirmPasswordRule(form.value.password)],
+      form.value.confirmPassword,
+    )
   } else {
     if (form.value.password) {
       newErrors.password = validateRules(
         [passwordRule(8, 'Mínimo 8 caracteres')],
         form.value.password,
+      )
+      newErrors.confirmPassword = validateRules(
+        [requiredRule('Confirma la contraseña'), confirmPasswordRule(form.value.password)],
+        form.value.confirmPassword,
       )
     }
   }
@@ -156,6 +172,16 @@ function close() {
             :required="!isEdit"
             :hint="isEdit ? 'Dejar vacío para mantener la actual' : ''"
             persistent-hint
+          />
+
+          <v-text-field
+            v-if="!isEdit || form.password"
+            v-model="form.confirmPassword"
+            :label="isEdit ? 'Confirmar nueva contraseña' : 'Confirmar contraseña'"
+            type="password"
+            :error-messages="fieldError('confirmPassword')"
+            :disabled="saving"
+            :required="!isEdit || !!form.password"
           />
 
           <v-switch

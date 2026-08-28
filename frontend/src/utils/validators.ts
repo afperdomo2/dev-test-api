@@ -40,6 +40,10 @@ export function passwordRule(min = 8, msg?: string): ValidationRule {
   }
 }
 
+export function confirmPasswordRule(password: string, msg = 'Las contraseñas no coinciden'): ValidationRule {
+  return { validate: (v) => v === password, message: msg }
+}
+
 export function maxLengthRule(max: number, msg?: string): ValidationRule {
   return {
     validate: (v) => isMaxLength(v, max),
