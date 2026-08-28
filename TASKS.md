@@ -7,7 +7,7 @@
 ## Estado general
 - [x] Fase 0 — Infraestructura Vitest
 - [x] Fase 1 — Tests puros (utils / composables / stores / api client)
-- [ ] Fase 2 — Services + Queries
+- [x] Fase 2 — Services + Queries
 - [ ] Fase 3 — Componentes base + features
 - [ ] Fase 4 — Router + layouts + integración
 - [ ] Fase 5 — CI / Makefile / DX + E2E (opcional)
@@ -34,10 +34,10 @@
 - [x] **1.9** `src/api/client.test.ts` — interceptor request añade `Bearer`, no añade sin token, unwrap `{data}` sin `meta`, no unwrap con `meta`, 401 → `removeToken`, `ApiError` fallback 500, rechazo `Promise.reject`
 
 ### Fase 2 — Services + Queries (mock apiClient)
-- [ ] **2.1** `src/api/services/auth.service.test.ts` — `login`/`setup`/`getStatus` llaman `POST/GET` a `/api/v1/auth/*` y retornan `res.data`
-- [ ] **2.2** `src/api/services/users.service.test.ts` + `topics` + `sessions` + `questions` + `progress` — CRUD y query params
-- [ ] **2.3** `src/queries/auth.queries.test.ts` — `loginMutation`/`setupMutation` keys y `mutationFn` delega a service
-- [ ] **2.4** `src/queries/users.queries.test.ts` + `topics` + `sessions` + `questions` + `progress` — `queryKey`, `queryFn`, `enabled` conditional
+- [x] **2.1** `src/api/services/auth.service.test.ts` — `login`/`setup`/`getStatus` llaman `POST/GET` a `/api/v1/auth/*` y retornan `res.data`
+- [x] **2.2** `src/api/services/users.service.test.ts` + `topics` + `sessions` + `questions` + `progress` — CRUD y query params
+- [x] **2.3** `src/queries/auth.queries.test.ts` — `loginMutation`/`setupMutation` keys y `mutationFn` delega a service
+- [x] **2.4** `src/queries/users.queries.test.ts` + `topics` + `sessions` + `questions` + `progress` — `queryKey`, `queryFn`, `enabled` conditional
 
 ### Fase 3 — Componentes (con mount)
 - [ ] **3.1** Helper `src/__tests__/utils/mount.ts` — `mountWithProviders` (Pinia + Vuetify + Router + Vue Query, stubs `RouterLink`)
