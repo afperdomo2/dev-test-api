@@ -6,6 +6,7 @@ import { importQuestions, getImportQuota } from '@/api/services/questions.servic
 import { useAppStore } from '@/stores/app.store'
 import { MAX_QUESTIONS_PER_FILE, type ImportResult } from '@/types/question.types'
 import { IMPORT_CSV_TEMPLATE, buildImportPrompt } from '@/constants/questionImport'
+import { requiredRule, validateRules } from '@/utils/validators'
 import type { Topic } from '@/types/topic.types'
 
 const appStore = useAppStore()
@@ -20,6 +21,7 @@ const selectedFile = ref<File | null>(null)
 const fileInputKey = ref(0)
 const importResult = ref<ImportResult | null>(null)
 const importing = ref(false)
+const promptValidated = ref(false)
 
 const { data: topicsData } = useQuery({
   queryKey: ['topics', 'list', 1, 100, 'name', 'asc'],
@@ -65,6 +67,11 @@ const questionCountError = computed(() => {
   return ''
 })
 
+const topicsPromptError = computed<Array<string>>(() => {
+  if (!promptValidated.value) return []
+  return validateRules([requiredRule()], selectedTopicIds.value.length > 0 ? 'filled' : '')
+})
+
 function rebuildPrompt() {
   const n = Number(questionCount.value)
   const qty = Number.isInteger(n) && n >= 1 && n <= 50 ? n : 5
@@ -75,6 +82,8 @@ watch(selectedTopicIds, rebuildPrompt, { immediate: true })
 watch(questionCount, rebuildPrompt)
 
 async function copyPrompt() {
+  promptValidated.value = true
+  if (topicsPromptError.value.length > 0 || questionCountError.value) return
   if (!promptText.value) return
   await navigator.clipboard.writeText(promptText.value)
   appStore.showSnackbar('Prompt copiado al portapapeles')
@@ -192,7 +201,7 @@ async function doImport() {
               <v-col style="flex: 0 0 60%; max-width: 60%">
                 <v-autocomplete
                   v-model="selectedTopicIds"
-                  label="Temas para el prompt (opcional)"
+                  label="Temas para el prompt *"
                   :items="topicItems"
                   item-title="title"
                   multiple
@@ -200,14 +209,15 @@ async function doImport() {
                   closable-chips
                   clearable
                   density="compact"
-                  hide-details
+                  :error-messages="topicsPromptError"
+                  required
                   placeholder="Elige temas para el prompt"
                 />
               </v-col>
               <v-col style="flex: 0 0 40%; max-width: 40%">
                 <v-text-field
                   v-model.number="questionCount"
-                  label="Cantidad"
+                  label="Cantidad *"
                   type="number"
                   :min="1"
                   :max="50"
@@ -217,6 +227,7 @@ async function doImport() {
                   hide-details="auto"
                   hint="1 a 50"
                   persistent-hint
+                  required
                 />
               </v-col>
             </v-row>
