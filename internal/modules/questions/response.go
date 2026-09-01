@@ -66,3 +66,34 @@ type ImportQuota struct {
 	UsedToday  int `json:"usedToday"`
 	Remaining  int `json:"remaining"`
 }
+
+type TopicCount struct {
+	TopicID  uuid.UUID `json:"topicId"`
+	Name     string    `json:"name"`
+	Slug     string    `json:"slug"`
+	Category string    `json:"category"`
+	Count    int64     `json:"count"`
+}
+
+type CategoryCount struct {
+	Category string `json:"category"`
+	Count    int64  `json:"count"`
+}
+
+type DifficultyCount struct {
+	Difficulty string `json:"difficulty"`
+	Count      int64  `json:"count"`
+}
+
+type TypeCount struct {
+	Type  string `json:"type"`
+	Count int64  `json:"count"`
+}
+
+type QuestionStats struct {
+	Total        int64             `json:"total"`
+	ByTopic      []TopicCount      `json:"byTopic"`
+	ByCategory   []CategoryCount   `json:"byCategory"`
+	ByDifficulty []DifficultyCount `json:"byDifficulty"`
+	ByType       []TypeCount       `json:"byType"`
+}

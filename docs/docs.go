@@ -532,6 +532,140 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/questions/import": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Importa preguntas masivas desde CSV (hasta 50 por archivo, límite diario configurable por usuario). Los temas desconocidos se auto-crean como personalizados.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questions"
+                ],
+                "summary": "Importar preguntas por CSV",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Archivo CSV",
+                        "name": "file",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Texto CSV pegado (alternativa a file)",
+                        "name": "content",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/questions.ImportResult"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/questions/import-quota": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve el límite diario, lo usado hoy y lo restante para el usuario autenticado",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questions"
+                ],
+                "summary": "Consultar cupo de importación",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/questions.ImportQuota"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/questions/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve conteos de preguntas visibles para el usuario autenticado, agrupados por tema, categoría, dificultad y tipo",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questions"
+                ],
+                "summary": "Estadísticas de preguntas",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/questions.QuestionStats"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/questions/{id}": {
             "get": {
                 "security": [
@@ -1873,6 +2007,17 @@ const docTemplate = `{
                 }
             }
         },
+        "questions.CategoryCount": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "count": {
+                    "type": "integer"
+                }
+            }
+        },
         "questions.CodeChallengeResponse": {
             "type": "object",
             "properties": {
@@ -1973,6 +2118,62 @@ const docTemplate = `{
                 }
             }
         },
+        "questions.DifficultyCount": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "difficulty": {
+                    "type": "string"
+                }
+            }
+        },
+        "questions.ImportQuota": {
+            "type": "object",
+            "properties": {
+                "dailyLimit": {
+                    "type": "integer"
+                },
+                "remaining": {
+                    "type": "integer"
+                },
+                "usedToday": {
+                    "type": "integer"
+                }
+            }
+        },
+        "questions.ImportResult": {
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/questions.ImportRowError"
+                    }
+                },
+                "failed": {
+                    "type": "integer"
+                },
+                "imported": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "questions.ImportRowError": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                },
+                "row": {
+                    "type": "integer"
+                }
+            }
+        },
         "questions.OptionResponse": {
             "type": "object",
             "properties": {
@@ -2033,6 +2234,69 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "questions.QuestionStats": {
+            "type": "object",
+            "properties": {
+                "byCategory": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/questions.CategoryCount"
+                    }
+                },
+                "byDifficulty": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/questions.DifficultyCount"
+                    }
+                },
+                "byTopic": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/questions.TopicCount"
+                    }
+                },
+                "byType": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/questions.TypeCount"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "questions.TopicCount": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "topicId": {
+                    "type": "string"
+                }
+            }
+        },
+        "questions.TypeCount": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -2490,6 +2754,11 @@ const docTemplate = `{
                 "password"
             ],
             "properties": {
+                "dailyImportLimit": {
+                    "type": "integer",
+                    "maximum": 10000,
+                    "minimum": 1
+                },
                 "email": {
                     "type": "string"
                 },
@@ -2506,6 +2775,11 @@ const docTemplate = `{
         "users.UpdateUserRequest": {
             "type": "object",
             "properties": {
+                "dailyImportLimit": {
+                    "type": "integer",
+                    "maximum": 10000,
+                    "minimum": 1
+                },
                 "isAdmin": {
                     "type": "boolean"
                 },
@@ -2521,6 +2795,9 @@ const docTemplate = `{
             "properties": {
                 "createdAt": {
                     "type": "string"
+                },
+                "dailyImportLimit": {
+                    "type": "integer"
                 },
                 "email": {
                     "type": "string"

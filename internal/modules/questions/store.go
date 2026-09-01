@@ -20,6 +20,7 @@ type Store interface {
 	ReplaceQuestionOptions(questionID uuid.UUID, options []models.QuestionOption) error
 	BulkCreate(questions []*models.Question) error
 	CountImportedSince(userID uuid.UUID, since time.Time) (int64, error)
+	Stats(userID uuid.UUID) (*QuestionStats, error)
 }
 
 type gormStore struct {
@@ -153,4 +154,71 @@ func (s *gormStore) CountImportedSince(userID uuid.UUID, since time.Time) (int64
 		Where("created_at >= ?", since).
 		Count(&count).Error
 	return count, err
+}
+
+func (s *gormStore) Stats(userID uuid.UUID) (*QuestionStats, error) {
+	visibility := s.db.Model(&models.Question{}).Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID)
+
+	var total int64
+	if err := visibility.Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	// ByType
+	var byType []TypeCount
+	if err := visibility.Select("questions.type as type, COUNT(*) as count").Group("questions.type").Order("count DESC").Scan(&byType).Error; err != nil {
+		return nil, err
+	}
+	if byType == nil {
+		byType = []TypeCount{}
+	}
+
+	// ByDifficulty
+	var byDifficulty []DifficultyCount
+	if err := visibility.Select("questions.difficulty as difficulty, COUNT(*) as count").Group("questions.difficulty").Order("count DESC").Scan(&byDifficulty).Error; err != nil {
+		return nil, err
+	}
+	if byDifficulty == nil {
+		byDifficulty = []DifficultyCount{}
+	}
+
+	// ByTopic — join question_topics + topics
+	var byTopic []TopicCount
+	if err := s.db.Model(&models.Question{}).
+		Select("topics.id as topic_id, topics.name, topics.slug, topics.category, COUNT(*) as count").
+		Joins("JOIN question_topics ON question_topics.question_id = questions.id").
+		Joins("JOIN topics ON topics.id = question_topics.topic_id").
+		Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID).
+		Group("topics.id, topics.name, topics.slug, topics.category").
+		Order("count DESC, topics.name ASC").
+		Scan(&byTopic).Error; err != nil {
+		return nil, err
+	}
+	if byTopic == nil {
+		byTopic = []TopicCount{}
+	}
+
+	// ByCategory — via topics.category
+	var byCategory []CategoryCount
+	if err := s.db.Model(&models.Question{}).
+		Select("topics.category as category, COUNT(*) as count").
+		Joins("JOIN question_topics ON question_topics.question_id = questions.id").
+		Joins("JOIN topics ON topics.id = question_topics.topic_id").
+		Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID).
+		Group("topics.category").
+		Order("count DESC").
+		Scan(&byCategory).Error; err != nil {
+		return nil, err
+	}
+	if byCategory == nil {
+		byCategory = []CategoryCount{}
+	}
+
+	return &QuestionStats{
+		Total:        total,
+		ByTopic:      byTopic,
+		ByCategory:   byCategory,
+		ByDifficulty: byDifficulty,
+		ByType:       byType,
+	}, nil
 }

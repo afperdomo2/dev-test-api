@@ -5,12 +5,14 @@ import type {
   UpdateQuestionRequest,
   ImportResult,
   ImportQuota,
+  QuestionStats,
 } from '@/types/question.types'
 import type { PaginatedResponse } from '@/types/api.types'
 
 export interface QuestionsFilters {
   type?: string
   difficulty?: string
+  topicIds?: string
 }
 
 export async function listQuestions(
@@ -61,5 +63,10 @@ export async function importQuestionsFromText(content: string): Promise<ImportRe
 
 export async function getImportQuota(): Promise<ImportQuota> {
   const res = await apiClient.get<ImportQuota>('/api/v1/questions/import-quota')
+  return res.data
+}
+
+export async function getQuestionStats(): Promise<QuestionStats> {
+  const res = await apiClient.get<QuestionStats>('/api/v1/questions/stats')
   return res.data
 }

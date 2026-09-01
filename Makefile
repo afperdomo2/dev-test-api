@@ -23,7 +23,7 @@ run:
 
 swagger:
 	@echo "📖 Generating Swagger docs..."
-	swag init -g main.go
+	go tool swag init -g main.go
 	@echo "✅ Docs generated in docs/"
 
 clean:

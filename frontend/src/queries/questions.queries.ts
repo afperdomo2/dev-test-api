@@ -69,3 +69,11 @@ export function importQuestionsTextMutation() {
     mutationFn: (content: string) => questionsService.importQuestionsFromText(content),
   }
 }
+
+export function questionStatsOptions() {
+  return queryOptions({
+    queryKey: ['questions', 'stats'],
+    queryFn: () => questionsService.getQuestionStats(),
+    staleTime: 60 * 1000,
+  })
+}

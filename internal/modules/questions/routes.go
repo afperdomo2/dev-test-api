@@ -6,6 +6,7 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler) {
 	t := rg.Group("/questions")
 	{
 		t.GET("/import-quota", h.ImportQuota)
+		t.GET("/stats", h.Stats)
 		t.POST("/import", h.Import)
 		t.GET("", h.List)
 		t.GET("/:id", h.Get)

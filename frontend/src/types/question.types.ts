@@ -130,3 +130,34 @@ export interface ImportQuota {
 }
 
 export const MAX_QUESTIONS_PER_FILE = 50
+
+export interface TopicCount {
+  topicId: string
+  name: string
+  slug: string
+  category: string
+  count: number
+}
+
+export interface CategoryCount {
+  category: string
+  count: number
+}
+
+export interface DifficultyCount {
+  difficulty: string
+  count: number
+}
+
+export interface TypeCount {
+  type: string
+  count: number
+}
+
+export interface QuestionStats {
+  total: number
+  byTopic: Array<TopicCount>
+  byCategory: Array<CategoryCount>
+  byDifficulty: Array<DifficultyCount>
+  byType: Array<TypeCount>
+}

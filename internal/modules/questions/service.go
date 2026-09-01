@@ -29,6 +29,7 @@ type Service interface {
 	Delete(id uuid.UUID, userID uuid.UUID) error
 	Import(userID uuid.UUID, r io.Reader) (*ImportResult, error)
 	GetImportQuota(userID uuid.UUID) (*ImportQuota, error)
+	Stats(userID uuid.UUID) (*QuestionStats, error)
 }
 
 type questionService struct {
@@ -231,6 +232,14 @@ func (s *questionService) Delete(id uuid.UUID, userID uuid.UUID) error {
 func startOfDayUTC(t time.Time) time.Time {
 	y, m, d := t.UTC().Date()
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+}
+
+func (s *questionService) Stats(userID uuid.UUID) (*QuestionStats, error) {
+	stats, err := s.store.Stats(userID)
+	if err != nil {
+		return nil, apierr.ErrInternal("Error al obtener las estadísticas", "")
+	}
+	return stats, nil
 }
 
 func (s *questionService) GetImportQuota(userID uuid.UUID) (*ImportQuota, error) {

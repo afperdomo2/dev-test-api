@@ -23,6 +23,7 @@ type mockQuestionStore struct {
 	replaceQuestionOptionsFn func(questionID uuid.UUID, opts []models.QuestionOption) error
 	bulkCreateFn             func(questions []*models.Question) error
 	countImportedSinceFn     func(userID uuid.UUID, since time.Time) (int64, error)
+	statsFn                  func(userID uuid.UUID) (*QuestionStats, error)
 }
 
 func (m *mockQuestionStore) FindPage(p ListQuestionsParams) ([]models.Question, int64, error) {
@@ -53,6 +54,12 @@ func (m *mockQuestionStore) CountImportedSince(uid uuid.UUID, since time.Time) (
 		return m.countImportedSinceFn(uid, since)
 	}
 	return 0, nil
+}
+func (m *mockQuestionStore) Stats(uid uuid.UUID) (*QuestionStats, error) {
+	if m.statsFn != nil {
+		return m.statsFn(uid)
+	}
+	return &QuestionStats{}, nil
 }
 
 type mockTopicStore struct {

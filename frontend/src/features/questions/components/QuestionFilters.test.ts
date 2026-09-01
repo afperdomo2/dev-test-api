@@ -1,23 +1,37 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { mount } from '@vue/test-utils'
+import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import QuestionFilters from './QuestionFilters.vue'
+
+vi.mock('@/api/services/topics.service', () => ({
+  listTopics: vi.fn().mockResolvedValue({ data: [] }),
+}))
+
+function mountFilters(props: Record<string, unknown> = {}) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return mount(QuestionFilters, {
+    props: props as never,
+    global: {
+      plugins: [[VueQueryPlugin, { queryClient }]],
+      stubs: { teleport: true },
+    },
+  })
+}
 
 describe('QuestionFilters', () => {
   it('renders selects', () => {
-    const wrapper = mount(QuestionFilters, {
-      global: { stubs: { teleport: true } },
-    })
+    const wrapper = mountFilters()
     expect(wrapper.text()).toContain('Tipo')
     expect(wrapper.text()).toContain('Dificultad')
   })
 
   it('does not show limpiar when no filters', () => {
-    const wrapper = mount(QuestionFilters)
+    const wrapper = mountFilters()
     expect(wrapper.text()).not.toContain('Limpiar filtros')
   })
 
   it('emits change when selecting type', async () => {
-    const wrapper = mount(QuestionFilters)
+    const wrapper = mountFilters()
     // Access refs directly
     const vm = wrapper.vm as unknown as { selectedType: string; selectedDifficulty: string }
     vm.selectedType = 'single_choice'
@@ -30,7 +44,7 @@ describe('QuestionFilters', () => {
   })
 
   it('emits change when selecting difficulty', async () => {
-    const wrapper = mount(QuestionFilters)
+    const wrapper = mountFilters()
     const vm = wrapper.vm as unknown as { selectedDifficulty: string }
     vm.selectedDifficulty = 'hard'
     await wrapper.vm.$nextTick()
@@ -39,7 +53,7 @@ describe('QuestionFilters', () => {
   })
 
   it('clearFilters resets and emits', async () => {
-    const wrapper = mount(QuestionFilters)
+    const wrapper = mountFilters()
     const vm = wrapper.vm as unknown as {
       selectedType: string
       selectedDifficulty: string

@@ -288,6 +288,38 @@ func (h *Handler) Import(c *gin.Context) {
 	response.Success(c, http.StatusOK, result)
 }
 
+// @Summary      Estadísticas de preguntas
+// @Description  Devuelve conteos de preguntas visibles para el usuario autenticado, agrupados por tema, categoría, dificultad y tipo
+// @Tags         questions
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  QuestionStats
+// @Failure      401  {object}  apierr.APIError
+// @Failure      403  {object}  apierr.APIError
+// @Router       /api/v1/questions/stats [get]
+func (h *Handler) Stats(c *gin.Context) {
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+	if isAdmin {
+		response.Problem(c, apierr.ErrForbidden("Los administradores no pueden consultar estadísticas de preguntas", c.Request.URL.Path))
+		return
+	}
+
+	stats, err := h.service.Stats(userID)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, stats)
+}
+
 // @Summary      Consultar cupo de importación
 // @Description  Devuelve el límite diario, lo usado hoy y lo restante para el usuario autenticado
 // @Tags         questions

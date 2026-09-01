@@ -25,6 +25,7 @@ type mockQuestionService struct {
 	deleteFn      func(id uuid.UUID, userID uuid.UUID) error
 	importFn      func(userID uuid.UUID, r io.Reader) (*ImportResult, error)
 	importQuotaFn func(userID uuid.UUID) (*ImportQuota, error)
+	statsFn       func(userID uuid.UUID) (*QuestionStats, error)
 }
 
 func (m *mockQuestionService) List(p ListQuestionsParams) ([]QuestionListResponse, int64, error) {
@@ -51,6 +52,12 @@ func (m *mockQuestionService) GetImportQuota(uid uuid.UUID) (*ImportQuota, error
 		return m.importQuotaFn(uid)
 	}
 	return &ImportQuota{}, nil
+}
+func (m *mockQuestionService) Stats(uid uuid.UUID) (*QuestionStats, error) {
+	if m.statsFn != nil {
+		return m.statsFn(uid)
+	}
+	return &QuestionStats{}, nil
 }
 
 func qClaims(uid uuid.UUID, isAdmin bool) *jwt.MapClaims {

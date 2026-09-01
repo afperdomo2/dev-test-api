@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { questionsListOptions, deleteQuestionMutation } from '@/queries/questions.queries'
 import { useAuthStore } from '@/stores/auth.store'
@@ -13,13 +14,31 @@ import QuestionFormDialog from '../components/QuestionFormDialog.vue'
 import type { Question } from '@/types/question.types'
 import type { QuestionsFilters } from '@/api/services/questions.service'
 
+const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 const queryClient = useQueryClient()
 const { page, perPage, reset: resetPagination } = usePagination()
 
-const filters = ref<QuestionsFilters>({})
+const initialTopicIds = computed(() => (route.query.topicIds as string) || '')
+
+const filters = ref<QuestionsFilters>({
+  topicIds: initialTopicIds.value || undefined,
+})
 const queryFilters = computed(() => filters.value)
+
+watch(initialTopicIds, (val) => {
+  filters.value = { ...filters.value, topicIds: val || undefined }
+})
+
+function onFiltersChange(newFilters: QuestionsFilters) {
+  filters.value = newFilters
+  const q = { ...route.query }
+  if (newFilters.topicIds) q.topicIds = newFilters.topicIds
+  else delete q.topicIds
+  router.replace({ query: q })
+}
 
 const { data, isLoading } = useQuery(
   questionsListOptions(
@@ -110,7 +129,7 @@ watch(filters, () => {
       </template>
     </ListPageHeader>
 
-    <QuestionFilters @change="filters = $event" />
+    <QuestionFilters :initial-topic-ids="initialTopicIds" @change="onFiltersChange" />
 
     <v-card>
       <v-card-text>

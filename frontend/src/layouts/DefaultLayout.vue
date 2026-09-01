@@ -23,6 +23,7 @@ const navItems: Array<NavItem> = [
   { title: 'Temas', to: '/topics', icon: 'mdi-tag' },
   { title: 'Sesiones', to: '/sessions', icon: 'mdi-play-circle', userOnly: true },
   { title: 'Progreso', to: '/progress', icon: 'mdi-chart-line', userOnly: true },
+  { title: 'Estadísticas', to: '/stats', icon: 'mdi-chart-bar', userOnly: true },
   { title: 'Usuarios', to: '/users', icon: 'mdi-account-group', adminOnly: true },
 ]
 

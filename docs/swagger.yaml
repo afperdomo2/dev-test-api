@@ -74,6 +74,13 @@ definitions:
       repetitions:
         type: integer
     type: object
+  questions.CategoryCount:
+    properties:
+      category:
+        type: string
+      count:
+        type: integer
+    type: object
   questions.CodeChallengeResponse:
     properties:
       expectedOutput:
@@ -143,6 +150,42 @@ definitions:
     - topicIds
     - type
     type: object
+  questions.DifficultyCount:
+    properties:
+      count:
+        type: integer
+      difficulty:
+        type: string
+    type: object
+  questions.ImportQuota:
+    properties:
+      dailyLimit:
+        type: integer
+      remaining:
+        type: integer
+      usedToday:
+        type: integer
+    type: object
+  questions.ImportResult:
+    properties:
+      errors:
+        items:
+          $ref: '#/definitions/questions.ImportRowError'
+        type: array
+      failed:
+        type: integer
+      imported:
+        type: integer
+      total:
+        type: integer
+    type: object
+  questions.ImportRowError:
+    properties:
+      reason:
+        type: string
+      row:
+        type: integer
+    type: object
   questions.OptionResponse:
     properties:
       content:
@@ -183,6 +226,47 @@ definitions:
       updatedAt:
         type: string
       userId:
+        type: string
+    type: object
+  questions.QuestionStats:
+    properties:
+      byCategory:
+        items:
+          $ref: '#/definitions/questions.CategoryCount'
+        type: array
+      byDifficulty:
+        items:
+          $ref: '#/definitions/questions.DifficultyCount'
+        type: array
+      byTopic:
+        items:
+          $ref: '#/definitions/questions.TopicCount'
+        type: array
+      byType:
+        items:
+          $ref: '#/definitions/questions.TypeCount'
+        type: array
+      total:
+        type: integer
+    type: object
+  questions.TopicCount:
+    properties:
+      category:
+        type: string
+      count:
+        type: integer
+      name:
+        type: string
+      slug:
+        type: string
+      topicId:
+        type: string
+    type: object
+  questions.TypeCount:
+    properties:
+      count:
+        type: integer
+      type:
         type: string
     type: object
   questions.UpdateQuestionRequest:
@@ -487,6 +571,10 @@ definitions:
     type: object
   users.CreateUserRequest:
     properties:
+      dailyImportLimit:
+        maximum: 10000
+        minimum: 1
+        type: integer
       email:
         type: string
       isAdmin:
@@ -501,6 +589,10 @@ definitions:
     type: object
   users.UpdateUserRequest:
     properties:
+      dailyImportLimit:
+        maximum: 10000
+        minimum: 1
+        type: integer
       isAdmin:
         type: boolean
       password:
@@ -512,6 +604,8 @@ definitions:
     properties:
       createdAt:
         type: string
+      dailyImportLimit:
+        type: integer
       email:
         type: string
       id:
@@ -968,6 +1062,94 @@ paths:
       security:
       - BearerAuth: []
       summary: Actualizar pregunta
+      tags:
+      - questions
+  /api/v1/questions/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Importa preguntas masivas desde CSV (hasta 50 por archivo, límite
+        diario configurable por usuario). Los temas desconocidos se auto-crean como
+        personalizados.
+      parameters:
+      - description: Archivo CSV
+        in: formData
+        name: file
+        type: file
+      - description: Texto CSV pegado (alternativa a file)
+        in: formData
+        name: content
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/questions.ImportResult'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Importar preguntas por CSV
+      tags:
+      - questions
+  /api/v1/questions/import-quota:
+    get:
+      description: Devuelve el límite diario, lo usado hoy y lo restante para el usuario
+        autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/questions.ImportQuota'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Consultar cupo de importación
+      tags:
+      - questions
+  /api/v1/questions/stats:
+    get:
+      description: Devuelve conteos de preguntas visibles para el usuario autenticado,
+        agrupados por tema, categoría, dificultad y tipo
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/questions.QuestionStats'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Estadísticas de preguntas
       tags:
       - questions
   /api/v1/sessions:
