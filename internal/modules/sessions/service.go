@@ -79,10 +79,10 @@ func (s *sessionService) Create(userID uuid.UUID, input CreateSessionRequest) (*
 			return nil, apierr.ErrInternal("Error al validar preguntas disponibles", "")
 		}
 		if available == 0 {
-			return nil, apierr.ErrValidation("No tienes preguntas guardadas para estos temas. Repasa preguntas primero o usa modo 'generate'.", "")
+			return nil, apierr.ErrValidation("No hay preguntas disponibles para estos temas y dificultad.", "")
 		}
 		if input.QuestionLimit != nil && available < int64(*input.QuestionLimit) {
-			msg := fmt.Sprintf("Solo tienes %d preguntas guardadas para estos temas, pero pediste %d. Reduce el límite o elige más temas.", available, *input.QuestionLimit)
+			msg := fmt.Sprintf("Solo hay %d preguntas disponibles para estos temas, pero pediste %d. Reduce el límite o elige más temas.", available, *input.QuestionLimit)
 			return nil, apierr.ErrValidation(msg, "")
 		}
 	}

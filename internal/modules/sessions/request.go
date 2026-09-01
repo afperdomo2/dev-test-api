@@ -18,7 +18,7 @@ type ListSessionsParams struct {
 type CreateSessionRequest struct {
 	Name          string      `json:"name" binding:"required,min=1,max=200"`
 	Mode          string      `json:"mode" binding:"required,oneof=generate review"`
-	Difficulty    string      `json:"difficulty" binding:"required,oneof=beginner intermediate advanced"`
+	Difficulty    string      `json:"difficulty" binding:"required,oneof=beginner intermediate advanced random"`
 	TopicIDs      []uuid.UUID `json:"topicIds" binding:"required,min=1"`
 	QuestionLimit *int        `json:"questionLimit" binding:"omitempty,min=1,max=50"`
 }

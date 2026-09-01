@@ -2440,7 +2440,8 @@
                     "enum": [
                         "beginner",
                         "intermediate",
-                        "advanced"
+                        "advanced",
+                        "random"
                     ]
                 },
                 "mode": {

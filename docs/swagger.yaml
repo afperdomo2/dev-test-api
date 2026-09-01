@@ -340,6 +340,7 @@ definitions:
         - beginner
         - intermediate
         - advanced
+        - random
         type: string
       mode:
         enum:

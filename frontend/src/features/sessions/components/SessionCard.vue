@@ -10,9 +10,10 @@ import {
   SESSION_STATUS_COLORS,
   SESSION_MODE_LABELS,
   SESSION_DIFFICULTY_LABELS,
+  SESSION_DIFFICULTY_ICONS,
+  SESSION_DIFFICULTY_COLORS,
 } from '@/types/session.types'
 import { formatDate, formatScore } from '@/utils/format'
-import { DIFFICULTY_COLORS } from '@/types/question.types'
 
 interface Props {
   session: Session
@@ -62,11 +63,7 @@ const MODE_COLORS: Record<string, string> = {
   review: 'blue',
 }
 
-const DIFFICULTY_ICONS: Record<string, string> = {
-  beginner: 'mdi-signal-cellular-1',
-  intermediate: 'mdi-signal-cellular-2',
-  advanced: 'mdi-signal-cellular-3',
-}
+const DIFFICULTY_ICONS = SESSION_DIFFICULTY_ICONS
 
 async function handleFinish() {
   finishDialog.value = false
@@ -170,7 +167,15 @@ const cardClasses = computed(() => ({
         </v-chip>
         <v-tooltip location="bottom" :text="SESSION_DIFFICULTY_LABELS[session.difficulty]">
           <template #activator="{ props: tooltipProps }">
-            <v-icon v-bind="tooltipProps" :color="DIFFICULTY_COLORS[session.difficulty]" size="16">
+            <v-icon
+              v-bind="tooltipProps"
+              :color="
+                SESSION_DIFFICULTY_COLORS[
+                  session.difficulty as keyof typeof SESSION_DIFFICULTY_COLORS
+                ]
+              "
+              size="16"
+            >
               {{ DIFFICULTY_ICONS[session.difficulty] }}
             </v-icon>
           </template>

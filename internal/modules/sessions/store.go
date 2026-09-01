@@ -98,20 +98,14 @@ func (s *gormStore) FindNextQuestion(topicIDs []uuid.UUID, answeredIDs []uuid.UU
 		Where("question_topics.topic_id IN ?", topicIDs).
 		Where("questions.deleted_at IS NULL")
 
-	if difficulty != "" {
+	if difficulty != "" && difficulty != "random" {
 		query = query.Where("questions.difficulty = ?", difficulty)
 	}
 	if len(answeredIDs) > 0 {
 		query = query.Where("questions.id NOT IN ?", answeredIDs)
 	}
 
-	if mode == "review" {
-		query = query.
-			Joins("JOIN user_question_progress ON user_question_progress.question_id = questions.id").
-			Where("user_question_progress.user_id = ? AND user_question_progress.is_saved = true", userID)
-	} else {
-		query = query.Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID)
-	}
+	query = query.Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID)
 
 	var question models.Question
 	err := query.Order("RANDOM()").
@@ -131,20 +125,14 @@ func (s *gormStore) CountAvailableQuestions(topicIDs []uuid.UUID, answeredIDs []
 		Where("question_topics.topic_id IN ?", topicIDs).
 		Where("questions.deleted_at IS NULL")
 
-	if difficulty != "" {
+	if difficulty != "" && difficulty != "random" {
 		query = query.Where("questions.difficulty = ?", difficulty)
 	}
 	if len(answeredIDs) > 0 {
 		query = query.Where("questions.id NOT IN ?", answeredIDs)
 	}
 
-	if mode == "review" {
-		query = query.
-			Joins("JOIN user_question_progress ON user_question_progress.question_id = questions.id").
-			Where("user_question_progress.user_id = ? AND user_question_progress.is_saved = true", userID)
-	} else {
-		query = query.Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID)
-	}
+	query = query.Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID)
 
 	var count int64
 	err := query.Count(&count).Error

@@ -159,8 +159,12 @@ func (g *Generator) existingContent(session *models.Session) ([]string, error) {
 func (g *Generator) saveQuestion(session *models.Session, gen *aiGeneratedQuestion) (*models.Question, error) {
 	source := "ai_generated"
 	difficulty := gen.Difficulty
-	if difficulty == "" {
-		difficulty = session.Difficulty
+	if difficulty == "" || difficulty == "random" {
+		if session.Difficulty == "random" {
+			difficulty = "intermediate"
+		} else {
+			difficulty = session.Difficulty
+		}
 	}
 
 	topicIDs := make([]uuid.UUID, len(session.Topics))

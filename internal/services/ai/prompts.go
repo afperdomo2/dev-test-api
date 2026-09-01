@@ -56,8 +56,12 @@ func buildUserPrompt(session *models.Session, existingContent []string) string {
 		topicNames[i] = fmt.Sprintf("%s (%s)", t.Name, t.Category)
 	}
 
+	promptDifficulty := session.Difficulty
+	if promptDifficulty == "random" {
+		promptDifficulty = "variada (elige aleatoriamente entre beginner, intermediate y advanced)"
+	}
 	sb.WriteString(fmt.Sprintf("Genera UNA pregunta single_choice de dificultad \"%s\" sobre: %s.\n",
-		session.Difficulty, strings.Join(topicNames, ", ")))
+		promptDifficulty, strings.Join(topicNames, ", ")))
 
 	sb.WriteString("Recuerda: solo tipo single_choice, 4 opciones, TODO en español. Si alguna opción contiene código, usa el formato con triple backtick y lenguaje.\n")
 

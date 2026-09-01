@@ -2443,7 +2443,8 @@ const docTemplate = `{
                     "enum": [
                         "beginner",
                         "intermediate",
-                        "advanced"
+                        "advanced",
+                        "random"
                     ]
                 },
                 "mode": {

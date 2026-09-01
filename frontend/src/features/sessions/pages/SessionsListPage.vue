@@ -45,7 +45,7 @@ function getDefaultCreateForm(): CreateSessionRequest {
   return {
     name: '',
     mode: 'generate',
-    difficulty: 'beginner',
+    difficulty: 'random',
     topicIds: [],
     questionLimit: undefined,
   }
@@ -320,6 +320,7 @@ async function handleCreate() {
               v-model="createForm.difficulty"
               label="Dificultad"
               :items="SESSION_DIFFICULTIES"
+              item-props="props"
               :disabled="creating"
               required
             />

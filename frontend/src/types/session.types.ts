@@ -1,11 +1,26 @@
 export type SessionStatus = 'in_progress' | 'completed' | 'cancelled'
 export type SessionMode = 'generate' | 'review'
-export type SessionDifficulty = 'beginner' | 'intermediate' | 'advanced'
+export type SessionDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'random'
 
 export const SESSION_DIFFICULTY_LABELS: Record<SessionDifficulty, string> = {
+  random: 'Aleatorio',
   beginner: 'Principiante',
   intermediate: 'Intermedio',
   advanced: 'Avanzado',
+}
+
+export const SESSION_DIFFICULTY_ICONS: Record<SessionDifficulty, string> = {
+  random: 'mdi-shuffle-variant',
+  beginner: 'mdi-signal-cellular-1',
+  intermediate: 'mdi-signal-cellular-2',
+  advanced: 'mdi-signal-cellular-3',
+}
+
+export const SESSION_DIFFICULTY_COLORS: Record<SessionDifficulty, string> = {
+  random: 'primary',
+  beginner: 'success',
+  intermediate: 'warning',
+  advanced: 'error',
 }
 
 export const SESSION_STATUS_LABELS: Record<SessionStatus, string> = {
@@ -27,7 +42,7 @@ export const SESSION_MODE_LABELS: Record<SessionMode, string> = {
 
 export const SESSION_MODES: Array<{ title: string; value: SessionMode }> = [
   { title: 'Generar preguntas', value: 'generate' },
-  { title: 'Repasar guardadas', value: 'review' },
+  { title: 'Repasar', value: 'review' },
 ]
 
 export const SESSION_MODE_ICONS: Record<SessionMode, string> = {
@@ -37,13 +52,18 @@ export const SESSION_MODE_ICONS: Record<SessionMode, string> = {
 
 export const SESSION_MODE_DESCRIPTIONS: Record<SessionMode, string> = {
   generate: 'Crea preguntas nuevas con IA sobre los temas elegidos',
-  review: 'Repasas preguntas que ya guardaste (repaso espaciado)',
+  review: 'Repasa las preguntas existentes de los temas elegidos',
 }
 
-export const SESSION_DIFFICULTIES: Array<{ title: string; value: SessionDifficulty }> = [
-  { title: 'Principiante', value: 'beginner' },
-  { title: 'Intermedio', value: 'intermediate' },
-  { title: 'Avanzado', value: 'advanced' },
+export const SESSION_DIFFICULTIES: Array<{
+  title: string
+  value: SessionDifficulty
+  props: { prependIcon: string }
+}> = [
+  { title: 'Aleatorio', value: 'random', props: { prependIcon: 'mdi-shuffle-variant' } },
+  { title: 'Principiante', value: 'beginner', props: { prependIcon: 'mdi-signal-cellular-1' } },
+  { title: 'Intermedio', value: 'intermediate', props: { prependIcon: 'mdi-signal-cellular-2' } },
+  { title: 'Avanzado', value: 'advanced', props: { prependIcon: 'mdi-signal-cellular-3' } },
 ]
 
 export const SESSION_STATUS_FILTERS: Array<{ title: string; value: SessionStatus | undefined }> = [
