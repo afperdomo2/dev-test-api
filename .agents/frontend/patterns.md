@@ -283,3 +283,59 @@ Vuetify `v-data-table` uses dotted slot names like `item.is_admin`. ESLint's `vu
 <!-- ✅ Correct -->
 <template #[`item.isAdmin`]="{ item }">
 ```
+
+## Frontend tests (Vitest)
+
+### Stack
+
+- **Runner**: Vitest 3 + jsdom + `@vue/test-utils` + `@testing-library/vue` + `@testing-library/jest-dom`
+- **Config**: `vite.config.ts` `test` block (`environment: jsdom`, `globals: true`, `setupFiles: ['src/__tests__/setup.ts']`, `coverage: { provider: 'v8' }`, `server.deps.inline: [/vuetify/]`)
+- **Setup**: `src/__tests__/setup.ts` registers Vuetify (`createVuetify({})`) globally, stubs `ResizeObserver`, `visualViewport`, `matchMedia`, `requestAnimationFrame`
+
+### Scripts & Makefile
+
+```bash
+pnpm test        # watch
+pnpm test:run    # single run
+pnpm test:cover  # with coverage v8
+make fe-test       # pnpm test:run
+make fe-test-cover # pnpm test:cover
+```
+
+CI: `.github/workflows/frontend.yml` runs `pnpm test:run --coverage` after type-check. Pre-commit: `lefthook.yml` `fe-test: cd frontend && pnpm test:run`.
+
+### Conventions
+
+- **Co-located** `*.test.ts` next to source (`src/utils/validators.test.ts`, `src/components/ErrorState.test.ts`). No `__tests__` centralization (except `src/__tests__/setup.ts` + `src/__tests__/utils/mount.ts` helpers + `smoke.test.ts`).
+- **`globals: true`** — no need to import `describe/it/expect/vi` per file.
+- **Deterministic**: `vi.useFakeTimers()` + `await nextTick()` for `useDebounce` (watch is async); `vi.clearAllMocks()` in `beforeEach`.
+
+### Mock strategy
+
+- **Pure utils/composables/stores**: no mount, mock `storage`/`services` via `vi.mock('@/utils/storage', ...)` with `vi.importActual` for partial mocks.
+- **api/client**: `axios-mock-adapter` for interceptors (unwrap, 401 `removeToken`, `ApiError` fallback).
+- **Services**: `vi.mock('@/api/client', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }))`.
+- **Queries**: `vi.mock('@/api/services/*.service')` and assert `mutationKey`/`queryKey` + `mutationFn`/`queryFn` delegations. For `queryFn` use `(opts as unknown as { queryFn: ... }).queryFn` to bypass `unique symbol` type.
+- **Components**: `mount` from `@vue/test-utils` with global Vuetify (from `setup.ts`). Stub `teleport: true` except for `v-dialog` tests where we assert via `vm.dialogTitle`/`vm.isEdit`/`vm.validate()` instead of `wrapper.text()` (teleported content not in `wrapper.text()`). For `v-data-table`/`router-link`/`v-menu`, use `stubs: { RouterLink: true }` and assert via `vm.filteredNav` or `props`.
+
+### Helpers
+
+```ts
+// src/__tests__/utils/mount.ts
+import { mountWithProviders, createTestQueryClient } from '@/__tests__/utils/mount'
+
+// Mount with Pinia + Vuetify + MemoryRouter + VueQuery (retry: false)
+const wrapper = await mountWithProviders(MyComponent, {
+  props: { modelValue: true },
+  routerRoutes: [{ path: '/', component: { template: '<div/>' } }],
+})
+```
+
+### Known stubs
+
+- `ResizeObserver`, `visualViewport`, `matchMedia` stubbed in `setup.ts` for Vuetify `VOverlay`/`VDialog`.
+- `v-highlight` directive: mock `highlight.js/lib/core` (`highlightElement`, `getLanguage`, `registerLanguage`).
+
+### Coverage
+
+Provider `v8`, `include: ['src/**/*.{ts,vue}']`, `exclude: ['src/**/*.types.ts', 'src/main.ts', 'src/__tests__/**']`. Threshold not enforced yet (suggested 60% lines initial).

@@ -1,5 +1,5 @@
 .PHONY: install dev build swagger clean run fmt vet check setup test test-cover \
-        fe-install fe-dev fe-build fe-lint fe-check
+        fe-install fe-dev fe-build fe-lint fe-check fe-test fe-test-cover
 
 # ── Backend ──────────────────────────────────────────────
 
@@ -83,3 +83,13 @@ fe-check:
 	@echo "🔍 Type-checking frontend..."
 	cd frontend && pnpm type-check
 	@echo "✅ Frontend type-check OK"
+
+fe-test:
+	@echo "🧪 Running frontend unit tests..."
+	cd frontend && pnpm test:run
+	@echo "✅ Frontend unit tests passed"
+
+fe-test-cover:
+	@echo "🧪 Running frontend tests with coverage..."
+	cd frontend && pnpm test:cover
+	@echo "✅ Frontend coverage report"

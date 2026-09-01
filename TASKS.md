@@ -10,7 +10,7 @@
 - [x] Fase 2 — Services + Queries
 - [x] Fase 3 — Componentes base + features
 - [x] Fase 4 — Router + layouts + integración
-- [ ] Fase 5 — CI / Makefile / DX + E2E (opcional)
+- [x] Fase 5 — CI / Makefile / DX + E2E (opcional)
 
 ---
 
@@ -53,11 +53,11 @@
 - [x] **4.2** `src/layouts/DefaultLayout.test.ts` + `AuthLayout.test.ts`
 - [x] **4.3** Smoke `src/features/auth/pages/LoginPage.test.ts` + `SetupPage.test.ts` + `src/features/dashboard/pages/DashboardPage.test.ts`
 
-### Fase 5 — CI / DX / E2E opcional
-- [ ] **5.1** Makefile raíz — targets `fe-test` (`pnpm test:run`), `fe-test-cover`, actualizar `fe-check` si hace falta
-- [ ] **5.2** `.github/workflows/frontend.yml` — step `Test` con `pnpm test:run --coverage`
+### Fase 5 — CI / Makefile / DX + E2E (opcional)
+- [x] **5.1** Makefile raíz — targets `fe-test` (`pnpm test:run`), `fe-test-cover`, actualizar `fe-check` si hace falta
+- [x] **5.2** `.github/workflows/frontend.yml` — step `Test` con `pnpm test:run --coverage`
 - [x] **5.3** `lefthook.yml` — hook pre-commit `fe-test: pnpm test:run` (hecho en Fase 1 a petición — ver `lefthook.yml:18`)
-- [ ] **5.4** Documentar convención en `.agents/frontend/patterns.md` (co-localizado `.test.ts`, `globals:true`, `vi.mock` vs `msw`)
+- [x] **5.4** Documentar convención en `.agents/frontend/patterns.md` (co-localizado `.test.ts`, `globals:true`, `vi.mock` vs `msw`)
 - [ ] **5.5** (Opcional) Playwright E2E — flujo `status → setup → login → dashboard → sessions` con `msw` o backend real
 
 ---
