@@ -30,6 +30,16 @@ export const SESSION_MODES: Array<{ title: string; value: SessionMode }> = [
   { title: 'Repasar guardadas', value: 'review' },
 ]
 
+export const SESSION_MODE_ICONS: Record<SessionMode, string> = {
+  generate: 'mdi-robot',
+  review: 'mdi-book-refresh',
+}
+
+export const SESSION_MODE_DESCRIPTIONS: Record<SessionMode, string> = {
+  generate: 'Crea preguntas nuevas con IA sobre los temas elegidos',
+  review: 'Repasas preguntas que ya guardaste (repaso espaciado)',
+}
+
 export const SESSION_DIFFICULTIES: Array<{ title: string; value: SessionDifficulty }> = [
   { title: 'Principiante', value: 'beginner' },
   { title: 'Intermedio', value: 'intermediate' },

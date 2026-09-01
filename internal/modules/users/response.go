@@ -11,6 +11,7 @@ type UserResponse struct {
 	Email            string    `json:"email"`
 	IsAdmin          bool      `json:"isAdmin"`
 	DailyImportLimit int       `json:"dailyImportLimit"`
+	DailyAiLimit     int       `json:"dailyAiLimit"`
 	CreatedAt        time.Time `json:"createdAt"`
 	UpdatedAt        time.Time `json:"updatedAt"`
 }
@@ -20,5 +21,6 @@ type UserListResponse struct {
 	Email            string    `json:"email"`
 	IsAdmin          bool      `json:"isAdmin"`
 	DailyImportLimit int       `json:"dailyImportLimit"`
+	DailyAiLimit     int       `json:"dailyAiLimit"`
 	CreatedAt        time.Time `json:"createdAt"`
 }

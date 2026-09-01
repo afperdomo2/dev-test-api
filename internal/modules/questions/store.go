@@ -20,6 +20,7 @@ type Store interface {
 	ReplaceQuestionOptions(questionID uuid.UUID, options []models.QuestionOption) error
 	BulkCreate(questions []*models.Question) error
 	CountImportedSince(userID uuid.UUID, since time.Time) (int64, error)
+	CountAiGeneratedSince(userID uuid.UUID, since time.Time) (int64, error)
 	Stats(userID uuid.UUID) (*QuestionStats, error)
 }
 
@@ -151,6 +152,16 @@ func (s *gormStore) CountImportedSince(userID uuid.UUID, since time.Time) (int64
 	err := s.db.Model(&models.Question{}).
 		Where("user_id = ?", userID).
 		Where("source = ?", "imported").
+		Where("created_at >= ?", since).
+		Count(&count).Error
+	return count, err
+}
+
+func (s *gormStore) CountAiGeneratedSince(userID uuid.UUID, since time.Time) (int64, error) {
+	var count int64
+	err := s.db.Model(&models.Question{}).
+		Where("user_id = ?", userID).
+		Where("source = ?", "ai_generated").
 		Where("created_at >= ?", since).
 		Count(&count).Error
 	return count, err

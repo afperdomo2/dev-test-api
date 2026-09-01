@@ -74,6 +74,15 @@ definitions:
       repetitions:
         type: integer
     type: object
+  questions.AiQuota:
+    properties:
+      dailyLimit:
+        type: integer
+      remaining:
+        type: integer
+      usedToday:
+        type: integer
+    type: object
   questions.CategoryCount:
     properties:
       category:
@@ -571,6 +580,10 @@ definitions:
     type: object
   users.CreateUserRequest:
     properties:
+      dailyAiLimit:
+        maximum: 50
+        minimum: 1
+        type: integer
       dailyImportLimit:
         maximum: 10000
         minimum: 1
@@ -589,6 +602,10 @@ definitions:
     type: object
   users.UpdateUserRequest:
     properties:
+      dailyAiLimit:
+        maximum: 50
+        minimum: 1
+        type: integer
       dailyImportLimit:
         maximum: 10000
         minimum: 1
@@ -604,6 +621,8 @@ definitions:
     properties:
       createdAt:
         type: string
+      dailyAiLimit:
+        type: integer
       dailyImportLimit:
         type: integer
       email:
@@ -1062,6 +1081,26 @@ paths:
       security:
       - BearerAuth: []
       summary: Actualizar pregunta
+      tags:
+      - questions
+  /api/v1/questions/ai-quota:
+    get:
+      description: Devuelve el límite diario de preguntas con IA, lo usado hoy y lo
+        restante para el usuario autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/questions.AiQuota'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Consultar cupo de IA
       tags:
       - questions
   /api/v1/questions/import:

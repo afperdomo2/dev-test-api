@@ -11,7 +11,7 @@ import {
   requiredRule,
   validateRules,
 } from '@/utils/validators'
-import { DEFAULT_DAILY_IMPORT_LIMIT } from '@/types/user.types'
+import { DEFAULT_DAILY_AI_LIMIT, DEFAULT_DAILY_IMPORT_LIMIT } from '@/types/user.types'
 import type { User, CreateUserRequest } from '@/types/user.types'
 
 const props = defineProps<{
@@ -38,6 +38,7 @@ const form = ref<CreateUserRequest & { confirmPassword: string }>({
   confirmPassword: '',
   isAdmin: false,
   dailyImportLimit: DEFAULT_DAILY_IMPORT_LIMIT,
+  dailyAiLimit: DEFAULT_DAILY_AI_LIMIT,
 })
 
 const validationErrors = ref<Record<string, Array<string>>>({})
@@ -58,6 +59,7 @@ watch(
           confirmPassword: '',
           isAdmin: props.user.isAdmin,
           dailyImportLimit: props.user.dailyImportLimit ?? DEFAULT_DAILY_IMPORT_LIMIT,
+          dailyAiLimit: props.user.dailyAiLimit ?? DEFAULT_DAILY_AI_LIMIT,
         }
       } else {
         form.value = {
@@ -66,6 +68,7 @@ watch(
           confirmPassword: '',
           isAdmin: false,
           dailyImportLimit: DEFAULT_DAILY_IMPORT_LIMIT,
+          dailyAiLimit: DEFAULT_DAILY_AI_LIMIT,
         }
       }
       validationErrors.value = {}
@@ -117,6 +120,7 @@ async function submit() {
       const data: Record<string, unknown> = {
         isAdmin: form.value.isAdmin,
         dailyImportLimit: form.value.dailyImportLimit,
+        dailyAiLimit: form.value.dailyAiLimit,
       }
       if (form.value.password) {
         data.password = form.value.password
@@ -129,6 +133,7 @@ async function submit() {
         password: form.value.password,
         isAdmin: form.value.isAdmin,
         dailyImportLimit: form.value.dailyImportLimit,
+        dailyAiLimit: form.value.dailyAiLimit,
       })
       appStore.showSnackbar('Usuario creado correctamente')
     }
@@ -214,6 +219,18 @@ function close() {
             :max="10000"
             :disabled="saving"
             hint="Preguntas que el usuario puede importar por día"
+            persistent-hint
+            density="compact"
+          />
+
+          <v-text-field
+            v-model.number="form.dailyAiLimit"
+            label="Límite diario de IA"
+            type="number"
+            :min="1"
+            :max="50"
+            :disabled="saving"
+            hint="Preguntas que el usuario puede generar con IA por día"
             persistent-hint
             density="compact"
           />

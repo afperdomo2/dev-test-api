@@ -8,6 +8,7 @@ func ToUserResponse(u models.User) UserResponse {
 		Email:            u.Email,
 		IsAdmin:          u.IsAdmin,
 		DailyImportLimit: u.DailyImportLimit,
+		DailyAiLimit:     u.DailyAiLimit,
 		CreatedAt:        u.CreatedAt,
 		UpdatedAt:        u.UpdatedAt,
 	}
@@ -19,6 +20,7 @@ func ToUserListResponse(u models.User) UserListResponse {
 		Email:            u.Email,
 		IsAdmin:          u.IsAdmin,
 		DailyImportLimit: u.DailyImportLimit,
+		DailyAiLimit:     u.DailyAiLimit,
 		CreatedAt:        u.CreatedAt,
 	}
 }

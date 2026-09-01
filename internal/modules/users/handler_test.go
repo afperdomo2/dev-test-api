@@ -20,15 +20,15 @@ import (
 func init() { gin.SetMode(gin.TestMode) }
 
 type mockUserService struct {
-	createFn  func(email, password string, isAdmin bool, dailyImportLimit *int) (*models.User, error)
+	createFn  func(email, password string, isAdmin bool, dailyImportLimit *int, dailyAiLimit *int) (*models.User, error)
 	listFn    func(params common.PaginationParams) ([]models.User, int64, error)
 	getByIDFn func(id uuid.UUID) (*models.User, error)
 	updateFn  func(id uuid.UUID, req UpdateUserRequest) (*models.User, error)
 	deleteFn  func(id uuid.UUID) error
 }
 
-func (m *mockUserService) Create(e, p string, a bool, d *int) (*models.User, error) {
-	return m.createFn(e, p, a, d)
+func (m *mockUserService) Create(e, p string, a bool, d *int, ai *int) (*models.User, error) {
+	return m.createFn(e, p, a, d, ai)
 }
 func (m *mockUserService) List(p common.PaginationParams) ([]models.User, int64, error) {
 	return m.listFn(p)
@@ -84,7 +84,7 @@ func TestUsersHandler_List(t *testing.T) {
 func TestUsersHandler_Create(t *testing.T) {
 	t.Run("success 201", func(t *testing.T) {
 		svc := &mockUserService{
-			createFn: func(string, string, bool, *int) (*models.User, error) {
+			createFn: func(string, string, bool, *int, *int) (*models.User, error) {
 				return &models.User{Email: "a@b.com"}, nil
 			},
 		}
@@ -108,7 +108,7 @@ func TestUsersHandler_Create(t *testing.T) {
 	})
 	t.Run("conflict 409", func(t *testing.T) {
 		svc := &mockUserService{
-			createFn: func(string, string, bool, *int) (*models.User, error) {
+			createFn: func(string, string, bool, *int, *int) (*models.User, error) {
 				return nil, apierr.ErrConflict("Email Already Exists", "dup", "")
 			},
 		}

@@ -61,7 +61,7 @@ func TestCreate(t *testing.T) {
 			return nil
 		}
 		svc := NewService(store)
-		user, err := svc.Create("a@b.com", "secret123", false, nil)
+		user, err := svc.Create("a@b.com", "secret123", false, nil, nil)
 		require.NoError(t, err)
 		assert.Equal(t, "a@b.com", user.Email)
 		assert.False(t, user.IsAdmin)
@@ -71,7 +71,7 @@ func TestCreate(t *testing.T) {
 		store := newMockStore()
 		store.findByEmailFn = func(string) (*models.User, error) { return nil, gorm.ErrRecordNotFound }
 		svc := NewService(store)
-		user, err := svc.Create("admin@b.com", "secret123", true, nil)
+		user, err := svc.Create("admin@b.com", "secret123", true, nil, nil)
 		require.NoError(t, err)
 		assert.True(t, user.IsAdmin)
 	})
@@ -82,7 +82,7 @@ func TestCreate(t *testing.T) {
 			return &models.User{Email: "a@b.com"}, nil
 		}
 		svc := NewService(store)
-		_, err := svc.Create("a@b.com", "secret123", false, nil)
+		_, err := svc.Create("a@b.com", "secret123", false, nil, nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Already Exists")
 	})
@@ -92,7 +92,7 @@ func TestCreate(t *testing.T) {
 		store.findByEmailFn = func(string) (*models.User, error) { return nil, gorm.ErrRecordNotFound }
 		store.createFn = func(*models.User) error { return errors.New("db fail") }
 		svc := NewService(store)
-		_, err := svc.Create("a@b.com", "secret123", false, nil)
+		_, err := svc.Create("a@b.com", "secret123", false, nil, nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Error al crear")
 	})

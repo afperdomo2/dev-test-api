@@ -129,6 +129,12 @@ export interface ImportQuota {
   remaining: number
 }
 
+export interface AiQuota {
+  dailyLimit: number
+  usedToday: number
+  remaining: number
+}
+
 export const MAX_QUESTIONS_PER_FILE = 50
 
 export interface TopicCount {

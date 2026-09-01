@@ -67,6 +67,12 @@ type ImportQuota struct {
 	Remaining  int `json:"remaining"`
 }
 
+type AiQuota struct {
+	DailyLimit int `json:"dailyLimit"`
+	UsedToday  int `json:"usedToday"`
+	Remaining  int `json:"remaining"`
+}
+
 type TopicCount struct {
 	TopicID  uuid.UUID `json:"topicId"`
 	Name     string    `json:"name"`

@@ -56,6 +56,14 @@ export function importQuotaOptions() {
   })
 }
 
+export function aiQuotaOptions() {
+  return queryOptions({
+    queryKey: ['questions', 'ai-quota'],
+    queryFn: () => questionsService.getAiQuota(),
+    staleTime: 30 * 1000,
+  })
+}
+
 export function importQuestionsMutation() {
   return {
     mutationKey: ['questions', 'import'],

@@ -12,10 +12,12 @@ type CreateUserRequest struct {
 	Password         string `json:"password"         binding:"required,min=8,max=72"`
 	IsAdmin          bool   `json:"isAdmin"`
 	DailyImportLimit *int   `json:"dailyImportLimit,omitempty" binding:"omitempty,min=1,max=10000"`
+	DailyAiLimit     *int   `json:"dailyAiLimit,omitempty"     binding:"omitempty,min=1,max=50"`
 }
 
 type UpdateUserRequest struct {
 	Password         string `json:"password,omitempty"         binding:"omitempty,min=8,max=72"`
 	IsAdmin          *bool  `json:"isAdmin,omitempty"`
 	DailyImportLimit *int   `json:"dailyImportLimit,omitempty" binding:"omitempty,min=1,max=10000"`
+	DailyAiLimit     *int   `json:"dailyAiLimit,omitempty"     binding:"omitempty,min=1,max=50"`
 }

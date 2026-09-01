@@ -5,6 +5,7 @@ import "github.com/gin-gonic/gin"
 func RegisterRoutes(rg *gin.RouterGroup, h *Handler) {
 	t := rg.Group("/questions")
 	{
+		t.GET("/ai-quota", h.AiQuota)
 		t.GET("/import-quota", h.ImportQuota)
 		t.GET("/stats", h.Stats)
 		t.POST("/import", h.Import)

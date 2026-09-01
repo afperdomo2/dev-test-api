@@ -41,8 +41,37 @@ func NewGenerator(db *gorm.DB, cfg config.AIConfig) *Generator {
 	}
 }
 
+type DailyLimitError struct {
+	Limit int
+}
+
+func (e *DailyLimitError) Error() string {
+	return fmt.Sprintf("límite diario de IA alcanzado (%d)", e.Limit)
+}
+
 func (g *Generator) IsConfigured() bool {
 	return g.client.IsConfigured()
+}
+
+func (g *Generator) checkDailyAiLimit(userID uuid.UUID) error {
+	var user models.User
+	if err := g.db.Select("daily_ai_limit").First(&user, "id = ?", userID).Error; err != nil {
+		return nil
+	}
+	y, m, d := time.Now().UTC().Date()
+	since := time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+	var used int64
+	if err := g.db.Model(&models.Question{}).
+		Where("user_id = ?", userID).
+		Where("source = ?", "ai_generated").
+		Where("created_at >= ?", since).
+		Count(&used).Error; err != nil {
+		return nil
+	}
+	if int(used) >= user.DailyAiLimit {
+		return &DailyLimitError{Limit: user.DailyAiLimit}
+	}
+	return nil
 }
 
 func (g *Generator) GenerateQuestion(session *models.Session) error {
@@ -53,6 +82,13 @@ func (g *Generator) GenerateQuestion(session *models.Session) error {
 
 	if len(session.Topics) == 0 {
 		return fmt.Errorf("la sesión no tiene temas asociados")
+	}
+
+	if err := g.checkDailyAiLimit(session.UserID); err != nil {
+		if _, ok := err.(*DailyLimitError); ok {
+			log.Printf("🚫 Límite diario de IA alcanzado para usuario %s — omitiendo generación", session.UserID)
+		}
+		return err
 	}
 
 	start := time.Now()

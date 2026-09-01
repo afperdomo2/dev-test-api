@@ -351,6 +351,37 @@ func (h *Handler) ImportQuota(c *gin.Context) {
 	response.Success(c, http.StatusOK, quota)
 }
 
+// @Summary      Consultar cupo de IA
+// @Description  Devuelve el límite diario de preguntas con IA, lo usado hoy y lo restante para el usuario autenticado
+// @Tags         questions
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  AiQuota
+// @Failure      401  {object}  apierr.APIError
+// @Router       /api/v1/questions/ai-quota [get]
+func (h *Handler) AiQuota(c *gin.Context) {
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+	if isAdmin {
+		response.Problem(c, apierr.ErrForbidden("Los administradores no pueden consultar el cupo de IA", c.Request.URL.Path))
+		return
+	}
+
+	quota, err := h.service.GetAiQuota(userID)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, quota)
+}
+
 func getUserRoleAndID(c *gin.Context) (bool, uuid.UUID, *apierr.APIError) {
 	claims, exists := c.Get("user_claims")
 	if !exists {

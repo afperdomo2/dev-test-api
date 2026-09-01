@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -177,8 +178,13 @@ func (s *sessionService) NextQuestion(sessionID uuid.UUID) (*NextQuestionRespons
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			if sess.Mode == "generate" && sess.QuestionsGenerated < maxGeneratedPerSession {
-				if err := s.aiGenerator.GenerateQuestion(sess); err != nil {
-					log.Printf("⚠️ Error generando pregunta para sesión %s: %v", sess.ID, err)
+				if genErr := s.aiGenerator.GenerateQuestion(sess); genErr != nil {
+					var limitErr *ai.DailyLimitError
+					if errors.As(genErr, &limitErr) {
+						return nil, apierr.ErrTooManyRequests(
+							fmt.Sprintf("Has alcanzado tu límite diario de %d preguntas con IA", limitErr.Limit), "")
+					}
+					log.Printf("⚠️ Error generando pregunta para sesión %s: %v", sess.ID, genErr)
 					return nil, apierr.ErrNotFound("Pregunta", "No hay mas preguntas disponibles para esta sesion")
 				}
 				question, err = s.store.FindNextQuestion(topicIDs, answeredIDs, sess.Difficulty, sess.Mode, sess.UserID)
