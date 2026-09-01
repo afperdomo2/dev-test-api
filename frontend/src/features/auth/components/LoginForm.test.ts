@@ -55,7 +55,10 @@ describe('LoginForm', () => {
     await wrapper.vm.$nextTick()
     // Allow async login to resolve
     await new Promise((r) => setTimeout(r, 0))
-    expect(authService.login).toHaveBeenCalledWith({ email: 'test@example.com', password: 'secret123' })
+    expect(authService.login).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'secret123',
+    })
   })
 
   it('shows snackbar on error', async () => {

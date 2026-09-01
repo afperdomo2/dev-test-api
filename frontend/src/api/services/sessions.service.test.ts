@@ -37,7 +37,9 @@ describe('sessions.service', () => {
   it('listSessions with status', async () => {
     mockedGet.mockResolvedValue({ data: {} })
     await listSessions(1, 10, 'active')
-    expect(mockedGet).toHaveBeenCalledWith('/api/v1/sessions', { params: { page: 1, perPage: 10, status: 'active' } })
+    expect(mockedGet).toHaveBeenCalledWith('/api/v1/sessions', {
+      params: { page: 1, perPage: 10, status: 'active' },
+    })
   })
 
   it('getSessionById extracts session', async () => {
@@ -79,7 +81,10 @@ describe('sessions.service', () => {
   it('submitAnswer', async () => {
     mockedPost.mockResolvedValue({ data: { id: 'a1' } })
     const res = await submitAnswer('1', { questionId: 'q1', answer: 'x' } as never)
-    expect(mockedPost).toHaveBeenCalledWith('/api/v1/sessions/1/answer', { questionId: 'q1', answer: 'x' })
+    expect(mockedPost).toHaveBeenCalledWith('/api/v1/sessions/1/answer', {
+      questionId: 'q1',
+      answer: 'x',
+    })
     expect(res).toEqual({ id: 'a1' })
   })
 

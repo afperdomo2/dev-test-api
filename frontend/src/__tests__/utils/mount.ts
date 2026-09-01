@@ -22,14 +22,18 @@ export async function mountWithProviders(
   const pinia = options.pinia ?? createPinia()
   setActivePinia(pinia)
 
-  const queryClient = options.queryClient ?? new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  })
+  const queryClient =
+    options.queryClient ??
+    new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
 
-  const routes: Array<RouteRecordRaw> = options.routerRoutes ?? [{ path: '/', component: { template: '<div />' } }]
+  const routes: Array<RouteRecordRaw> = options.routerRoutes ?? [
+    { path: '/', component: { template: '<div />' } },
+  ]
   // ensure we have a fallback route for pushes
   if (!routes.some((r) => r.path === '/login')) {
     routes.push({ path: '/login', name: 'Login', component: { template: '<div>login</div>' } })

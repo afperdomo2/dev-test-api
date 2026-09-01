@@ -1,4 +1,10 @@
-import { listQuestions, getQuestionById, createQuestion, updateQuestion, deleteQuestion } from './questions.service'
+import {
+  listQuestions,
+  getQuestionById,
+  createQuestion,
+  updateQuestion,
+  deleteQuestion,
+} from './questions.service'
 import apiClient from '@/api/client'
 
 vi.mock('@/api/client', () => ({
@@ -21,7 +27,9 @@ describe('questions.service', () => {
   it('listQuestions without filters', async () => {
     mockedGet.mockResolvedValue({ data: { data: [] } })
     await listQuestions(1, 10)
-    expect(mockedGet).toHaveBeenCalledWith('/api/v1/questions', { params: { page: 1, perPage: 10 } })
+    expect(mockedGet).toHaveBeenCalledWith('/api/v1/questions', {
+      params: { page: 1, perPage: 10 },
+    })
   })
 
   it('listQuestions with filters', async () => {

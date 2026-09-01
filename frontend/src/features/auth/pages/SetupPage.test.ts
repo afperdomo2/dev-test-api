@@ -51,6 +51,9 @@ describe('SetupPage', () => {
     vm.form.confirmPassword = 'secret123'
     await vm.submit()
     const { setup } = await import('@/api/services/auth.service')
-    expect(vi.mocked(setup)).toHaveBeenCalledWith({ email: 'admin@example.com', password: 'secret123' })
+    expect(vi.mocked(setup)).toHaveBeenCalledWith({
+      email: 'admin@example.com',
+      password: 'secret123',
+    })
   })
 })

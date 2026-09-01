@@ -21,22 +21,41 @@ describe('topics.queries', () => {
 
   it('topicsListOptions calls service', async () => {
     vi.mocked(topicsService.listTopics).mockResolvedValue({ data: [] } as never)
-    const opts = topicsListOptions(() => 1, () => 10, () => 'name', () => 'asc', () => 'q', () => true)
+    const opts = topicsListOptions(
+      () => 1,
+      () => 10,
+      () => 'name',
+      () => 'asc',
+      () => 'q',
+      () => true,
+    )
     await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
     expect(topicsService.listTopics).toHaveBeenCalledWith(1, 10, 'name', 'asc', 'q', true)
   })
 
   it('topicsListOptions handles undefined optionals', async () => {
     vi.mocked(topicsService.listTopics).mockResolvedValue({} as never)
-    const opts = topicsListOptions(() => 1, () => 10)
+    const opts = topicsListOptions(
+      () => 1,
+      () => 10,
+    )
     await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
-    expect(topicsService.listTopics).toHaveBeenCalledWith(1, 10, undefined, undefined, undefined, undefined)
+    expect(topicsService.listTopics).toHaveBeenCalledWith(
+      1,
+      10,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    )
   })
 
   it('topicDetailOptions', async () => {
     vi.mocked(topicsService.getTopicById).mockResolvedValue({ id: '1' } as never)
     const opts = topicDetailOptions(() => '1')
-    const res = await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
+    const res = await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn(
+      {} as never,
+    )
     expect(topicsService.getTopicById).toHaveBeenCalledWith('1')
     expect(res).toEqual({ id: '1' })
   })

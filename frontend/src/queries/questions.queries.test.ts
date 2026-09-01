@@ -21,7 +21,11 @@ describe('questions.queries', () => {
 
   it('questionsListOptions', async () => {
     vi.mocked(questionsService.listQuestions).mockResolvedValue({ data: [] } as never)
-    const opts = questionsListOptions(() => 1, () => 10, () => ({ type: 'mcq' }))
+    const opts = questionsListOptions(
+      () => 1,
+      () => 10,
+      () => ({ type: 'mcq' }),
+    )
     await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
     expect(questionsService.listQuestions).toHaveBeenCalledWith(1, 10, { type: 'mcq' })
   })
@@ -29,7 +33,9 @@ describe('questions.queries', () => {
   it('questionDetailOptions', async () => {
     vi.mocked(questionsService.getQuestionById).mockResolvedValue({ id: '1' } as never)
     const opts = questionDetailOptions(() => '1')
-    const res = await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
+    const res = await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn(
+      {} as never,
+    )
     expect(questionsService.getQuestionById).toHaveBeenCalledWith('1')
     expect(res).toEqual({ id: '1' })
   })

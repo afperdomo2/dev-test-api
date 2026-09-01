@@ -29,7 +29,9 @@ describe('progress.service', () => {
     const paginated = { data: [] }
     mockedGet.mockResolvedValue({ data: paginated })
     const res = await getUpcomingReviews(1, 10)
-    expect(mockedGet).toHaveBeenCalledWith('/api/v1/progress/upcoming', { params: { page: 1, perPage: 10 } })
+    expect(mockedGet).toHaveBeenCalledWith('/api/v1/progress/upcoming', {
+      params: { page: 1, perPage: 10 },
+    })
     expect(res).toEqual(paginated)
   })
 
@@ -37,7 +39,9 @@ describe('progress.service', () => {
     const paginated = { data: [] }
     mockedGet.mockResolvedValue({ data: paginated })
     const res = await getSavedQuestions(2, 20)
-    expect(mockedGet).toHaveBeenCalledWith('/api/v1/progress/saved', { params: { page: 2, perPage: 20 } })
+    expect(mockedGet).toHaveBeenCalledWith('/api/v1/progress/saved', {
+      params: { page: 2, perPage: 20 },
+    })
     expect(res).toEqual(paginated)
   })
 

@@ -67,7 +67,10 @@ describe('TopicFormDialog', () => {
 
   it('validate passes when filled', () => {
     const wrapper = mountDialog()
-    const vm = wrapper.vm as unknown as { form: { slug: string; name: string; category: string }; validate: () => boolean }
+    const vm = wrapper.vm as unknown as {
+      form: { slug: string; name: string; category: string }
+      validate: () => boolean
+    }
     vm.form.slug = 'slug'
     vm.form.name = 'name'
     vm.form.category = 'cat'

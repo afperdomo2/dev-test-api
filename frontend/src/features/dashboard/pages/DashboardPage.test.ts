@@ -30,17 +30,32 @@ describe('DashboardPage', () => {
   })
 
   it('shows user email when logged', () => {
-    const wrapper = mountDashboard({ email: 'a@b.com', isAdmin: false, id: '1', createdAt: '2026-08-28T12:00:00Z' })
+    const wrapper = mountDashboard({
+      email: 'a@b.com',
+      isAdmin: false,
+      id: '1',
+      createdAt: '2026-08-28T12:00:00Z',
+    })
     expect(wrapper.text()).toContain('a@b.com')
   })
 
   it('shows Administrador chip for admin', () => {
-    const wrapper = mountDashboard({ email: 'a@b.com', isAdmin: true, id: '1', createdAt: '2026-08-28T12:00:00Z' })
+    const wrapper = mountDashboard({
+      email: 'a@b.com',
+      isAdmin: true,
+      id: '1',
+      createdAt: '2026-08-28T12:00:00Z',
+    })
     expect(wrapper.text()).toContain('Administrador')
   })
 
   it('shows Usuario chip for non-admin', () => {
-    const wrapper = mountDashboard({ email: 'a@b.com', isAdmin: false, id: '1', createdAt: '2026-08-28T12:00:00Z' })
+    const wrapper = mountDashboard({
+      email: 'a@b.com',
+      isAdmin: false,
+      id: '1',
+      createdAt: '2026-08-28T12:00:00Z',
+    })
     expect(wrapper.text()).toContain('Usuario')
   })
 
@@ -51,7 +66,11 @@ describe('DashboardPage', () => {
   })
 
   it('shows ID', () => {
-    const wrapper = mountDashboard({ email: 'a@b.com', id: 'user-123', createdAt: '2026-08-28T12:00:00Z' })
+    const wrapper = mountDashboard({
+      email: 'a@b.com',
+      id: 'user-123',
+      createdAt: '2026-08-28T12:00:00Z',
+    })
     expect(wrapper.text()).toContain('user-123')
   })
 })

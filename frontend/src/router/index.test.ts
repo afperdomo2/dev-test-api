@@ -13,9 +13,24 @@ function createTestRouter() {
   const routes: Array<RouteRecordRaw> = [
     { path: '/setup', name: 'Setup', component: { template: '<div>setup</div>' } },
     { path: '/login', name: 'Login', component: { template: '<div>login</div>' } },
-    { path: '/', name: 'Dashboard', component: { template: '<div>dashboard</div>' }, meta: { requiresAuth: true } },
-    { path: '/admin', name: 'Admin', component: { template: '<div>admin</div>' }, meta: { requiresAuth: true, requiresAdmin: true } },
-    { path: '/user-only', name: 'UserOnly', component: { template: '<div>user</div>' }, meta: { requiresNotAdmin: true } },
+    {
+      path: '/',
+      name: 'Dashboard',
+      component: { template: '<div>dashboard</div>' },
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/admin',
+      name: 'Admin',
+      component: { template: '<div>admin</div>' },
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/user-only',
+      name: 'UserOnly',
+      component: { template: '<div>user</div>' },
+      meta: { requiresNotAdmin: true },
+    },
     { path: '/public', name: 'Public', component: { template: '<div>public</div>' } },
   ]
 
@@ -31,7 +46,8 @@ function createTestRouter() {
       return
     }
     if (authStore.needsSetup === false && to.name === 'Setup') return { path: '/login' }
-    if (to.meta.requiresAuth && !authStore.isLoggedIn) return { path: '/login', query: { redirect: to.fullPath } }
+    if (to.meta.requiresAuth && !authStore.isLoggedIn)
+      return { path: '/login', query: { redirect: to.fullPath } }
     if (to.meta.requiresAdmin && !authStore.isAdmin) return { path: '/' }
     if (to.meta.requiresNotAdmin && authStore.isAdmin) return { path: '/' }
     if (!to.meta.requiresAuth && authStore.isLoggedIn) {

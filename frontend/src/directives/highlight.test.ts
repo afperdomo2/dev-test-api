@@ -21,7 +21,11 @@ describe('vHighlight directive', () => {
   it('mounted adds language class and highlights', () => {
     const el = createEl('javascript')
     const binding = { value: 'javascript' } as never
-    ;(vHighlight as unknown as { mounted: (el: HTMLElement, binding: unknown, a: unknown, b: unknown) => void }).mounted(el, binding, null as never, null as never)
+    ;(
+      vHighlight as unknown as {
+        mounted: (el: HTMLElement, binding: unknown, a: unknown, b: unknown) => void
+      }
+    ).mounted(el, binding, null as never, null as never)
     expect(el.classList.contains('language-javascript')).toBe(true)
     expect(hljs.highlightElement).toHaveBeenCalledWith(el)
   })
@@ -30,14 +34,22 @@ describe('vHighlight directive', () => {
     vi.mocked(hljs.getLanguage).mockReturnValueOnce(false as never)
     const el = createEl('unknown')
     const binding = { value: 'unknown' } as never
-    ;(vHighlight as unknown as { mounted: (el: HTMLElement, binding: unknown, a: unknown, b: unknown) => void }).mounted(el, binding, null as never, null as never)
+    ;(
+      vHighlight as unknown as {
+        mounted: (el: HTMLElement, binding: unknown, a: unknown, b: unknown) => void
+      }
+    ).mounted(el, binding, null as never, null as never)
     expect(el.classList.contains('language-plaintext')).toBe(true)
   })
 
   it('mounted uses dataset lang when binding undefined', () => {
     const el = createEl('go')
     const binding = { value: undefined } as never
-    ;(vHighlight as unknown as { mounted: (el: HTMLElement, binding: unknown, a: unknown, b: unknown) => void }).mounted(el, binding, null as never, null as never)
+    ;(
+      vHighlight as unknown as {
+        mounted: (el: HTMLElement, binding: unknown, a: unknown, b: unknown) => void
+      }
+    ).mounted(el, binding, null as never, null as never)
     expect(el.classList.contains('language-go')).toBe(true)
   })
 
@@ -45,7 +57,11 @@ describe('vHighlight directive', () => {
     const el = createEl('javascript')
     el.classList.add('language-javascript')
     const binding = { value: 'javascript' } as never
-    ;(vHighlight as unknown as { updated: (el: HTMLElement, binding: unknown, a: unknown, b: unknown) => void }).updated(el, binding, null as never, null as never)
+    ;(
+      vHighlight as unknown as {
+        updated: (el: HTMLElement, binding: unknown, a: unknown, b: unknown) => void
+      }
+    ).updated(el, binding, null as never, null as never)
     expect(hljs.highlightElement).toHaveBeenCalled()
   })
 
@@ -54,7 +70,11 @@ describe('vHighlight directive', () => {
     el.classList.add('language-javascript')
     const binding = { value: 'python' } as never
     vi.mocked(hljs.getLanguage).mockReturnValue(true as never)
-    ;(vHighlight as unknown as { updated: (el: HTMLElement, binding: unknown, a: unknown, b: unknown) => void }).updated(el, binding, null as never, null as never)
+    ;(
+      vHighlight as unknown as {
+        updated: (el: HTMLElement, binding: unknown, a: unknown, b: unknown) => void
+      }
+    ).updated(el, binding, null as never, null as never)
     expect(el.classList.contains('language-python')).toBe(true)
     expect(hljs.highlightElement).toHaveBeenCalled()
   })

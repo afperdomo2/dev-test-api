@@ -24,9 +24,14 @@ describe('users.queries', () => {
   it('usersListOptions', async () => {
     const data = { data: [] }
     vi.mocked(usersService.listUsers).mockResolvedValue(data as never)
-    const opts = usersListOptions(() => 2, () => 10)
+    const opts = usersListOptions(
+      () => 2,
+      () => 10,
+    )
     expect(opts.queryKey).toEqual(['users', 'list', expect.any(Function), expect.any(Function)])
-    const result = await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
+    const result = await (
+      opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }
+    ).queryFn({} as never)
     expect(usersService.listUsers).toHaveBeenCalledWith(2, 10)
     expect(result).toEqual(data)
   })
@@ -34,7 +39,9 @@ describe('users.queries', () => {
   it('userDetailOptions', async () => {
     vi.mocked(usersService.getUserById).mockResolvedValue({ id: '1' } as never)
     const opts = userDetailOptions(() => '1')
-    const result = await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
+    const result = await (
+      opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }
+    ).queryFn({} as never)
     expect(usersService.getUserById).toHaveBeenCalledWith('1')
     expect(result).toEqual({ id: '1' })
   })

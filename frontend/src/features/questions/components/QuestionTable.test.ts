@@ -27,7 +27,12 @@ const mockQuestions = [
 describe('QuestionTable', () => {
   it('renders without crash', () => {
     const wrapper = mount(QuestionTable, {
-      props: { questions: mockQuestions as never, loading: false, itemsPerPage: 10, currentUserId: 'u1' },
+      props: {
+        questions: mockQuestions as never,
+        loading: false,
+        itemsPerPage: 10,
+        currentUserId: 'u1',
+      },
       global: { stubs: { RouterLink: { template: '<a><slot /></a>' }, teleport: true } },
     })
     expect(wrapper.exists()).toBe(true)
@@ -35,7 +40,12 @@ describe('QuestionTable', () => {
 
   it('canModify logic: manual + owner', () => {
     const wrapper = mount(QuestionTable, {
-      props: { questions: mockQuestions as never, loading: false, itemsPerPage: 10, currentUserId: 'u1' },
+      props: {
+        questions: mockQuestions as never,
+        loading: false,
+        itemsPerPage: 10,
+        currentUserId: 'u1',
+      },
     })
     const _vm = wrapper.vm as unknown as {
       canModify: (q: unknown) => boolean

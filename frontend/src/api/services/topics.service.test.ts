@@ -1,10 +1,4 @@
-import {
-  listTopics,
-  getTopicById,
-  createTopic,
-  updateTopic,
-  deleteTopic,
-} from './topics.service'
+import { listTopics, getTopicById, createTopic, updateTopic, deleteTopic } from './topics.service'
 import apiClient from '@/api/client'
 
 vi.mock('@/api/client', () => ({
@@ -35,7 +29,14 @@ describe('topics.service', () => {
     mockedGet.mockResolvedValue({ data: {} })
     await listTopics(1, 10, 'name', 'asc', 'search term', true)
     expect(mockedGet).toHaveBeenCalledWith('/api/v1/topics', {
-      params: { page: 1, perPage: 10, sortBy: 'name', sortOrder: 'asc', search: 'search term', myOnly: true },
+      params: {
+        page: 1,
+        perPage: 10,
+        sortBy: 'name',
+        sortOrder: 'asc',
+        search: 'search term',
+        myOnly: true,
+      },
     })
   })
 

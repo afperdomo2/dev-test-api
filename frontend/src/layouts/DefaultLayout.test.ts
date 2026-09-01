@@ -78,7 +78,9 @@ describe('DefaultLayout', () => {
 
   it('toggles theme and sidebar via appStore', async () => {
     const { wrapper } = mountLayout()
-    const vm = wrapper.vm as unknown as { appStore: { theme: string; toggleTheme: () => void; toggleSidebar: () => void } }
+    const vm = wrapper.vm as unknown as {
+      appStore: { theme: string; toggleTheme: () => void; toggleSidebar: () => void }
+    }
     const before = vm.appStore.theme
     vm.appStore.toggleTheme()
     expect(vm.appStore.theme).not.toBe(before)

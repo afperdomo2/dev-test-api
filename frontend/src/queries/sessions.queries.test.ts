@@ -27,7 +27,10 @@ describe('sessions.queries', () => {
 
   it('sessionsListOptions', async () => {
     vi.mocked(sessionsService.listSessions).mockResolvedValue({ data: [] } as never)
-    const opts = sessionsListOptions(() => 1, () => 10)
+    const opts = sessionsListOptions(
+      () => 1,
+      () => 10,
+    )
     await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
     expect(sessionsService.listSessions).toHaveBeenCalledWith(1, 10)
   })
@@ -36,24 +39,32 @@ describe('sessions.queries', () => {
     vi.mocked(sessionsService.listSessions).mockResolvedValue({ data: [] } as never)
     const opts = sessionsInfiniteOptions(() => 'active')
     // queryFn with pageParam
-    await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({ pageParam: 2 } as never)
+    await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({
+      pageParam: 2,
+    } as never)
     expect(sessionsService.listSessions).toHaveBeenCalledWith(2, 20, 'active')
 
     // getNextPageParam logic
     const lastPage = { data: [{ id: '1' }], meta: { total: 3, page: 1, perPage: 20 } } as never
     const allPages = [{ data: [{ id: '1' }], meta: { total: 3 } } as never]
-    const next = (opts as unknown as { getNextPageParam: (a:unknown,b:unknown)=>unknown }).getNextPageParam(lastPage, allPages as never)
+    const next = (
+      opts as unknown as { getNextPageParam: (a: unknown, b: unknown) => unknown }
+    ).getNextPageParam(lastPage, allPages as never)
     expect(next).toBe(2)
 
     const donePage = { data: [{ id: '1' }], meta: { total: 1 } } as never
-    const done = (opts as unknown as { getNextPageParam: (a:unknown,b:unknown)=>unknown }).getNextPageParam(donePage, [donePage] as never)
+    const done = (
+      opts as unknown as { getNextPageParam: (a: unknown, b: unknown) => unknown }
+    ).getNextPageParam(donePage, [donePage] as never)
     expect(done).toBeUndefined()
   })
 
   it('sessionDetailOptions', async () => {
     vi.mocked(sessionsService.getSessionById).mockResolvedValue({ id: '1' } as never)
     const opts = sessionDetailOptions(() => '1')
-    const res = await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
+    const res = await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn(
+      {} as never,
+    )
     expect(sessionsService.getSessionById).toHaveBeenCalledWith('1')
     expect(res).toEqual({ id: '1' })
   })

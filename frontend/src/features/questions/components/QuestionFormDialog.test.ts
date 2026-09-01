@@ -43,7 +43,10 @@ describe('QuestionFormDialog', () => {
 
   it('validates content required', async () => {
     const wrapper = mountDialog()
-    const vm = wrapper.vm as unknown as { validate: () => boolean; validationErrors: Record<string, unknown> }
+    const vm = wrapper.vm as unknown as {
+      validate: () => boolean
+      validationErrors: Record<string, unknown>
+    }
     const valid = vm.validate()
     expect(valid).toBe(false)
   })

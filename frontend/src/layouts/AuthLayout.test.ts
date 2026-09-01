@@ -19,7 +19,9 @@ describe('AuthLayout', () => {
   it('shows snackbar bound to appStore', async () => {
     setActivePinia(createPinia())
     const wrapper = mount(AuthLayout)
-    const vm = wrapper.vm as unknown as { appStore: { snackbar: { show: boolean; message: string }; showSnackbar: (m: string) => void } }
+    const vm = wrapper.vm as unknown as {
+      appStore: { snackbar: { show: boolean; message: string }; showSnackbar: (m: string) => void }
+    }
     vm.appStore.showSnackbar('hello')
     await wrapper.vm.$nextTick()
     expect(vm.appStore.snackbar.message).toBe('hello')
