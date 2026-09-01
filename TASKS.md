@@ -9,7 +9,7 @@
 - [x] Fase 1 — Tests puros (utils / composables / stores / api client)
 - [x] Fase 2 — Services + Queries
 - [x] Fase 3 — Componentes base + features
-- [ ] Fase 4 — Router + layouts + integración
+- [x] Fase 4 — Router + layouts + integración
 - [ ] Fase 5 — CI / Makefile / DX + E2E (opcional)
 
 ---
@@ -49,9 +49,9 @@
 - [x] **3.7** `src/directives/highlight.test.ts`
 
 ### Fase 4 — Router + layouts + integración
-- [ ] **4.1** `src/router/index.test.ts` — guards: `needsSetup→/setup`, `needsSetup false + /setup→/login`, `requiresAuth→/login?redirect`, `requiresAdmin`, `requiresNotAdmin`, `already logged + /login→/` (tabla `it.each`)
-- [ ] **4.2** `src/layouts/DefaultLayout.test.ts` + `AuthLayout.test.ts`
-- [ ] **4.3** Smoke `src/features/auth/pages/LoginPage.test.ts` + `SetupPage.test.ts` + `src/features/dashboard/pages/DashboardPage.test.ts`
+- [x] **4.1** `src/router/index.test.ts` — guards: `needsSetup→/setup`, `needsSetup false + /setup→/login`, `requiresAuth→/login?redirect`, `requiresAdmin`, `requiresNotAdmin`, `already logged + /login→/` (tabla `it.each`)
+- [x] **4.2** `src/layouts/DefaultLayout.test.ts` + `AuthLayout.test.ts`
+- [x] **4.3** Smoke `src/features/auth/pages/LoginPage.test.ts` + `SetupPage.test.ts` + `src/features/dashboard/pages/DashboardPage.test.ts`
 
 ### Fase 5 — CI / DX / E2E opcional
 - [ ] **5.1** Makefile raíz — targets `fe-test` (`pnpm test:run`), `fe-test-cover`, actualizar `fe-check` si hace falta
