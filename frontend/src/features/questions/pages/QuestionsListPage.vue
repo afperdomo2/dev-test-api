@@ -97,7 +97,18 @@ watch(filters, () => {
       :show-create="true"
       @refresh="handleRefresh"
       @create="openCreate"
-    />
+    >
+      <template #actions>
+        <v-btn
+          color="secondary"
+          variant="tonal"
+          prepend-icon="mdi-file-upload"
+          to="/questions/import"
+        >
+          Importar
+        </v-btn>
+      </template>
+    </ListPageHeader>
 
     <QuestionFilters @change="filters = $event" />
 

@@ -3,6 +3,7 @@ package questions
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,11 +18,13 @@ import (
 func init() { gin.SetMode(gin.TestMode) }
 
 type mockQuestionService struct {
-	listFn    func(params ListQuestionsParams) ([]QuestionListResponse, int64, error)
-	getByIDFn func(id uuid.UUID) (*QuestionResponse, error)
-	createFn  func(userID uuid.UUID, input CreateQuestionRequest) (*QuestionResponse, error)
-	updateFn  func(id uuid.UUID, userID uuid.UUID, input UpdateQuestionRequest) (*QuestionResponse, error)
-	deleteFn  func(id uuid.UUID, userID uuid.UUID) error
+	listFn        func(params ListQuestionsParams) ([]QuestionListResponse, int64, error)
+	getByIDFn     func(id uuid.UUID) (*QuestionResponse, error)
+	createFn      func(userID uuid.UUID, input CreateQuestionRequest) (*QuestionResponse, error)
+	updateFn      func(id uuid.UUID, userID uuid.UUID, input UpdateQuestionRequest) (*QuestionResponse, error)
+	deleteFn      func(id uuid.UUID, userID uuid.UUID) error
+	importFn      func(userID uuid.UUID, r io.Reader) (*ImportResult, error)
+	importQuotaFn func(userID uuid.UUID) (*ImportQuota, error)
 }
 
 func (m *mockQuestionService) List(p ListQuestionsParams) ([]QuestionListResponse, int64, error) {
@@ -37,6 +40,18 @@ func (m *mockQuestionService) Update(id, u uuid.UUID, req UpdateQuestionRequest)
 	return m.updateFn(id, u, req)
 }
 func (m *mockQuestionService) Delete(id, u uuid.UUID) error { return m.deleteFn(id, u) }
+func (m *mockQuestionService) Import(uid uuid.UUID, r io.Reader) (*ImportResult, error) {
+	if m.importFn != nil {
+		return m.importFn(uid, r)
+	}
+	return nil, nil
+}
+func (m *mockQuestionService) GetImportQuota(uid uuid.UUID) (*ImportQuota, error) {
+	if m.importQuotaFn != nil {
+		return m.importQuotaFn(uid)
+	}
+	return &ImportQuota{}, nil
+}
 
 func qClaims(uid uuid.UUID, isAdmin bool) *jwt.MapClaims {
 	c := jwt.MapClaims{"sub": uid.String(), "is_admin": isAdmin}

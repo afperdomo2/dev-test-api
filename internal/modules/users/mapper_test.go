@@ -12,7 +12,7 @@ import (
 func TestToUserMappers(t *testing.T) {
 	id := uuid.New()
 	now := time.Now()
-	u := models.User{ID: id, Email: "a@b.com", IsAdmin: true, CreatedAt: now, UpdatedAt: now}
+	u := models.User{ID: id, Email: "a@b.com", IsAdmin: true, DailyImportLimit: 200, CreatedAt: now, UpdatedAt: now}
 
 	resp := ToUserResponse(u)
 	assert.Equal(t, id, resp.ID)

@@ -48,3 +48,7 @@ func ErrUnauthorized(detail, instance string) *APIError {
 func ErrInternal(detail, instance string) *APIError {
 	return NewAPIError(http.StatusInternalServerError, "Internal Server Error", detail, instance)
 }
+
+func ErrTooManyRequests(detail, instance string) *APIError {
+	return NewAPIError(http.StatusTooManyRequests, "Too Many Requests", detail, instance)
+}

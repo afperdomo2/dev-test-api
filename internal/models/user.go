@@ -7,14 +7,17 @@ import (
 	"gorm.io/gorm"
 )
 
+const DefaultDailyImportLimit = 200
+
 type User struct {
-	ID           uuid.UUID      `gorm:"type:uuid;primaryKey" json:"id"`
-	Email        string         `gorm:"uniqueIndex;not null" json:"email"`
-	PasswordHash string         `gorm:"not null" json:"-"`
-	IsAdmin      bool           `gorm:"default:false" json:"isAdmin"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
-	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	ID               uuid.UUID      `gorm:"type:uuid;primaryKey" json:"id"`
+	Email            string         `gorm:"uniqueIndex;not null" json:"email"`
+	PasswordHash     string         `gorm:"not null" json:"-"`
+	IsAdmin          bool           `gorm:"default:false" json:"isAdmin"`
+	DailyImportLimit int            `gorm:"not null;default:200" json:"dailyImportLimit"`
+	CreatedAt        time.Time      `json:"createdAt"`
+	UpdatedAt        time.Time      `json:"updatedAt"`
+	DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {

@@ -18,6 +18,7 @@ const emit = defineEmits<{
 const headers = [
   { title: 'Email', key: 'email', sortable: false },
   { title: 'Rol', key: 'isAdmin', sortable: false, align: 'center' as const },
+  { title: 'Límite diario', key: 'dailyImportLimit', sortable: false, align: 'center' as const },
   { title: 'Creado', key: 'createdAt', sortable: false, align: 'center' as const },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' as const },
 ]
@@ -38,6 +39,12 @@ const headers = [
         <v-chip :color="item.isAdmin ? 'primary' : ''" size="small" variant="tonal">
           {{ item.isAdmin ? 'Admin' : 'Usuario' }}
         </v-chip>
+      </div>
+    </template>
+
+    <template #[`item.dailyImportLimit`]="{ item }">
+      <div class="d-flex justify-center">
+        <v-chip size="small" variant="tonal">{{ item.dailyImportLimit }}</v-chip>
       </div>
     </template>
 

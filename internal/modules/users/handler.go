@@ -76,7 +76,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.Create(req.Email, req.Password, req.IsAdmin)
+	user, err := h.service.Create(req.Email, req.Password, req.IsAdmin, req.DailyImportLimit)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path

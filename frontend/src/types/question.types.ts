@@ -110,3 +110,23 @@ export interface UpdateQuestionRequest {
   language?: string
   testCases?: string
 }
+
+export interface ImportRowError {
+  row: number
+  reason: string
+}
+
+export interface ImportResult {
+  imported: number
+  failed: number
+  total: number
+  errors: Array<ImportRowError>
+}
+
+export interface ImportQuota {
+  dailyLimit: number
+  usedToday: number
+  remaining: number
+}
+
+export const MAX_QUESTIONS_PER_FILE = 50

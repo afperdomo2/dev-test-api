@@ -1,0 +1,342 @@
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { listTopics } from '@/api/services/topics.service'
+import { importQuestions, getImportQuota } from '@/api/services/questions.service'
+import { useAppStore } from '@/stores/app.store'
+import { MAX_QUESTIONS_PER_FILE, type ImportResult } from '@/types/question.types'
+import { IMPORT_CSV_TEMPLATE, buildImportPrompt } from '@/constants/questionImport'
+import type { Topic } from '@/types/topic.types'
+
+const appStore = useAppStore()
+const queryClient = useQueryClient()
+
+const selectedTopicIds = ref<Array<string>>([])
+const questionCount = ref<number>(10)
+const promptText = ref('')
+const csvText = ref('')
+const importMode = ref<'file' | 'paste'>('file')
+const selectedFile = ref<File | null>(null)
+const fileInputKey = ref(0)
+const importResult = ref<ImportResult | null>(null)
+const importing = ref(false)
+
+const { data: topicsData } = useQuery({
+  queryKey: ['topics', 'list', 1, 100, 'name', 'asc'],
+  queryFn: () => listTopics(1, 100, 'name', 'asc'),
+  staleTime: 60 * 1000,
+})
+
+const { data: quota } = useQuery({
+  queryKey: ['questions', 'import-quota'],
+  queryFn: () => getImportQuota(),
+  staleTime: 30 * 1000,
+})
+
+const topicItems = computed(() =>
+  (topicsData.value?.data ?? []).map((t: Topic) => ({
+    title: `${t.name} (${t.slug})`,
+    value: t.id,
+    raw: t,
+  })),
+)
+
+const selectedTopics = computed<Array<Topic>>(() => {
+  const map = new Map((topicsData.value?.data ?? []).map((t: Topic) => [t.id, t]))
+  return selectedTopicIds.value.map((id) => map.get(id)).filter(Boolean) as Array<Topic>
+})
+
+const quotaPercent = computed(() => {
+  if (!quota.value || quota.value.dailyLimit === 0) return 0
+  return Math.min(100, Math.round((quota.value.usedToday / quota.value.dailyLimit) * 100))
+})
+
+const quotaColor = computed(() => {
+  const p = quotaPercent.value
+  if (p >= 90) return 'error'
+  if (p >= 70) return 'warning'
+  return 'success'
+})
+
+const questionCountError = computed(() => {
+  const n = Number(questionCount.value)
+  if (!Number.isInteger(n) || n < 1) return 'Mínimo 1'
+  if (n > 50) return 'Máximo 50'
+  return ''
+})
+
+function rebuildPrompt() {
+  const n = Number(questionCount.value)
+  const qty = Number.isInteger(n) && n >= 1 && n <= 50 ? n : 5
+  promptText.value = buildImportPrompt(selectedTopics.value, qty)
+}
+
+watch(selectedTopicIds, rebuildPrompt, { immediate: true })
+watch(questionCount, rebuildPrompt)
+
+async function copyPrompt() {
+  if (!promptText.value) return
+  await navigator.clipboard.writeText(promptText.value)
+  appStore.showSnackbar('Prompt copiado al portapapeles')
+}
+
+function downloadTemplate() {
+  const blob = new Blob([IMPORT_CSV_TEMPLATE], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'plantilla-preguntas.csv'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function onFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  selectedFile.value = input.files?.[0] ?? null
+}
+
+async function doImport() {
+  importing.value = true
+  importResult.value = null
+  try {
+    const formData = new FormData()
+    if (importMode.value === 'file') {
+      if (!selectedFile.value) {
+        appStore.showSnackbar('Selecciona un archivo CSV', 'error')
+        importing.value = false
+        return
+      }
+      formData.append('file', selectedFile.value)
+    } else {
+      if (!csvText.value.trim()) {
+        appStore.showSnackbar('Pega el contenido CSV', 'error')
+        importing.value = false
+        return
+      }
+      formData.append('content', csvText.value)
+    }
+
+    const result = await importQuestions(formData)
+    importResult.value = result
+    queryClient.invalidateQueries({ queryKey: ['questions', 'list'] })
+    queryClient.invalidateQueries({ queryKey: ['questions', 'import-quota'] })
+    if (result.imported > 0) {
+      appStore.showSnackbar(`Se importaron ${result.imported} preguntas`)
+      // Limpiar para evitar re-importar accidentalmente
+      if (importMode.value === 'paste') {
+        csvText.value = ''
+      } else {
+        selectedFile.value = null
+        fileInputKey.value++
+      }
+    }
+    if (result.failed > 0) {
+      appStore.showSnackbar(`${result.failed} filas con errores`, 'error')
+    }
+  } catch (err: unknown) {
+    const detail =
+      err && typeof err === 'object' && 'detail' in err
+        ? (err as { detail: string }).detail
+        : 'Error al importar'
+    appStore.showSnackbar(detail, 'error')
+  } finally {
+    importing.value = false
+  }
+}
+</script>
+
+<template>
+  <v-container>
+    <div class="d-flex align-center mb-4">
+      <v-btn icon="mdi-arrow-left" variant="text" to="/questions" class="mr-2" />
+      <h1 class="text-h4">Importar preguntas</h1>
+    </div>
+
+    <v-card v-if="quota" class="mb-4">
+      <v-card-text>
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
+          <span class="text-body-2 font-weight-medium">
+            Cupo diario: {{ quota.usedToday }} / {{ quota.dailyLimit }} usadas
+            <span class="text-medium-emphasis">— Restantes: {{ quota.remaining }}</span>
+          </span>
+          <span class="text-caption"
+            >Máximo por archivo: {{ MAX_QUESTIONS_PER_FILE }} preguntas</span
+          >
+        </div>
+        <v-progress-linear :model-value="quotaPercent" :color="quotaColor" height="22" rounded>
+          <template #default>
+            <span class="text-caption font-weight-medium">{{ quotaPercent }}%</span>
+          </template>
+        </v-progress-linear>
+        <div class="text-caption text-medium-emphasis mt-2">
+          Si el CSV referencia un slug inexistente, se crea un tema personalizado automáticamente.
+        </div>
+      </v-card-text>
+    </v-card>
+
+    <v-row>
+      <!-- Columna: Generar con IA -->
+      <v-col cols="12" md="6">
+        <v-card>
+          <v-card-title class="d-flex align-center ga-2">
+            <v-icon icon="mdi-robot" color="primary" />
+            Generar con IA
+          </v-card-title>
+          <v-card-subtitle> Prepara el prompt para tu IA </v-card-subtitle>
+          <v-card-text>
+            <p class="text-caption mb-3">
+              Selecciona los temas para incluir sus slugs exactos en el prompt. Así la IA generará
+              el CSV sin errores de nombres.
+            </p>
+            <v-row dense class="mb-3">
+              <v-col style="flex: 0 0 60%; max-width: 60%">
+                <v-autocomplete
+                  v-model="selectedTopicIds"
+                  label="Temas para el prompt (opcional)"
+                  :items="topicItems"
+                  item-title="title"
+                  multiple
+                  chips
+                  closable-chips
+                  clearable
+                  density="compact"
+                  hide-details
+                  placeholder="Elige temas para el prompt"
+                />
+              </v-col>
+              <v-col style="flex: 0 0 40%; max-width: 40%">
+                <v-text-field
+                  v-model.number="questionCount"
+                  label="Cantidad"
+                  type="number"
+                  :min="1"
+                  :max="50"
+                  :error-messages="questionCountError || undefined"
+                  density="compact"
+                  variant="outlined"
+                  hide-details="auto"
+                  hint="1 a 50"
+                  persistent-hint
+                />
+              </v-col>
+            </v-row>
+            <v-textarea
+              v-model="promptText"
+              label="Prompt para la IA"
+              no-auto-grow
+              rows="12"
+              readonly
+              density="compact"
+              variant="outlined"
+              class="mb-3 fixed-textarea"
+            />
+            <div class="d-flex ga-2">
+              <v-btn
+                color="primary"
+                variant="tonal"
+                prepend-icon="mdi-content-copy"
+                @click="copyPrompt"
+              >
+                Copiar prompt
+              </v-btn>
+              <v-btn variant="tonal" prepend-icon="mdi-download" @click="downloadTemplate">
+                Descargar plantilla CSV
+              </v-btn>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+
+      <!-- Columna: Importar -->
+      <v-col cols="12" md="6">
+        <v-card>
+          <v-card-title class="d-flex align-center ga-2">
+            <v-icon icon="mdi-file-upload" color="primary" />
+            Importar CSV
+          </v-card-title>
+          <v-card-subtitle> Sube un archivo o pega el contenido </v-card-subtitle>
+          <v-card-text>
+            <v-btn-toggle
+              v-model="importMode"
+              mandatory
+              density="compact"
+              class="mb-3"
+              color="primary"
+            >
+              <v-btn value="file" prepend-icon="mdi-file-delimited">Archivo</v-btn>
+              <v-btn value="paste" prepend-icon="mdi-clipboard-text">Pegar texto</v-btn>
+            </v-btn-toggle>
+
+            <div v-if="importMode === 'file'" class="mb-3">
+              <v-file-input
+                :key="fileInputKey"
+                label="Archivo CSV"
+                accept=".csv,text/csv"
+                :disabled="importing"
+                hide-details
+                density="compact"
+                variant="outlined"
+                @change="onFileChange"
+              />
+              <div class="text-caption text-medium-emphasis mt-1">
+                Encabezado requerido: type,content,difficulty,topics,explanation,options
+              </div>
+            </div>
+            <div v-else class="mb-3">
+              <v-textarea
+                v-model="csvText"
+                label="Pega aquí el CSV"
+                :disabled="importing"
+                no-auto-grow
+                rows="10"
+                density="compact"
+                variant="outlined"
+                class="fixed-textarea"
+                placeholder='type,content,difficulty,topics,explanation,options&#10;single_choice,"¿...?",beginner,go,"...","[v] a | [ ] b"'
+              />
+            </div>
+
+            <v-btn
+              color="primary"
+              :loading="importing"
+              block
+              size="large"
+              prepend-icon="mdi-upload"
+              @click="doImport"
+            >
+              Importar
+            </v-btn>
+
+            <div v-if="importResult" class="mt-4">
+              <v-alert
+                :type="importResult.failed === 0 ? 'success' : 'warning'"
+                variant="tonal"
+                class="mb-3"
+              >
+                Importadas: {{ importResult.imported }} / {{ importResult.total }} — Fallidas:
+                {{ importResult.failed }}
+              </v-alert>
+              <v-data-table
+                v-if="importResult.errors.length"
+                :headers="[
+                  { title: 'Fila', key: 'row' },
+                  { title: 'Motivo', key: 'reason' },
+                ]"
+                :items="importResult.errors"
+                density="compact"
+                hide-default-footer
+                no-data-text="Sin errores"
+              />
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
+</template>
+
+<style scoped>
+.fixed-textarea :deep(textarea) {
+  overflow-y: auto !important;
+}
+</style>

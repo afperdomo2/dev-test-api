@@ -19,6 +19,7 @@ interface NavItem {
 const navItems: Array<NavItem> = [
   { title: 'Dashboard', to: '/', icon: 'mdi-view-dashboard' },
   { title: 'Preguntas', to: '/questions', icon: 'mdi-help-circle', userOnly: true },
+  { title: 'Importar', to: '/questions/import', icon: 'mdi-file-upload', userOnly: true },
   { title: 'Temas', to: '/topics', icon: 'mdi-tag' },
   { title: 'Sesiones', to: '/sessions', icon: 'mdi-play-circle', userOnly: true },
   { title: 'Progreso', to: '/progress', icon: 'mdi-chart-line', userOnly: true },

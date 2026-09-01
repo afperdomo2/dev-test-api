@@ -1,11 +1,25 @@
 package questions
 
 import (
+	"fmt"
+	"io"
+	"strings"
+	"time"
+
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+type topicStore interface {
+	FindBySlugAndUser(slug string, createdBy *uuid.UUID) (*models.Topic, error)
+	Create(topic *models.Topic) error
+}
+
+type userStore interface {
+	FindByID(id uuid.UUID) (*models.User, error)
+}
 
 type Service interface {
 	List(params ListQuestionsParams) ([]QuestionListResponse, int64, error)
@@ -13,14 +27,18 @@ type Service interface {
 	Create(userID uuid.UUID, input CreateQuestionRequest) (*QuestionResponse, error)
 	Update(id uuid.UUID, userID uuid.UUID, input UpdateQuestionRequest) (*QuestionResponse, error)
 	Delete(id uuid.UUID, userID uuid.UUID) error
+	Import(userID uuid.UUID, r io.Reader) (*ImportResult, error)
+	GetImportQuota(userID uuid.UUID) (*ImportQuota, error)
 }
 
 type questionService struct {
-	store Store
+	store      Store
+	topicStore topicStore
+	userStore  userStore
 }
 
-func NewService(store Store) Service {
-	return &questionService{store: store}
+func NewService(store Store, topicStore topicStore, userStore userStore) Service {
+	return &questionService{store: store, topicStore: topicStore, userStore: userStore}
 }
 
 func (s *questionService) List(params ListQuestionsParams) ([]QuestionListResponse, int64, error) {
@@ -208,4 +226,199 @@ func (s *questionService) Delete(id uuid.UUID, userID uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func startOfDayUTC(t time.Time) time.Time {
+	y, m, d := t.UTC().Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+}
+
+func (s *questionService) GetImportQuota(userID uuid.UUID) (*ImportQuota, error) {
+	user, err := s.userStore.FindByID(userID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, apierr.ErrNotFound("Usuario", "")
+		}
+		return nil, apierr.ErrInternal("Error al obtener el usuario", "")
+	}
+
+	since := startOfDayUTC(time.Now())
+	used, err := s.store.CountImportedSince(userID, since)
+	if err != nil {
+		return nil, apierr.ErrInternal("Error al calcular el cupo diario", "")
+	}
+
+	remaining := user.DailyImportLimit - int(used)
+	if remaining < 0 {
+		remaining = 0
+	}
+
+	return &ImportQuota{
+		DailyLimit: user.DailyImportLimit,
+		UsedToday:  int(used),
+		Remaining:  remaining,
+	}, nil
+}
+
+func (s *questionService) Import(userID uuid.UUID, r io.Reader) (*ImportResult, error) {
+	user, err := s.userStore.FindByID(userID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, apierr.ErrNotFound("Usuario", "")
+		}
+		return nil, apierr.ErrInternal("Error al obtener el usuario", "")
+	}
+
+	since := startOfDayUTC(time.Now())
+	used, err := s.store.CountImportedSince(userID, since)
+	if err != nil {
+		return nil, apierr.ErrInternal("Error al calcular el cupo diario", "")
+	}
+	remaining := user.DailyImportLimit - int(used)
+	if remaining <= 0 {
+		return nil, apierr.ErrTooManyRequests(
+			fmt.Sprintf("Has alcanzado tu límite diario de %d preguntas importadas", user.DailyImportLimit), "")
+	}
+
+	rows, err := parseCSV(r)
+	if err != nil {
+		return nil, apierr.ErrValidation(err.Error(), "")
+	}
+
+	if len(rows) == 0 {
+		return nil, apierr.ErrValidation("El archivo no contiene preguntas", "")
+	}
+
+	totalRows := len(rows)
+	var overflowErrors []ImportRowError
+
+	if len(rows) > maxQuestionsPerFile {
+		for _, row := range rows[maxQuestionsPerFile:] {
+			overflowErrors = append(overflowErrors, ImportRowError{
+				Row:    row.RowNum,
+				Reason: fmt.Sprintf("Supera el límite de %d preguntas por archivo", maxQuestionsPerFile),
+			})
+		}
+		rows = rows[:maxQuestionsPerFile]
+	}
+
+	if len(rows) > remaining {
+		for _, row := range rows[remaining:] {
+			overflowErrors = append(overflowErrors, ImportRowError{
+				Row:    row.RowNum,
+				Reason: "Supera el cupo diario restante",
+			})
+		}
+		rows = rows[:remaining]
+	}
+
+	topicCache := make(map[string]uuid.UUID)
+	validQuestions := make([]*models.Question, 0, len(rows))
+	rowErrors := overflowErrors
+
+	for _, row := range rows {
+		validated, vErr := validateImportRow(row)
+		if vErr != nil {
+			rowErrors = append(rowErrors, ImportRowError{Row: row.RowNum, Reason: vErr.Error()})
+			continue
+		}
+
+		topicIDs, tErr := s.resolveTopicIDs(validated.TopicSlugs, userID, topicCache)
+		if tErr != nil {
+			rowErrors = append(rowErrors, ImportRowError{Row: row.RowNum, Reason: fmt.Sprintf("Error al resolver temas: %v", tErr)})
+			continue
+		}
+
+		q := &models.Question{
+			UserID:      userID,
+			Type:        validated.Type,
+			Content:     strings.TrimSpace(row.Content),
+			Explanation: strings.TrimSpace(row.Explanation),
+			Difficulty:  validated.Difficulty,
+			Source:      "imported",
+		}
+
+		for _, o := range validated.Opts {
+			q.Options = append(q.Options, models.QuestionOption{
+				Content:   o.Content,
+				IsCorrect: o.IsCorrect,
+			})
+		}
+
+		topics := make([]models.Topic, len(topicIDs))
+		for i, tid := range topicIDs {
+			topics[i] = models.Topic{ID: tid}
+		}
+		q.Topics = topics
+
+		validQuestions = append(validQuestions, q)
+	}
+
+	result := &ImportResult{
+		Total:  totalRows,
+		Failed: len(rowErrors),
+		Errors: rowErrors,
+	}
+
+	if len(validQuestions) > 0 {
+		if err := s.store.BulkCreate(validQuestions); err != nil {
+			return nil, apierr.ErrInternal("Error al importar las preguntas", "")
+		}
+		result.Imported = len(validQuestions)
+	}
+
+	if result.Errors == nil {
+		result.Errors = []ImportRowError{}
+	}
+
+	return result, nil
+}
+
+func (s *questionService) resolveTopicIDs(slugs []string, userID uuid.UUID, cache map[string]uuid.UUID) ([]uuid.UUID, error) {
+	var ids []uuid.UUID
+	for _, slug := range slugs {
+		if cached, ok := cache[slug]; ok {
+			ids = append(ids, cached)
+			continue
+		}
+		tid, err := s.findOrCreateTopic(slug, userID, cache)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, tid)
+	}
+	return ids, nil
+}
+
+func (s *questionService) findOrCreateTopic(slug string, userID uuid.UUID, cache map[string]uuid.UUID) (uuid.UUID, error) {
+	if tid, ok := cache[slug]; ok {
+		return tid, nil
+	}
+
+	if t, err := s.topicStore.FindBySlugAndUser(slug, &userID); err == nil {
+		cache[slug] = t.ID
+		return t.ID, nil
+	} else if err != gorm.ErrRecordNotFound {
+		return uuid.Nil, err
+	}
+
+	if t, err := s.topicStore.FindBySlugAndUser(slug, nil); err == nil {
+		cache[slug] = t.ID
+		return t.ID, nil
+	} else if err != gorm.ErrRecordNotFound {
+		return uuid.Nil, err
+	}
+
+	topic := &models.Topic{
+		Slug:      slug,
+		Name:      slug,
+		Category:  defaultImportCategory,
+		IsSystem:  false,
+		CreatedBy: &userID,
+	}
+	if err := s.topicStore.Create(topic); err != nil {
+		return uuid.Nil, err
+	}
+	cache[slug] = topic.ID
+	return topic.ID, nil
 }

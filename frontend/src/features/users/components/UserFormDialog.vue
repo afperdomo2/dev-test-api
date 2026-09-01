@@ -11,6 +11,7 @@ import {
   requiredRule,
   validateRules,
 } from '@/utils/validators'
+import { DEFAULT_DAILY_IMPORT_LIMIT } from '@/types/user.types'
 import type { User, CreateUserRequest } from '@/types/user.types'
 
 const props = defineProps<{
@@ -36,6 +37,7 @@ const form = ref<CreateUserRequest & { confirmPassword: string }>({
   password: '',
   confirmPassword: '',
   isAdmin: false,
+  dailyImportLimit: DEFAULT_DAILY_IMPORT_LIMIT,
 })
 
 const validationErrors = ref<Record<string, Array<string>>>({})
@@ -55,9 +57,16 @@ watch(
           password: '',
           confirmPassword: '',
           isAdmin: props.user.isAdmin,
+          dailyImportLimit: props.user.dailyImportLimit ?? DEFAULT_DAILY_IMPORT_LIMIT,
         }
       } else {
-        form.value = { email: '', password: '', confirmPassword: '', isAdmin: false }
+        form.value = {
+          email: '',
+          password: '',
+          confirmPassword: '',
+          isAdmin: false,
+          dailyImportLimit: DEFAULT_DAILY_IMPORT_LIMIT,
+        }
       }
       validationErrors.value = {}
       serverErrors.value = {}
@@ -105,7 +114,10 @@ async function submit() {
   saving.value = true
   try {
     if (isEdit.value && props.user) {
-      const data: Record<string, unknown> = { isAdmin: form.value.isAdmin }
+      const data: Record<string, unknown> = {
+        isAdmin: form.value.isAdmin,
+        dailyImportLimit: form.value.dailyImportLimit,
+      }
       if (form.value.password) {
         data.password = form.value.password
       }
@@ -116,6 +128,7 @@ async function submit() {
         email: form.value.email,
         password: form.value.password,
         isAdmin: form.value.isAdmin,
+        dailyImportLimit: form.value.dailyImportLimit,
       })
       appStore.showSnackbar('Usuario creado correctamente')
     }
@@ -190,7 +203,19 @@ function close() {
             color="primary"
             :disabled="saving"
             hide-details
-            class="mb-4"
+            class="mb-2"
+          />
+
+          <v-text-field
+            v-model.number="form.dailyImportLimit"
+            label="Límite diario de importación"
+            type="number"
+            :min="1"
+            :max="10000"
+            :disabled="saving"
+            hint="Preguntas que el usuario puede importar por día"
+            persistent-hint
+            density="compact"
           />
         </v-form>
       </v-card-text>

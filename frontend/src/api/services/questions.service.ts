@@ -1,5 +1,11 @@
 import apiClient from '@/api/client'
-import type { Question, CreateQuestionRequest, UpdateQuestionRequest } from '@/types/question.types'
+import type {
+  Question,
+  CreateQuestionRequest,
+  UpdateQuestionRequest,
+  ImportResult,
+  ImportQuota,
+} from '@/types/question.types'
 import type { PaginatedResponse } from '@/types/api.types'
 
 export interface QuestionsFilters {
@@ -35,4 +41,25 @@ export async function updateQuestion(id: string, data: UpdateQuestionRequest): P
 
 export async function deleteQuestion(id: string): Promise<void> {
   await apiClient.delete(`/api/v1/questions/${id}`)
+}
+
+export async function importQuestions(formData: FormData): Promise<ImportResult> {
+  const res = await apiClient.post<ImportResult>('/api/v1/questions/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
+export async function importQuestionsFromText(content: string): Promise<ImportResult> {
+  const formData = new FormData()
+  formData.append('content', content)
+  const res = await apiClient.post<ImportResult>('/api/v1/questions/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
+export async function getImportQuota(): Promise<ImportQuota> {
+  const res = await apiClient.get<ImportQuota>('/api/v1/questions/import-quota')
+  return res.data
 }

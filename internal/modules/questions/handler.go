@@ -1,6 +1,8 @@
 package questions
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"strings"
 
@@ -220,6 +222,101 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, gin.H{"message": "Pregunta eliminada"})
+}
+
+// @Summary      Importar preguntas por CSV
+// @Description  Importa preguntas masivas desde CSV (hasta 50 por archivo, límite diario configurable por usuario). Los temas desconocidos se auto-crean como personalizados.
+// @Tags         questions
+// @Security     BearerAuth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        file     formData  file    false  "Archivo CSV"
+// @Param        content  formData  string  false  "Texto CSV pegado (alternativa a file)"
+// @Success      200  {object}  ImportResult
+// @Failure      401  {object}  apierr.APIError
+// @Failure      403  {object}  apierr.APIError
+// @Failure      422  {object}  apierr.APIError
+// @Failure      429  {object}  apierr.APIError
+// @Router       /api/v1/questions/import [post]
+func (h *Handler) Import(c *gin.Context) {
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	if isAdmin {
+		response.Problem(c, apierr.ErrForbidden("Los administradores no pueden importar preguntas", c.Request.URL.Path))
+		return
+	}
+
+	var reader io.Reader
+
+	if fh, err := c.FormFile("file"); err == nil {
+		f, err2 := fh.Open()
+		if err2 != nil {
+			response.ValidationError(c, "No se pudo leer el archivo", c.Request.URL.Path)
+			return
+		}
+		defer f.Close()
+		buf := new(bytes.Buffer)
+		if _, err2 := io.Copy(buf, f); err2 != nil {
+			response.ValidationError(c, "No se pudo leer el archivo", c.Request.URL.Path)
+			return
+		}
+		reader = buf
+	}
+
+	if reader == nil {
+		content := c.PostForm("content")
+		if strings.TrimSpace(content) == "" {
+			response.ValidationError(c, "Se requiere un archivo (file) o contenido pegado (content)", c.Request.URL.Path)
+			return
+		}
+		reader = strings.NewReader(content)
+	}
+
+	result, err := h.service.Import(userID, reader)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, result)
+}
+
+// @Summary      Consultar cupo de importación
+// @Description  Devuelve el límite diario, lo usado hoy y lo restante para el usuario autenticado
+// @Tags         questions
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  ImportQuota
+// @Failure      401  {object}  apierr.APIError
+// @Router       /api/v1/questions/import-quota [get]
+func (h *Handler) ImportQuota(c *gin.Context) {
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+	if isAdmin {
+		response.Problem(c, apierr.ErrForbidden("Los administradores no pueden consultar el cupo de importación", c.Request.URL.Path))
+		return
+	}
+
+	quota, err := h.service.GetImportQuota(userID)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, quota)
 }
 
 func getUserRoleAndID(c *gin.Context) (bool, uuid.UUID, *apierr.APIError) {

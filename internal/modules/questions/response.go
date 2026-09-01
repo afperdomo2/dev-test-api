@@ -48,3 +48,21 @@ type CodeChallengeResponse struct {
 	Language       string    `json:"language"`
 	TestCasesJSON  string    `json:"testCases,omitempty"`
 }
+
+type ImportRowError struct {
+	Row    int    `json:"row"`
+	Reason string `json:"reason"`
+}
+
+type ImportResult struct {
+	Imported int              `json:"imported"`
+	Failed   int              `json:"failed"`
+	Total    int              `json:"total"`
+	Errors   []ImportRowError `json:"errors"`
+}
+
+type ImportQuota struct {
+	DailyLimit int `json:"dailyLimit"`
+	UsedToday  int `json:"usedToday"`
+	Remaining  int `json:"remaining"`
+}

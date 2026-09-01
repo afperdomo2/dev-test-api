@@ -47,3 +47,25 @@ export function deleteQuestionMutation() {
     mutationFn: questionsService.deleteQuestion,
   }
 }
+
+export function importQuotaOptions() {
+  return queryOptions({
+    queryKey: ['questions', 'import-quota'],
+    queryFn: () => questionsService.getImportQuota(),
+    staleTime: 30 * 1000,
+  })
+}
+
+export function importQuestionsMutation() {
+  return {
+    mutationKey: ['questions', 'import'],
+    mutationFn: (formData: FormData) => questionsService.importQuestions(formData),
+  }
+}
+
+export function importQuestionsTextMutation() {
+  return {
+    mutationKey: ['questions', 'import-text'],
+    mutationFn: (content: string) => questionsService.importQuestionsFromText(content),
+  }
+}

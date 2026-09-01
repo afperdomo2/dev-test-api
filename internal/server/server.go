@@ -30,17 +30,17 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	topicService := topics.NewService(topicStore)
 	topicHandler := topics.NewHandler(topicService)
 
+	userStore := users.NewStore(db)
+	userService := users.NewService(userStore)
+	userHandler := users.NewHandler(userService)
+
 	questionStore := questions.NewStore(db)
-	questionService := questions.NewService(questionStore)
+	questionService := questions.NewService(questionStore, topicStore, userStore)
 	questionHandler := questions.NewHandler(questionService)
 
 	progressStore := progress.NewStore(db)
 	progressService := progress.NewService(progressStore)
 	progressHandler := progress.NewHandler(progressService)
-
-	userStore := users.NewStore(db)
-	userService := users.NewService(userStore)
-	userHandler := users.NewHandler(userService)
 
 	sessionStore := sessions.NewStore(db)
 	aiGenerator := ai.NewGenerator(db, cfg.AI)

@@ -44,6 +44,7 @@ function handleRefresh() {
       >
         Refrescar
       </v-btn>
+      <slot name="actions" />
       <v-btn
         v-if="showCreate"
         color="primary"

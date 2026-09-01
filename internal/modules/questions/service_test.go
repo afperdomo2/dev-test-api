@@ -3,6 +3,7 @@ package questions
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
@@ -20,6 +21,8 @@ type mockQuestionStore struct {
 	addQuestionTopicsFn      func(questionID uuid.UUID, topicIDs []uuid.UUID) error
 	replaceQuestionTopicsFn  func(questionID uuid.UUID, topicIDs []uuid.UUID) error
 	replaceQuestionOptionsFn func(questionID uuid.UUID, opts []models.QuestionOption) error
+	bulkCreateFn             func(questions []*models.Question) error
+	countImportedSinceFn     func(userID uuid.UUID, since time.Time) (int64, error)
 }
 
 func (m *mockQuestionStore) FindPage(p ListQuestionsParams) ([]models.Question, int64, error) {
@@ -39,6 +42,34 @@ func (m *mockQuestionStore) ReplaceQuestionTopics(qID uuid.UUID, tIDs []uuid.UUI
 func (m *mockQuestionStore) ReplaceQuestionOptions(qID uuid.UUID, opts []models.QuestionOption) error {
 	return m.replaceQuestionOptionsFn(qID, opts)
 }
+func (m *mockQuestionStore) BulkCreate(qs []*models.Question) error {
+	if m.bulkCreateFn != nil {
+		return m.bulkCreateFn(qs)
+	}
+	return nil
+}
+func (m *mockQuestionStore) CountImportedSince(uid uuid.UUID, since time.Time) (int64, error) {
+	if m.countImportedSinceFn != nil {
+		return m.countImportedSinceFn(uid, since)
+	}
+	return 0, nil
+}
+
+type mockTopicStore struct {
+	findBySlugAndUserFn func(slug string, createdBy *uuid.UUID) (*models.Topic, error)
+	createFn            func(topic *models.Topic) error
+}
+
+func (m *mockTopicStore) FindBySlugAndUser(slug string, createdBy *uuid.UUID) (*models.Topic, error) {
+	return m.findBySlugAndUserFn(slug, createdBy)
+}
+func (m *mockTopicStore) Create(topic *models.Topic) error { return m.createFn(topic) }
+
+type mockUserStore struct {
+	findByIDFn func(id uuid.UUID) (*models.User, error)
+}
+
+func (m *mockUserStore) FindByID(id uuid.UUID) (*models.User, error) { return m.findByIDFn(id) }
 
 func newQuestionMock() *mockQuestionStore {
 	return &mockQuestionStore{
@@ -50,6 +81,23 @@ func newQuestionMock() *mockQuestionStore {
 		addQuestionTopicsFn:      func(uuid.UUID, []uuid.UUID) error { return nil },
 		replaceQuestionTopicsFn:  func(uuid.UUID, []uuid.UUID) error { return nil },
 		replaceQuestionOptionsFn: func(uuid.UUID, []models.QuestionOption) error { return nil },
+		bulkCreateFn:             func([]*models.Question) error { return nil },
+		countImportedSinceFn:     func(uuid.UUID, time.Time) (int64, error) { return 0, nil },
+	}
+}
+
+func newTopicMock() *mockTopicStore {
+	return &mockTopicStore{
+		findBySlugAndUserFn: func(string, *uuid.UUID) (*models.Topic, error) { return nil, gorm.ErrRecordNotFound },
+		createFn:            func(*models.Topic) error { return nil },
+	}
+}
+
+func newUserMock(limit int) *mockUserStore {
+	return &mockUserStore{
+		findByIDFn: func(uuid.UUID) (*models.User, error) {
+			return &models.User{DailyImportLimit: limit}, nil
+		},
 	}
 }
 
@@ -59,7 +107,7 @@ func TestQuestionList(t *testing.T) {
 		store.findPageFn = func(ListQuestionsParams) ([]models.Question, int64, error) {
 			return []models.Question{{Content: "q1"}}, 1, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		list, total, err := svc.List(ListQuestionsParams{})
 		require.NoError(t, err)
 		assert.Len(t, list, 1)
@@ -71,7 +119,7 @@ func TestQuestionList(t *testing.T) {
 		store.findPageFn = func(ListQuestionsParams) ([]models.Question, int64, error) {
 			return nil, 0, errors.New("fail")
 		}
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, _, err := svc.List(ListQuestionsParams{})
 		require.Error(t, err)
 	})
@@ -84,7 +132,7 @@ func TestQuestionGetByID(t *testing.T) {
 		store.findByIDFn = func(uuid.UUID) (*models.Question, error) {
 			return &models.Question{Content: "hello"}, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		got, err := svc.GetByID(id)
 		require.NoError(t, err)
 		assert.Equal(t, "hello", got.Content)
@@ -92,7 +140,7 @@ func TestQuestionGetByID(t *testing.T) {
 
 	t.Run("not found", func(t *testing.T) {
 		store := newQuestionMock()
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, err := svc.GetByID(id)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "no encontrado")
@@ -101,7 +149,7 @@ func TestQuestionGetByID(t *testing.T) {
 	t.Run("internal error", func(t *testing.T) {
 		store := newQuestionMock()
 		store.findByIDFn = func(uuid.UUID) (*models.Question, error) { return nil, errors.New("db") }
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, err := svc.GetByID(id)
 		require.Error(t, err)
 	})
@@ -113,7 +161,7 @@ func TestQuestionCreate(t *testing.T) {
 
 	t.Run("validation single_choice without options", func(t *testing.T) {
 		store := newQuestionMock()
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, err := svc.Create(uid, CreateQuestionRequest{
 			Type:     "single_choice",
 			Content:  "q",
@@ -125,7 +173,7 @@ func TestQuestionCreate(t *testing.T) {
 
 	t.Run("validation code_completion without language", func(t *testing.T) {
 		store := newQuestionMock()
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, err := svc.Create(uid, CreateQuestionRequest{
 			Type:     "code_completion",
 			Content:  "q",
@@ -141,7 +189,7 @@ func TestQuestionCreate(t *testing.T) {
 		store.findByIDFn = func(uuid.UUID) (*models.Question, error) {
 			return &models.Question{ID: uuid.New(), Content: "q", Type: "single_choice"}, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		got, err := svc.Create(uid, CreateQuestionRequest{
 			Type:     "single_choice",
 			Content:  "q",
@@ -164,7 +212,7 @@ func TestQuestionCreate(t *testing.T) {
 		store.findByIDFn = func(uuid.UUID) (*models.Question, error) {
 			return &models.Question{Content: "q", Type: "code_completion", CodeChallenge: &models.CodeChallenge{Language: "go"}}, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, err := svc.Create(uid, CreateQuestionRequest{
 			Type:        "code_completion",
 			Content:     "q",
@@ -179,7 +227,7 @@ func TestQuestionCreate(t *testing.T) {
 	t.Run("store create error", func(t *testing.T) {
 		store := newQuestionMock()
 		store.createFn = func(*models.Question) error { return errors.New("fail") }
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, err := svc.Create(uid, CreateQuestionRequest{
 			Type:     "single_choice",
 			Content:  "q",
@@ -192,7 +240,7 @@ func TestQuestionCreate(t *testing.T) {
 	t.Run("add topics error", func(t *testing.T) {
 		store := newQuestionMock()
 		store.addQuestionTopicsFn = func(uuid.UUID, []uuid.UUID) error { return errors.New("fail") }
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, err := svc.Create(uid, CreateQuestionRequest{
 			Type:     "single_choice",
 			Content:  "q",
@@ -213,7 +261,7 @@ func TestQuestionUpdate(t *testing.T) {
 		store.findByIDFn = func(uuid.UUID) (*models.Question, error) {
 			return &models.Question{Source: "ai_generated", UserID: uid}, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, err := svc.Update(id, uid, UpdateQuestionRequest{Content: "new"})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "No tienes permiso")
@@ -224,7 +272,7 @@ func TestQuestionUpdate(t *testing.T) {
 		store.findByIDFn = func(uuid.UUID) (*models.Question, error) {
 			return &models.Question{Source: "manual", UserID: otherUID}, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, err := svc.Update(id, uid, UpdateQuestionRequest{Content: "new"})
 		require.Error(t, err)
 	})
@@ -240,7 +288,7 @@ func TestQuestionUpdate(t *testing.T) {
 			return &models.Question{ID: id, Source: "manual", UserID: uid, Content: "new"}, nil
 		}
 		topicID := uuid.New()
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		got, err := svc.Update(id, uid, UpdateQuestionRequest{
 			Content:  "new",
 			TopicIDs: []uuid.UUID{topicID},
@@ -251,7 +299,7 @@ func TestQuestionUpdate(t *testing.T) {
 
 	t.Run("not found", func(t *testing.T) {
 		store := newQuestionMock()
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		_, err := svc.Update(id, uid, UpdateQuestionRequest{Content: "new"})
 		require.Error(t, err)
 	})
@@ -267,7 +315,7 @@ func TestQuestionDelete(t *testing.T) {
 		store.findByIDFn = func(uuid.UUID) (*models.Question, error) {
 			return &models.Question{Source: "manual", UserID: uid}, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		require.NoError(t, svc.Delete(id, uid))
 	})
 
@@ -276,14 +324,14 @@ func TestQuestionDelete(t *testing.T) {
 		store.findByIDFn = func(uuid.UUID) (*models.Question, error) {
 			return &models.Question{Source: "ai_generated", UserID: otherUID}, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		err := svc.Delete(id, uid)
 		require.Error(t, err)
 	})
 
 	t.Run("not found", func(t *testing.T) {
 		store := newQuestionMock()
-		svc := NewService(store)
+		svc := NewService(store, newTopicMock(), newUserMock(200))
 		err := svc.Delete(id, uid)
 		require.Error(t, err)
 	})

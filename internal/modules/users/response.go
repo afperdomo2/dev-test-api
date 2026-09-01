@@ -7,16 +7,18 @@ import (
 )
 
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Email     string    `json:"email"`
-	IsAdmin   bool      `json:"isAdmin"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID               uuid.UUID `json:"id"`
+	Email            string    `json:"email"`
+	IsAdmin          bool      `json:"isAdmin"`
+	DailyImportLimit int       `json:"dailyImportLimit"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 }
 
 type UserListResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Email     string    `json:"email"`
-	IsAdmin   bool      `json:"isAdmin"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID               uuid.UUID `json:"id"`
+	Email            string    `json:"email"`
+	IsAdmin          bool      `json:"isAdmin"`
+	DailyImportLimit int       `json:"dailyImportLimit"`
+	CreatedAt        time.Time `json:"createdAt"`
 }

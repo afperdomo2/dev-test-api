@@ -1,6 +1,8 @@
 package questions
 
 import (
+	"time"
+
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -16,6 +18,8 @@ type Store interface {
 	AddQuestionTopics(questionID uuid.UUID, topicIDs []uuid.UUID) error
 	ReplaceQuestionTopics(questionID uuid.UUID, topicIDs []uuid.UUID) error
 	ReplaceQuestionOptions(questionID uuid.UUID, options []models.QuestionOption) error
+	BulkCreate(questions []*models.Question) error
+	CountImportedSince(userID uuid.UUID, since time.Time) (int64, error)
 }
 
 type gormStore struct {
@@ -112,4 +116,41 @@ func (s *gormStore) ReplaceQuestionOptions(questionID uuid.UUID, options []model
 		return s.db.Create(&options).Error
 	}
 	return nil
+}
+
+func (s *gormStore) BulkCreate(questions []*models.Question) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		for _, q := range questions {
+			if err := tx.Omit("Topics", "QuestionTopics").Create(q).Error; err != nil {
+				return err
+			}
+			for _, tid := range topicIDsFromQuestion(q) {
+				if err := tx.Create(&models.QuestionTopic{
+					QuestionID: q.ID,
+					TopicID:    tid,
+				}).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
+func topicIDsFromQuestion(q *models.Question) []uuid.UUID {
+	ids := make([]uuid.UUID, 0, len(q.Topics))
+	for _, t := range q.Topics {
+		ids = append(ids, t.ID)
+	}
+	return ids
+}
+
+func (s *gormStore) CountImportedSince(userID uuid.UUID, since time.Time) (int64, error) {
+	var count int64
+	err := s.db.Model(&models.Question{}).
+		Where("user_id = ?", userID).
+		Where("source = ?", "imported").
+		Where("created_at >= ?", since).
+		Count(&count).Error
+	return count, err
 }

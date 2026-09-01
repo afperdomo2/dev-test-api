@@ -10,7 +10,7 @@ import (
 )
 
 type Service interface {
-	Create(email, password string, isAdmin bool) (*models.User, error)
+	Create(email, password string, isAdmin bool, dailyImportLimit *int) (*models.User, error)
 	List(params common.PaginationParams) ([]models.User, int64, error)
 	GetByID(id uuid.UUID) (*models.User, error)
 	Update(id uuid.UUID, req UpdateUserRequest) (*models.User, error)
@@ -25,7 +25,7 @@ func NewService(store Store) Service {
 	return &userService{store: store}
 }
 
-func (s *userService) Create(email, password string, isAdmin bool) (*models.User, error) {
+func (s *userService) Create(email, password string, isAdmin bool, dailyImportLimit *int) (*models.User, error) {
 	existing, _ := s.store.FindByEmail(email)
 	if existing != nil {
 		return nil, apierr.ErrConflict("Email Already Exists", "Ya existe un usuario con este email", "")
@@ -36,10 +36,16 @@ func (s *userService) Create(email, password string, isAdmin bool) (*models.User
 		return nil, apierr.ErrInternal("Error al generar el hash de la contraseña", "")
 	}
 
+	dailyLimit := models.DefaultDailyImportLimit
+	if dailyImportLimit != nil {
+		dailyLimit = *dailyImportLimit
+	}
+
 	user := &models.User{
-		Email:        email,
-		PasswordHash: string(hash),
-		IsAdmin:      isAdmin,
+		Email:            email,
+		PasswordHash:     string(hash),
+		IsAdmin:          isAdmin,
+		DailyImportLimit: dailyLimit,
 	}
 
 	if err := s.store.Create(user); err != nil {
@@ -87,6 +93,10 @@ func (s *userService) Update(id uuid.UUID, req UpdateUserRequest) (*models.User,
 
 	if req.IsAdmin != nil {
 		user.IsAdmin = *req.IsAdmin
+	}
+
+	if req.DailyImportLimit != nil {
+		user.DailyImportLimit = *req.DailyImportLimit
 	}
 
 	if err := s.store.Update(user); err != nil {
