@@ -1,4 +1,4 @@
-.PHONY: install dev build swagger clean run fmt vet check setup test test-cover \
+.PHONY: install dev build swagger clean run fmt vet check setup test test-cover db-seed \
         fe-install fe-dev fe-build fe-lint fe-check fe-test fe-test-cover
 
 # ── Backend ──────────────────────────────────────────────
@@ -57,6 +57,11 @@ setup:
 	@echo "🔗 Installing git hooks..."
 	go tool lefthook install
 	@echo "✅ Hooks installed"
+
+db-seed:
+	@echo "🌱 Seeding 50 preguntas..."
+	@bash scripts/seed-db.sh 2>nul || powershell -ExecutionPolicy Bypass -File scripts/seed-db.ps1
+	@echo "✅ Seed completado"
 
 # ── Frontend ────────────────────────────────────────────
 

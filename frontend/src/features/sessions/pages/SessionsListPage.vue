@@ -32,16 +32,29 @@ function handleRefresh() {
 }
 
 const createDialog = ref(false)
-const createForm = ref<CreateSessionRequest>({
-  name: '',
-  mode: 'generate',
-  difficulty: 'beginner',
-  topicIds: [],
-  questionLimit: undefined,
-})
+function getDefaultCreateForm(): CreateSessionRequest {
+  return {
+    name: '',
+    mode: 'generate',
+    difficulty: 'beginner',
+    topicIds: [],
+    questionLimit: undefined,
+  }
+}
+const createForm = ref<CreateSessionRequest>(getDefaultCreateForm())
 const createErrors = ref<Record<string, Array<string>>>({})
 const creating = ref(false)
 const createMut = useMutation(createSessionMutation())
+
+function resetCreateForm() {
+  createForm.value = getDefaultCreateForm()
+  createErrors.value = {}
+}
+
+function openCreateDialog() {
+  resetCreateForm()
+  createDialog.value = true
+}
 
 const { data: topicsData, isLoading: topicsLoading } = useQuery({
   queryKey: ['topics', 'list', 1, 100, 'name', 'asc'],
@@ -101,13 +114,7 @@ async function handleCreate() {
     await createMut.mutateAsync(createForm.value)
     queryClient.invalidateQueries({ queryKey: ['sessions', 'list', 'infinite'] })
     createDialog.value = false
-    createForm.value = {
-      name: '',
-      mode: 'generate',
-      difficulty: 'beginner',
-      topicIds: [],
-      questionLimit: undefined,
-    }
+    resetCreateForm()
     appStore.showSnackbar('Sesión creada')
   } catch (err: unknown) {
     const detail =
@@ -127,7 +134,7 @@ async function handleCreate() {
       title="Sesiones"
       create-label="Nueva sesión"
       @refresh="handleRefresh"
-      @create="createDialog = true"
+      @create="openCreateDialog"
     />
 
     <div class="d-flex ga-2 mb-4 flex-wrap">
