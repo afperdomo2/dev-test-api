@@ -13,6 +13,26 @@ globalThis.ResizeObserver = class ResizeObserver {
   disconnect() {}
 } as unknown as typeof ResizeObserver
 
+// Stub visualViewport for Vuetify VOverlay
+Object.defineProperty(window, 'visualViewport', {
+  writable: true,
+  value: {
+    width: 1024,
+    height: 768,
+    offsetTop: 0,
+    offsetLeft: 0,
+    pageTop: 0,
+    pageLeft: 0,
+    scale: 1,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  },
+})
+Object.defineProperty(globalThis, 'visualViewport', {
+  writable: true,
+  value: window.visualViewport,
+})
+
 // Stub matchMedia / requestAnimationFrame for jsdom
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

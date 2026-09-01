@@ -8,7 +8,7 @@
 - [x] Fase 0 — Infraestructura Vitest
 - [x] Fase 1 — Tests puros (utils / composables / stores / api client)
 - [x] Fase 2 — Services + Queries
-- [ ] Fase 3 — Componentes base + features
+- [x] Fase 3 — Componentes base + features
 - [ ] Fase 4 — Router + layouts + integración
 - [ ] Fase 5 — CI / Makefile / DX + E2E (opcional)
 
@@ -40,13 +40,13 @@
 - [x] **2.4** `src/queries/users.queries.test.ts` + `topics` + `sessions` + `questions` + `progress` — `queryKey`, `queryFn`, `enabled` conditional
 
 ### Fase 3 — Componentes (con mount)
-- [ ] **3.1** Helper `src/__tests__/utils/mount.ts` — `mountWithProviders` (Pinia + Vuetify + Router + Vue Query, stubs `RouterLink`)
-- [ ] **3.2** `src/components/ErrorState.test.ts` + `PaginatedFooter.test.ts` + `ListPageHeader.test.ts` + `CodeContent.test.ts`
-- [ ] **3.3** `src/features/auth/components/LoginForm.test.ts` — validación, submit, loading, `extractFieldErrors` integration
-- [ ] **3.4** `src/features/users/components/UserTable.test.ts` + `UserFormDialog.test.ts`
-- [ ] **3.5** `src/features/questions/components/QuestionTable.test.ts` + `QuestionFormDialog.test.ts` + `QuestionFilters.test.ts`
-- [ ] **3.6** `src/features/topics/components/TopicFormDialog.test.ts`
-- [ ] **3.7** `src/directives/highlight.test.ts`
+- [x] **3.1** Helper `src/__tests__/utils/mount.ts` — `mountWithProviders` (Pinia + Vuetify + Router + Vue Query, stubs `RouterLink`)
+- [x] **3.2** `src/components/ErrorState.test.ts` + `PaginatedFooter.test.ts` + `ListPageHeader.test.ts` + `CodeContent.test.ts`
+- [x] **3.3** `src/features/auth/components/LoginForm.test.ts` — validación, submit, loading, `extractFieldErrors` integration
+- [x] **3.4** `src/features/users/components/UserTable.test.ts` + `UserFormDialog.test.ts`
+- [x] **3.5** `src/features/questions/components/QuestionTable.test.ts` + `QuestionFormDialog.test.ts` + `QuestionFilters.test.ts`
+- [x] **3.6** `src/features/topics/components/TopicFormDialog.test.ts`
+- [x] **3.7** `src/directives/highlight.test.ts`
 
 ### Fase 4 — Router + layouts + integración
 - [ ] **4.1** `src/router/index.test.ts` — guards: `needsSetup→/setup`, `needsSetup false + /setup→/login`, `requiresAuth→/login?redirect`, `requiresAdmin`, `requiresNotAdmin`, `already logged + /login→/` (tabla `it.each`)
