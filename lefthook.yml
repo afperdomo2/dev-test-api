@@ -33,3 +33,42 @@ pre-commit:
       glob: ["frontend/**/*.{ts,vue,tsx}", "frontend/package.json", "frontend/vite.config.ts"]
       run: cd frontend && pnpm test:run
       fail_text: "❌ frontend unit tests failed"
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: go-fmt
+      run: sh scripts/check-fmt.sh
+      fail_text: "❌ go fmt failed — ejecuta make fmt"
+
+    - name: go-vet
+      run: go vet ./...
+      fail_text: "❌ go vet failed"
+
+    - name: go-build
+      run: go build ./...
+      fail_text: "❌ go build failed"
+
+    - name: go-test
+      run: go test -short -count=1 -timeout 60s ./...
+      fail_text: "❌ unit tests failed"
+
+    - name: fe-format-check
+      run: cd frontend && pnpm prettier --check src/
+      fail_text: "❌ frontend format failed — ejecuta pnpm format"
+
+    - name: fe-lint
+      run: cd frontend && pnpm eslint . --ext .vue,.ts,.tsx
+      fail_text: "❌ frontend lint failed"
+
+    - name: fe-type-check
+      run: cd frontend && pnpm type-check
+      fail_text: "❌ frontend type-check failed"
+
+    - name: fe-test
+      run: cd frontend && pnpm test:run
+      fail_text: "❌ frontend unit tests failed"
+
+    - name: fe-build
+      run: cd frontend && pnpm build-only
+      fail_text: "❌ frontend build failed"
