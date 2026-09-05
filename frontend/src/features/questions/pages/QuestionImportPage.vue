@@ -197,6 +197,12 @@ async function doImport() {
               Selecciona los temas para incluir sus slugs exactos en el prompt. Así la IA generará
               el CSV sin errores de nombres.
             </p>
+            <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+              El contenido soporta formato enriquecido:
+              <code>`código inline`</code>, bloques <code>```lang```</code> y
+              <strong>**negrita**</strong>. Úsalo en enunciado, explicación y opciones para que las
+              preguntas sean más atractivas. El prompt de la IA ya incluye estas instrucciones.
+            </v-alert>
             <v-row dense class="mb-3">
               <v-col style="flex: 0 0 60%; max-width: 60%">
                 <v-autocomplete
@@ -290,7 +296,9 @@ async function doImport() {
                 @change="onFileChange"
               />
               <div class="text-caption text-medium-emphasis mt-1">
-                Encabezado requerido: type,content,difficulty,topics,explanation,options
+                Encabezado requerido: type,content,difficulty,topics,explanation,options — el
+                contenido admite <code>`código`</code>, bloques <code>```</code> y
+                <strong>**negrita**</strong>.
               </div>
             </div>
             <div v-else class="mb-3">

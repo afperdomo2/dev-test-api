@@ -52,6 +52,7 @@ Always run `make fe-check` and `make fe-lint` after any frontend change. `make f
   - **Naming convention**: both sides use camelCase for JSON keys. Go struct tags (`json:"camelCase"`) and frontend TypeScript interfaces use the same casing — no conversion needed.
 - **Context7 MCP** — available for Gin, GORM, jwt, swag docs. Always `resolve-library-id` first, then `query-docs`.
 - **Vuetify MCP** — available via `opencode.json`. Query component APIs with `vuetify_get_component_api_by_version` or `vuetify_get_feature_guide`.
+- **Bash defensive patterns** — skill `bash-defensive-patterns` (`wshobson/agents`) ya instalada (ver `skills-lock.json:9`). Todo script `*.sh` / hook `lefthook.yml` / `scripts/` debe seguirla: `#!/usr/bin/env bash` + `set -Eeuo pipefail`, `trap ERR/EXIT`, `command -v` dependency checks, variables siempre `"$quoted"`, `[[ ]]`, `mapfile/readarray`, `mktemp -d` con `trap EXIT`, y `atomic_write` para escrituras. Referencia: `.agents/skills/bash-defensive-patterns/SKILL.md` (gitignored, fuente es `skills-lock.json`).
 - **Log icons** — prefix Go `log.*` calls with emoji (❌ errors, ✅ success, 🚀 startup, 🛢️ database, 🌱 seed). Pick the most descriptive icon per context.
 - **Tests** — backend: `testing` + `testify` unit tests (mocked `Store`). `make test` (unit, no DB), `make test-cover`. Lefthook pre-commit runs `go test -short`.
 

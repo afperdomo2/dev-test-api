@@ -5,7 +5,7 @@ pre-commit:
   jobs:
     - name: go-fmt
       glob: "**/*.go"
-      run: sh scripts/check-fmt.sh
+      run: bash scripts/check-fmt.sh
 
     - name: go-vet
       glob: ["**/*.go", "go.mod", "go.sum"]
@@ -38,7 +38,7 @@ pre-push:
   parallel: true
   jobs:
     - name: go-fmt
-      run: sh scripts/check-fmt.sh
+      run: bash scripts/check-fmt.sh
       fail_text: "❌ go fmt failed — ejecuta make fmt"
 
     - name: go-vet

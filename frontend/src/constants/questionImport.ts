@@ -3,8 +3,13 @@ import type { Topic } from '@/types/topic.types'
 export const IMPORT_CSV_HEADER = 'type,content,difficulty,topics,explanation,options'
 
 export const IMPORT_CSV_TEMPLATE = `${IMPORT_CSV_HEADER}
-single_choice,"¿Cuál es la forma correcta de declarar una variable en Go? (usa :=)",beginner,go,"El operador := declara e inicializa con inferencia de tipo","[v] x := 5 | [ ] var x := 5 | [ ] x = 5 | [ ] let x = 5"
-multiple_choice,"¿Cuáles son tipos válidos en Go?",beginner,go,"int, string y bool son tipos primitivos de Go","[v] int | [v] string | [ ] var | [ ] class"
+single_choice,"¿Qué hace \`defer\` en Go?
+
+\`\`\`go
+defer fmt.Println(""adios"")
+fmt.Println(""hola"")
+\`\`\`",beginner,go,"**defer** programa la llamada para ejecutarse justo antes de que la función retorne, en orden **LIFO**. Ideal para liberar recursos como \`file.Close()\`.","[v] Se ejecuta al retornar la función (LIFO) | [ ] Se ejecuta al inicio de la iteración | [ ] Cancela la goroutine | [ ] Convierte la función en asíncrona"
+multiple_choice,"¿Cuáles de estas afirmaciones sobre **interfaces** en Go son correctas?",intermediate,go,"En Go las interfaces se implementan **implícitamente**: un tipo la satisface si posee todos sus métodos. La interfaz vacía \`interface{}\` puede contener cualquier valor.","[v] La implementación es implícita, no se declara \`implements\` | [ ] Un tipo debe declarar explícitamente qué interfaces implementa | [v] \`interface{}\` puede contener cualquier valor | [ ] Las interfaces solo pueden tener métodos privados"
 `
 
 export function buildImportPrompt(topics: Array<Topic>, quantity: number = 5): string {
@@ -28,18 +33,18 @@ Genera EXACTAMENTE ${qty} preguntas en formato CSV de tipo single_choice o multi
 
 FORMATO OBLIGATORIO:
 - Encabezado: ${IMPORT_CSV_HEADER}
-- Delimitador: coma (,) con comillas dobles si el campo contiene comas.
+- Delimitador: coma (,) con comillas dobles si el campo contiene comas o saltos de línea.
 - Codificación UTF-8.
 
 Columnas:
 - type: single_choice o multiple_choice
-- content: enunciado en ESPAÑOL (claro y específico)
+- content: enunciado en ESPAÑOL (claro y específico). Puede incluir formato enriquecido (ver FORMATO ENRIQUECIDO).
 - difficulty: beginner | intermediate | advanced
 - topics: slugs separados por ; — USA EXACTAMENTE ESTOS SLUGS, sin traducir ni cambiar mayúsculas:
 ${topicLines}
   ${topicsNote}
   Ejemplo topics: ${slugsExample}  (si varias: ${slugsExample};otro-slug)
-- explanation: explicación educativa opcional en español
+- explanation: explicación educativa en español. Puede incluir formato enriquecido.
 - options: opciones separadas por | . Cada opción con prefijo [v] si es CORRECTA o [ ] si es INCORRECTA.
 
 Reglas de options:
@@ -47,16 +52,38 @@ Reglas de options:
 - single_choice: EXACTAMENTE 1 opción con [v].
 - multiple_choice: 2 o más opciones con [v] permitidas.
 - Usa: [v] para correctas, [ ] para incorrectas.
+- Las opciones también pueden usar \`código inline\` y **negrita**, pero NO bloques de código multilínea ni el carácter | dentro del texto de una opción (es el separador).
+
+FORMATO ENRIQUECIDO (soportado por la UI en content, explanation y options):
+- Usa \`código inline\` para identificadores, funciones, comandos y valores literales (ej: \`defer\`, \`Array<T>\`, \`useState\`).
+- Usa bloques de código con fences cuando el enunciado o la explicación lo requiera:
+  \`\`\`go
+  defer file.Close()
+  \`\`\`
+  Idiomas soportados: go, javascript, typescript, python, java, csharp, rust, sql, bash. Si el ejemplo no es código ejecutable usa plaintext.
+- Usa **negrita** para resaltar conceptos clave.
+- Aprovecha el formato para que la pregunta sea atractiva y legible: si hay código, muéstralo con formato; si hay un concepto clave, destácalo.
+
+REGLAS DE CSV:
+- Si un campo contiene comas, saltos de línea o comillas dobles, enciérralo entre comillas dobles.
+- Escapa comillas dobles internas duplicándolas ("").
+- Los campos multilínea (con bloques de código) DEBEN ir entre comillas dobles y conservar los saltos de línea dentro del campo.
+- Solo texto, comas y ; están permitidos en los slugs.
 
 REGLAS IMPORTANTES:
-- TODO el contenido debe estar en ESPAÑOL.
-- No añadas markdown, comentarios ni texto fuera del CSV.
+- TODO el contenido debe estar en ESPAÑOL (con tildes y ortografía correcta).
+- NO añadas texto, comentarios, explicaciones ni fences markdown FUERA del CSV. Devuelve SOLO el CSV (encabezado + ${qty} filas).
+- Dentro de los campos SÍ usa markdown inline/bloques según las reglas de FORMATO ENRIQUECIDO.
 - Genera exactamente ${qty} filas de datos + la fila de encabezado (total ${qty + 1} filas).
 - No repitas preguntas.
 - No pongas comillas simples alrededor de [v]/[ ].
 
-Ejemplo de fila:
-single_choice,"¿Qué imprime fmt.Println(len(\\"hola\\")) en Go?",beginner,${slugsExample},"len devuelve la longitud de la cadena","[v] 4 | [ ] 5 | [ ] 0 | [ ] error"
+Ejemplo de fila con bloque de código:
+single_choice,"¿Qué imprime este código en Go?
+
+\`\`\`go
+fmt.Println(len(""hola""))
+\`\`\`",beginner,${slugsExample},"**len** devuelve la longitud en bytes de la cadena. Para ""hola"" son 4 bytes.","[v] 4 | [ ] 5 | [ ] 0 | [ ] error"
 
 Ahora genera el CSV solicitado.`
 }
