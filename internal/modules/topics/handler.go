@@ -29,6 +29,7 @@ func NewHandler(service Service) *Handler {
 // @Param        sortBy     query  string  false  "Campo de ordenación: name, slug, category, created_at"
 // @Param        sortOrder  query  string  false  "Dirección: asc o desc (default: desc)"
 // @Param        search     query  string  false  "Búsqueda por nombre o slug"
+// @Param        category   query  string  false  "Filtrar por categoría"
 // @Param        myOnly     query  bool    false  "Filtrar solo mis temas personalizados"
 // @Success      200  {object}  response.Meta  "Lista de temas (con paginación)"
 // @Failure      401  {object}  apierr.APIError
@@ -51,6 +52,7 @@ func (h *Handler) List(c *gin.Context) {
 	params := ListTopicsParams{
 		PaginationParams: pagination,
 		Search:           c.Query("search"),
+		Category:         c.Query("category"),
 		MyOnly:           c.Query("myOnly") == "true" || c.Query("myOnly") == "1",
 	}
 

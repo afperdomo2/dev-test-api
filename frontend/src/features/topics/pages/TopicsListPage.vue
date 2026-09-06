@@ -9,6 +9,7 @@ import { useDebounce } from '@/composables/useDebounce'
 import ListPageHeader from '@/components/ListPageHeader.vue'
 import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import TopicFormDialog from '../components/TopicFormDialog.vue'
+import { TOPIC_CATEGORIES } from '@/types/topic.types'
 import type { Topic } from '@/types/topic.types'
 
 const authStore = useAuthStore()
@@ -18,6 +19,8 @@ const { page, perPage, reset: resetPagination } = usePagination()
 
 const { value: searchText, debouncedValue: debouncedSearch } = useDebounce('', 500)
 const myOnly = ref(false)
+const selectedCategory = ref('')
+const categoryItems: Array<string> = [...TOPIC_CATEGORIES]
 
 const { data, isLoading } = useQuery(
   topicsListOptions(
@@ -26,6 +29,7 @@ const { data, isLoading } = useQuery(
     () => 'name',
     () => 'asc',
     () => debouncedSearch.value || '',
+    () => selectedCategory.value || '',
     () => myOnly.value,
   ),
 )
@@ -54,6 +58,10 @@ function handleRefresh() {
 }
 
 watch(debouncedSearch, () => {
+  resetPagination()
+})
+
+watch(selectedCategory, () => {
   resetPagination()
 })
 
@@ -120,7 +128,7 @@ function canModify(topic: Topic): boolean {
     />
 
     <v-row class="mb-4" dense>
-      <v-col cols="12" md="5" lg="4">
+      <v-col cols="12" md="4" lg="4">
         <v-text-field
           v-model="searchText"
           prepend-inner-icon="mdi-magnify"
@@ -129,6 +137,16 @@ function canModify(topic: Topic): boolean {
           hide-details
           density="compact"
           @click:clear="searchText = ''"
+        />
+      </v-col>
+      <v-col cols="12" md="3" lg="3">
+        <v-select
+          v-model="selectedCategory"
+          label="Categoría"
+          :items="categoryItems"
+          clearable
+          hide-details
+          density="compact"
         />
       </v-col>
       <v-col v-if="!authStore.isAdmin" cols="auto">
@@ -141,6 +159,11 @@ function canModify(topic: Topic): boolean {
           inset
           @update:model-value="onMyOnlyChange"
         />
+      </v-col>
+      <v-col v-if="selectedCategory" cols="auto" class="d-flex align-center">
+        <v-btn size="small" variant="text" color="error" @click="selectedCategory = ''">
+          Limpiar
+        </v-btn>
       </v-col>
     </v-row>
 

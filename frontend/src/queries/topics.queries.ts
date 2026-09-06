@@ -7,10 +7,11 @@ export function topicsListOptions(
   sortBy?: () => string,
   sortOrder?: () => string,
   search?: () => string,
+  category?: () => string,
   myOnly?: () => boolean,
 ) {
   return queryOptions({
-    queryKey: ['topics', 'list', page, perPage, sortBy, sortOrder, search, myOnly],
+    queryKey: ['topics', 'list', page, perPage, sortBy, sortOrder, search, category, myOnly],
     queryFn: () =>
       topicsService.listTopics(
         page(),
@@ -18,6 +19,7 @@ export function topicsListOptions(
         sortBy?.(),
         sortOrder?.(),
         search?.(),
+        category?.(),
         myOnly?.(),
       ),
     staleTime: 60 * 1000,

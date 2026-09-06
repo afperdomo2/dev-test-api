@@ -27,10 +27,19 @@ describe('topics.queries', () => {
       () => 'name',
       () => 'asc',
       () => 'q',
+      () => 'backend',
       () => true,
     )
     await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
-    expect(topicsService.listTopics).toHaveBeenCalledWith(1, 10, 'name', 'asc', 'q', true)
+    expect(topicsService.listTopics).toHaveBeenCalledWith(
+      1,
+      10,
+      'name',
+      'asc',
+      'q',
+      'backend',
+      true,
+    )
   })
 
   it('topicsListOptions handles undefined optionals', async () => {
@@ -43,6 +52,7 @@ describe('topics.queries', () => {
     expect(topicsService.listTopics).toHaveBeenCalledWith(
       1,
       10,
+      undefined,
       undefined,
       undefined,
       undefined,

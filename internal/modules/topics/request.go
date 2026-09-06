@@ -9,8 +9,9 @@ var sortConfig = common.SortConfig{
 
 type ListTopicsParams struct {
 	common.PaginationParams
-	Search string
-	MyOnly bool
+	Search   string
+	Category string
+	MyOnly   bool
 }
 
 type CreateTopicRequest struct {

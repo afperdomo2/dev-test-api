@@ -61,6 +61,10 @@ func (s *gormStore) FindPageFiltered(params ListTopicsParams, isAdmin bool, user
 		query = query.Where("name ILIKE ? OR slug ILIKE ?", like, like)
 	}
 
+	if params.Category != "" {
+		query = query.Where("category = ?", params.Category)
+	}
+
 	query.Count(&total)
 
 	err := query.Offset((params.Page - 1) * params.PerPage).Limit(params.PerPage).
