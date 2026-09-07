@@ -16,22 +16,46 @@ interface NavItem {
   userOnly?: boolean
 }
 
-const navItems: Array<NavItem> = [
-  { title: 'Dashboard', to: '/', icon: 'mdi-view-dashboard' },
-  { title: 'Preguntas', to: '/questions', icon: 'mdi-help-circle', userOnly: true },
-  { title: 'Importar', to: '/questions/import', icon: 'mdi-file-upload', userOnly: true },
-  { title: 'Temas', to: '/topics', icon: 'mdi-tag' },
-  { title: 'Sesiones', to: '/sessions', icon: 'mdi-play-circle', userOnly: true },
-  { title: 'Progreso', to: '/progress', icon: 'mdi-chart-line', userOnly: true },
-  { title: 'Estadísticas', to: '/stats', icon: 'mdi-chart-bar', userOnly: true },
-  { title: 'Usuarios', to: '/users', icon: 'mdi-account-group', adminOnly: true },
+interface NavSection {
+  title?: string
+  items: Array<NavItem>
+}
+
+const navSections: Array<NavSection> = [
+  { items: [{ title: 'Dashboard', to: '/', icon: 'mdi-view-dashboard' }] },
+  {
+    title: 'Preguntas',
+    items: [
+      { title: 'Preguntas', to: '/questions', icon: 'mdi-help-circle', userOnly: true },
+      { title: 'Importar', to: '/questions/import', icon: 'mdi-file-upload', userOnly: true },
+      { title: 'Temas', to: '/topics', icon: 'mdi-tag' },
+      { title: 'Estadísticas', to: '/stats', icon: 'mdi-chart-bar', userOnly: true },
+    ],
+  },
+  {
+    title: 'Estudio',
+    items: [
+      { title: 'Sesiones', to: '/sessions', icon: 'mdi-play-circle', userOnly: true },
+      { title: 'Progreso', to: '/progress', icon: 'mdi-chart-line', userOnly: true },
+    ],
+  },
+  {
+    title: 'Administración',
+    items: [{ title: 'Usuarios', to: '/users', icon: 'mdi-account-group', adminOnly: true }],
+  },
 ]
 
-const filteredNav = computed(() =>
-  navItems.filter(
-    (item) =>
-      (item.adminOnly ? authStore.isAdmin : true) && (item.userOnly ? !authStore.isAdmin : true),
-  ),
+const filteredSections = computed(() =>
+  navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) =>
+          (item.adminOnly ? authStore.isAdmin : true) &&
+          (item.userOnly ? !authStore.isAdmin : true),
+      ),
+    }))
+    .filter((section) => section.items.length > 0),
 )
 
 function logout() {
@@ -53,14 +77,17 @@ function logout() {
       <v-divider />
 
       <v-list density="compact" nav>
-        <v-list-item
-          v-for="item in filteredNav"
-          :key="item.to"
-          :to="item.to"
-          :prepend-icon="item.icon"
-          :title="item.title"
-          exact
-        />
+        <template v-for="section in filteredSections" :key="section.title ?? '__top'">
+          <v-list-subheader v-if="section.title">{{ section.title }}</v-list-subheader>
+          <v-list-item
+            v-for="item in section.items"
+            :key="item.to"
+            :to="item.to"
+            :prepend-icon="item.icon"
+            :title="item.title"
+            exact
+          />
+        </template>
       </v-list>
 
       <template #append>

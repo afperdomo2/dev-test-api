@@ -44,8 +44,10 @@ describe('DefaultLayout', () => {
 
   it('filters nav for non-admin (no Usuarios, shows Preguntas)', () => {
     const { wrapper } = mountLayout(false)
-    const vm = wrapper.vm as unknown as { filteredNav: Array<{ title: string }> }
-    const titles = vm.filteredNav.map((n) => n.title)
+    const vm = wrapper.vm as unknown as {
+      filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
+    }
+    const titles = vm.filteredSections.flatMap((s) => s.items.map((n) => n.title))
     expect(titles).toContain('Preguntas')
     expect(titles).toContain('Sesiones')
     expect(titles).not.toContain('Usuarios')
@@ -53,10 +55,38 @@ describe('DefaultLayout', () => {
 
   it('filters nav for admin (shows Usuarios, hides Preguntas)', () => {
     const { wrapper } = mountLayout(true)
-    const vm = wrapper.vm as unknown as { filteredNav: Array<{ title: string }> }
-    const titles = vm.filteredNav.map((n) => n.title)
+    const vm = wrapper.vm as unknown as {
+      filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
+    }
+    const titles = vm.filteredSections.flatMap((s) => s.items.map((n) => n.title))
     expect(titles).toContain('Usuarios')
     expect(titles).not.toContain('Preguntas')
+  })
+
+  it('groups nav into sections with correct titles', () => {
+    const { wrapper } = mountLayout(false)
+    const vm = wrapper.vm as unknown as {
+      filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
+    }
+    const sectionTitles = vm.filteredSections.map((s) => s.title)
+    // Top section has no title (Dashboard), then Preguntas and Estudio
+    expect(sectionTitles).toContain('Preguntas')
+    expect(sectionTitles).toContain('Estudio')
+    expect(sectionTitles).not.toContain('Administración')
+    const preguntasSection = vm.filteredSections.find((s) => s.title === 'Preguntas')
+    expect(preguntasSection?.items.map((i) => i.title)).toEqual(
+      expect.arrayContaining(['Preguntas', 'Importar', 'Temas', 'Estadísticas']),
+    )
+  })
+
+  it('hides empty sections for admin', () => {
+    const { wrapper } = mountLayout(true)
+    const vm = wrapper.vm as unknown as {
+      filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
+    }
+    const sectionTitles = vm.filteredSections.map((s) => s.title)
+    expect(sectionTitles).not.toContain('Estudio')
+    expect(sectionTitles).toContain('Administración')
   })
 
   it('shows user email and role', () => {
