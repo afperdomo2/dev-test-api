@@ -567,7 +567,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Importa preguntas masivas desde CSV (hasta 50 por archivo, límite diario configurable por usuario). Los temas desconocidos se auto-crean como personalizados.",
+                "description": "Importa preguntas masivas desde CSV (hasta 50 por archivo, límite diario configurable por usuario; el administrador importa sin límite). Los temas deben existir (los slugs desconocidos o filas sin temas generan error).",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1342,6 +1342,12 @@
                         "type": "string",
                         "description": "Búsqueda por nombre o slug",
                         "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por categoría",
+                        "name": "category",
                         "in": "query"
                     },
                     {

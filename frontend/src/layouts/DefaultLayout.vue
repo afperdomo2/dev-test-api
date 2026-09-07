@@ -26,8 +26,8 @@ const navSections: Array<NavSection> = [
   {
     title: 'Preguntas',
     items: [
-      { title: 'Preguntas', to: '/questions', icon: 'mdi-help-circle', userOnly: true },
-      { title: 'Importar', to: '/questions/import', icon: 'mdi-file-upload', userOnly: true },
+      { title: 'Preguntas', to: '/questions', icon: 'mdi-help-circle' },
+      { title: 'Importar', to: '/questions/import', icon: 'mdi-file-upload' },
       { title: 'Temas', to: '/topics', icon: 'mdi-tag' },
       { title: 'Estadísticas', to: '/stats', icon: 'mdi-chart-bar', userOnly: true },
     ],

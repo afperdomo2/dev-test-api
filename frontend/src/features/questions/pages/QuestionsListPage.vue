@@ -113,7 +113,7 @@ watch(filters, () => {
     <ListPageHeader
       title="Preguntas"
       create-label="Nueva pregunta"
-      :show-create="true"
+      :show-create="!authStore.isAdmin"
       @refresh="handleRefresh"
       @create="openCreate"
     >

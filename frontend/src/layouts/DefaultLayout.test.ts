@@ -53,14 +53,18 @@ describe('DefaultLayout', () => {
     expect(titles).not.toContain('Usuarios')
   })
 
-  it('filters nav for admin (shows Usuarios, hides Preguntas)', () => {
+  it('filters nav for admin (shows Usuarios, Preguntas e Importar)', () => {
     const { wrapper } = mountLayout(true)
     const vm = wrapper.vm as unknown as {
       filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
     }
     const titles = vm.filteredSections.flatMap((s) => s.items.map((n) => n.title))
     expect(titles).toContain('Usuarios')
-    expect(titles).not.toContain('Preguntas')
+    expect(titles).toContain('Preguntas')
+    expect(titles).toContain('Importar')
+    expect(titles).toContain('Temas')
+    expect(titles).not.toContain('Sesiones')
+    expect(titles).not.toContain('Progreso')
   })
 
   it('groups nav into sections with correct titles', () => {

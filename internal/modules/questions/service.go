@@ -14,7 +14,6 @@ import (
 
 type topicStore interface {
 	FindBySlugAndUser(slug string, createdBy *uuid.UUID) (*models.Topic, error)
-	Create(topic *models.Topic) error
 }
 
 type userStore interface {
@@ -306,15 +305,19 @@ func (s *questionService) Import(userID uuid.UUID, r io.Reader) (*ImportResult, 
 		return nil, apierr.ErrInternal("Error al obtener el usuario", "")
 	}
 
-	since := startOfDayUTC(time.Now())
-	used, err := s.store.CountImportedSince(userID, since)
-	if err != nil {
-		return nil, apierr.ErrInternal("Error al calcular el cupo diario", "")
-	}
-	remaining := user.DailyImportLimit - int(used)
-	if remaining <= 0 {
-		return nil, apierr.ErrTooManyRequests(
-			fmt.Sprintf("Has alcanzado tu límite diario de %d preguntas importadas", user.DailyImportLimit), "")
+	isAdmin := user.IsAdmin
+	remaining := maxQuestionsPerFile
+	if !isAdmin {
+		since := startOfDayUTC(time.Now())
+		used, err := s.store.CountImportedSince(userID, since)
+		if err != nil {
+			return nil, apierr.ErrInternal("Error al calcular el cupo diario", "")
+		}
+		remaining = user.DailyImportLimit - int(used)
+		if remaining <= 0 {
+			return nil, apierr.ErrTooManyRequests(
+				fmt.Sprintf("Has alcanzado tu límite diario de %d preguntas importadas", user.DailyImportLimit), "")
+		}
 	}
 
 	rows, err := parseCSV(r)
@@ -360,9 +363,9 @@ func (s *questionService) Import(userID uuid.UUID, r io.Reader) (*ImportResult, 
 			continue
 		}
 
-		topicIDs, tErr := s.resolveTopicIDs(validated.TopicSlugs, userID, topicCache)
+		topicIDs, tErr := s.resolveTopicIDs(validated.TopicSlugs, userID, isAdmin, topicCache)
 		if tErr != nil {
-			rowErrors = append(rowErrors, ImportRowError{Row: row.RowNum, Reason: fmt.Sprintf("Error al resolver temas: %v", tErr)})
+			rowErrors = append(rowErrors, ImportRowError{Row: row.RowNum, Reason: tErr.Error()})
 			continue
 		}
 
@@ -372,6 +375,7 @@ func (s *questionService) Import(userID uuid.UUID, r io.Reader) (*ImportResult, 
 			Content:     strings.TrimSpace(row.Content),
 			Explanation: strings.TrimSpace(row.Explanation),
 			Difficulty:  validated.Difficulty,
+			IsPublic:    isAdmin,
 			Source:      "imported",
 		}
 
@@ -411,14 +415,14 @@ func (s *questionService) Import(userID uuid.UUID, r io.Reader) (*ImportResult, 
 	return result, nil
 }
 
-func (s *questionService) resolveTopicIDs(slugs []string, userID uuid.UUID, cache map[string]uuid.UUID) ([]uuid.UUID, error) {
+func (s *questionService) resolveTopicIDs(slugs []string, userID uuid.UUID, isAdmin bool, cache map[string]uuid.UUID) ([]uuid.UUID, error) {
 	var ids []uuid.UUID
 	for _, slug := range slugs {
 		if cached, ok := cache[slug]; ok {
 			ids = append(ids, cached)
 			continue
 		}
-		tid, err := s.findOrCreateTopic(slug, userID, cache)
+		tid, err := s.findTopic(slug, userID, isAdmin, cache)
 		if err != nil {
 			return nil, err
 		}
@@ -427,9 +431,21 @@ func (s *questionService) resolveTopicIDs(slugs []string, userID uuid.UUID, cach
 	return ids, nil
 }
 
-func (s *questionService) findOrCreateTopic(slug string, userID uuid.UUID, cache map[string]uuid.UUID) (uuid.UUID, error) {
+func (s *questionService) findTopic(slug string, userID uuid.UUID, isAdmin bool, cache map[string]uuid.UUID) (uuid.UUID, error) {
 	if tid, ok := cache[slug]; ok {
 		return tid, nil
+	}
+
+	if isAdmin {
+		t, err := s.topicStore.FindBySlugAndUser(slug, nil)
+		if err == nil {
+			cache[slug] = t.ID
+			return t.ID, nil
+		}
+		if err != gorm.ErrRecordNotFound {
+			return uuid.Nil, err
+		}
+		return uuid.Nil, fmt.Errorf("tema no encontrado: %s", slug)
 	}
 
 	if t, err := s.topicStore.FindBySlugAndUser(slug, &userID); err == nil {
@@ -446,16 +462,5 @@ func (s *questionService) findOrCreateTopic(slug string, userID uuid.UUID, cache
 		return uuid.Nil, err
 	}
 
-	topic := &models.Topic{
-		Slug:      slug,
-		Name:      slug,
-		Category:  defaultImportCategory,
-		IsSystem:  false,
-		CreatedBy: &userID,
-	}
-	if err := s.topicStore.Create(topic); err != nil {
-		return uuid.Nil, err
-	}
-	cache[slug] = topic.ID
-	return topic.ID, nil
+	return uuid.Nil, fmt.Errorf("tema no encontrado: %s", slug)
 }

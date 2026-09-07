@@ -105,7 +105,7 @@ func (s *gormStore) FindNextQuestion(topicIDs []uuid.UUID, answeredIDs []uuid.UU
 		query = query.Where("questions.id NOT IN ?", answeredIDs)
 	}
 
-	query = query.Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID)
+	query = query.Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true)
 
 	var question models.Question
 	err := query.Order("RANDOM()").
@@ -132,7 +132,7 @@ func (s *gormStore) CountAvailableQuestions(topicIDs []uuid.UUID, answeredIDs []
 		query = query.Where("questions.id NOT IN ?", answeredIDs)
 	}
 
-	query = query.Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID)
+	query = query.Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true)
 
 	var count int64
 	err := query.Count(&count).Error

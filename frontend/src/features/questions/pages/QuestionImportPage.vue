@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { listTopics } from '@/api/services/topics.service'
 import { importQuestions, getImportQuota } from '@/api/services/questions.service'
+import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import { MAX_QUESTIONS_PER_FILE, type ImportResult } from '@/types/question.types'
 import {
@@ -17,6 +18,7 @@ import { requiredRule, validateRules } from '@/utils/validators'
 import type { Topic } from '@/types/topic.types'
 
 const appStore = useAppStore()
+const authStore = useAuthStore()
 const queryClient = useQueryClient()
 
 const selectedTopicIds = ref<Array<string>>([])
@@ -43,6 +45,7 @@ const { data: quota } = useQuery({
   queryKey: ['questions', 'import-quota'],
   queryFn: () => getImportQuota(),
   staleTime: 30 * 1000,
+  enabled: computed(() => !authStore.isAdmin),
 })
 
 const topicItems = computed(() =>
@@ -178,7 +181,7 @@ async function doImport() {
       <h1 class="text-h4">Importar preguntas</h1>
     </div>
 
-    <v-card v-if="quota" class="mb-4">
+    <v-card v-if="quota && !authStore.isAdmin" class="mb-4">
       <v-card-text>
         <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
           <span class="text-body-2 font-weight-medium">
@@ -195,7 +198,24 @@ async function doImport() {
           </template>
         </v-progress-linear>
         <div class="text-caption text-medium-emphasis mt-2">
-          Si el CSV referencia un slug inexistente, se crea un tema personalizado automáticamente.
+          Los slugs deben coincidir con temas ya existentes; un slug inexistente o una fila sin
+          temas genera error.
+        </div>
+      </v-card-text>
+    </v-card>
+    <v-card v-else-if="authStore.isAdmin" class="mb-4">
+      <v-card-text>
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+          <span class="text-body-2 font-weight-medium"
+            >Importación de administrador: sin límite diario</span
+          >
+          <span class="text-caption"
+            >Máximo por archivo: {{ MAX_QUESTIONS_PER_FILE }} preguntas</span
+          >
+        </div>
+        <div class="text-caption text-medium-emphasis mt-2">
+          Las preguntas importadas como admin son públicas (visibles para todos los usuarios). Los
+          slugs deben coincidir con temas ya existentes.
         </div>
       </v-card-text>
     </v-card>

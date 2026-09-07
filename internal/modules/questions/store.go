@@ -48,7 +48,7 @@ func (s *gormStore) FindPage(params ListQuestionsParams) ([]models.Question, int
 		query = query.Where("id IN (SELECT question_id FROM question_topics WHERE topic_id IN ?)", params.TopicIDs)
 	}
 	if params.UserID != uuid.Nil {
-		query = query.Where("(source = ? OR user_id = ?)", "ai_generated", params.UserID)
+		query = query.Where("(source = ? OR user_id = ? OR is_public = ?)", "ai_generated", params.UserID, true)
 	}
 
 	query.Count(&total)
@@ -168,7 +168,7 @@ func (s *gormStore) CountAiGeneratedSince(userID uuid.UUID, since time.Time) (in
 }
 
 func (s *gormStore) Stats(userID uuid.UUID) (*QuestionStats, error) {
-	visibility := s.db.Model(&models.Question{}).Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID)
+	visibility := s.db.Model(&models.Question{}).Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true)
 
 	var total int64
 	if err := visibility.Count(&total).Error; err != nil {
@@ -199,7 +199,7 @@ func (s *gormStore) Stats(userID uuid.UUID) (*QuestionStats, error) {
 		Select("topics.id as topic_id, topics.name, topics.slug, topics.category, COUNT(*) as count").
 		Joins("JOIN question_topics ON question_topics.question_id = questions.id").
 		Joins("JOIN topics ON topics.id = question_topics.topic_id").
-		Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID).
+		Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true).
 		Group("topics.id, topics.name, topics.slug, topics.category").
 		Order("count DESC, topics.name ASC").
 		Scan(&byTopic).Error; err != nil {
@@ -215,7 +215,7 @@ func (s *gormStore) Stats(userID uuid.UUID) (*QuestionStats, error) {
 		Select("topics.category as category, COUNT(*) as count").
 		Joins("JOIN question_topics ON question_topics.question_id = questions.id").
 		Joins("JOIN topics ON topics.id = question_topics.topic_id").
-		Where("(questions.source = ? OR questions.user_id = ?)", "ai_generated", userID).
+		Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true).
 		Group("topics.category").
 		Order("count DESC").
 		Scan(&byCategory).Error; err != nil {

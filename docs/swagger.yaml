@@ -1109,8 +1109,8 @@ paths:
       consumes:
       - multipart/form-data
       description: Importa preguntas masivas desde CSV (hasta 50 por archivo, límite
-        diario configurable por usuario). Los temas desconocidos se auto-crean como
-        personalizados.
+        diario configurable por usuario; el administrador importa sin límite). Los
+        temas deben existir (los slugs desconocidos o filas sin temas generan error).
       parameters:
       - description: Archivo CSV
         in: formData
@@ -1498,6 +1498,10 @@ paths:
       - description: Búsqueda por nombre o slug
         in: query
         name: search
+        type: string
+      - description: Filtrar por categoría
+        in: query
+        name: category
         type: string
       - description: Filtrar solo mis temas personalizados
         in: query

@@ -10,8 +10,6 @@ import (
 const (
 	maxQuestionsPerFile     = 50
 	defaultImportDifficulty = "intermediate"
-	defaultImportTopicSlug  = "importadas"
-	defaultImportCategory   = "conceptos"
 )
 
 var validImportTypes = map[string]bool{
@@ -220,6 +218,9 @@ func validateImportRow(row importRow) (*validatedImportRow, error) {
 	}
 
 	topicSlugs := parseTopicSlugs(row.TopicsRaw)
+	if len(topicSlugs) == 0 {
+		return nil, fmt.Errorf("se requiere al menos un tema")
+	}
 
 	return &validatedImportRow{
 		Type:       typeNorm,
@@ -232,7 +233,7 @@ func validateImportRow(row importRow) (*validatedImportRow, error) {
 func parseTopicSlugs(raw string) []string {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return []string{defaultImportTopicSlug}
+		return nil
 	}
 	parts := strings.Split(raw, ";")
 	var slugs []string
@@ -247,9 +248,6 @@ func parseTopicSlugs(raw string) []string {
 			seen[s] = true
 			slugs = append(slugs, s)
 		}
-	}
-	if len(slugs) == 0 {
-		return []string{defaultImportTopicSlug}
 	}
 	return slugs
 }

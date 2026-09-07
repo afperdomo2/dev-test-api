@@ -225,7 +225,7 @@ func (h *Handler) Delete(c *gin.Context) {
 }
 
 // @Summary      Importar preguntas por CSV
-// @Description  Importa preguntas masivas desde CSV (hasta 50 por archivo, límite diario configurable por usuario). Los temas desconocidos se auto-crean como personalizados.
+// @Description  Importa preguntas masivas desde CSV (hasta 50 por archivo, límite diario configurable por usuario; el administrador importa sin límite). Los temas deben existir (los slugs desconocidos o filas sin temas generan error).
 // @Tags         questions
 // @Security     BearerAuth
 // @Accept       multipart/form-data
@@ -239,15 +239,10 @@ func (h *Handler) Delete(c *gin.Context) {
 // @Failure      429  {object}  apierr.APIError
 // @Router       /api/v1/questions/import [post]
 func (h *Handler) Import(c *gin.Context) {
-	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	_, userID, apiErr := getUserRoleAndID(c)
 	if apiErr != nil {
 		apiErr.Instance = c.Request.URL.Path
 		response.Problem(c, apiErr)
-		return
-	}
-
-	if isAdmin {
-		response.Problem(c, apierr.ErrForbidden("Los administradores no pueden importar preguntas", c.Request.URL.Path))
 		return
 	}
 

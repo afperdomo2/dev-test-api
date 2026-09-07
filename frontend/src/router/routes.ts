@@ -45,19 +45,16 @@ export const routes: Array<RouteRecordRaw> = [
         path: 'questions',
         name: 'QuestionsList',
         component: () => import('@/features/questions/pages/QuestionsListPage.vue'),
-        meta: { requiresNotAdmin: true },
       },
       {
         path: 'questions/import',
         name: 'QuestionImport',
         component: () => import('@/features/questions/pages/QuestionImportPage.vue'),
-        meta: { requiresNotAdmin: true },
       },
       {
         path: 'questions/:id',
         name: 'QuestionDetail',
         component: () => import('@/features/questions/pages/QuestionDetailPage.vue'),
-        meta: { requiresNotAdmin: true },
       },
       {
         path: 'topics',
