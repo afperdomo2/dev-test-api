@@ -5,7 +5,14 @@ import { listTopics } from '@/api/services/topics.service'
 import { importQuestions, getImportQuota } from '@/api/services/questions.service'
 import { useAppStore } from '@/stores/app.store'
 import { MAX_QUESTIONS_PER_FILE, type ImportResult } from '@/types/question.types'
-import { IMPORT_CSV_TEMPLATE, buildImportPrompt } from '@/constants/questionImport'
+import {
+  IMPORT_CSV_TEMPLATE,
+  buildImportPrompt,
+  PROMPT_DIFFICULTIES,
+  PROMPT_OBJECTIVES,
+  type PromptDifficulty,
+  type PromptObjective,
+} from '@/constants/questionImport'
 import { requiredRule, validateRules } from '@/utils/validators'
 import type { Topic } from '@/types/topic.types'
 
@@ -14,6 +21,9 @@ const queryClient = useQueryClient()
 
 const selectedTopicIds = ref<Array<string>>([])
 const questionCount = ref<number>(10)
+const selectedDifficulty = ref<PromptDifficulty>('mixed')
+const selectedObjective = ref<PromptObjective>('review')
+const customContext = ref('')
 const promptText = ref('')
 const csvText = ref('')
 const importMode = ref<'file' | 'paste'>('file')
@@ -75,11 +85,18 @@ const topicsPromptError = computed<Array<string>>(() => {
 function rebuildPrompt() {
   const n = Number(questionCount.value)
   const qty = Number.isInteger(n) && n >= 1 && n <= 50 ? n : 5
-  promptText.value = buildImportPrompt(selectedTopics.value, qty)
+  promptText.value = buildImportPrompt(selectedTopics.value, qty, {
+    difficulty: selectedDifficulty.value,
+    objective: selectedObjective.value,
+    customContext: customContext.value,
+  })
 }
 
 watch(selectedTopicIds, rebuildPrompt, { immediate: true })
 watch(questionCount, rebuildPrompt)
+watch(selectedDifficulty, rebuildPrompt)
+watch(selectedObjective, rebuildPrompt)
+watch(customContext, rebuildPrompt)
 
 async function copyPrompt() {
   promptValidated.value = true
@@ -237,6 +254,57 @@ async function doImport() {
                 />
               </v-col>
             </v-row>
+            <v-row dense class="mb-3">
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="selectedObjective"
+                  label="Objetivo"
+                  :items="PROMPT_OBJECTIVES"
+                  item-title="title"
+                  item-value="value"
+                  density="compact"
+                  variant="outlined"
+                  hide-details="auto"
+                >
+                  <template #item="{ props: itemProps, item }">
+                    <v-list-item v-bind="itemProps">
+                      <template #subtitle>
+                        <span class="text-caption">{{ item.raw.description }}</span>
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-select>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="selectedDifficulty"
+                  label="Dificultad"
+                  :items="PROMPT_DIFFICULTIES"
+                  item-title="title"
+                  item-value="value"
+                  density="compact"
+                  variant="outlined"
+                  hide-details="auto"
+                />
+              </v-col>
+            </v-row>
+            <v-textarea
+              v-model="customContext"
+              label="Contexto adicional (opcional)"
+              placeholder="Ej: preguntas enfocadas a Go con concurrencia para entrevista senior, con ejemplos de canales y goroutines…"
+              rows="2"
+              auto-grow
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-3"
+            />
+            <div
+              v-if="selectedObjective === 'custom' && !customContext.trim()"
+              class="text-caption text-warning mb-3"
+            >
+              Con objetivo “Personalizado”, escribe tu contexto arriba para orientar a la IA.
+            </div>
             <v-textarea
               v-model="promptText"
               label="Prompt para la IA"
