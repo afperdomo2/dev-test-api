@@ -2,15 +2,16 @@ export const TOPIC_CATEGORIES = [
   'lenguajes',
   'frontend',
   'backend',
-  'devops',
-  'arquitectura',
   'base-datos',
-  'conceptos',
-  'movil',
+  'datos',
+  'devops',
   'cloud',
+  'arquitectura',
+  'conceptos',
   'testing',
   'seguridad',
   'ia',
+  'movil',
 ] as const
 
 export type TopicCategory = string
