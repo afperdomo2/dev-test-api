@@ -48,6 +48,24 @@ definitions:
       initialized:
         type: boolean
     type: object
+  opencode.UsageResponse:
+    properties:
+      monthly:
+        $ref: '#/definitions/opencode.UsageWindow'
+      rolling:
+        $ref: '#/definitions/opencode.UsageWindow'
+      weekly:
+        $ref: '#/definitions/opencode.UsageWindow'
+    type: object
+  opencode.UsageWindow:
+    properties:
+      percent:
+        type: number
+      resetsAt:
+        type: string
+      status:
+        type: string
+    type: object
   progress.AnswerRequest:
     properties:
       isCorrect:
@@ -722,6 +740,39 @@ paths:
       summary: Estado del sistema
       tags:
       - auth
+  /api/v1/opencode/usage:
+    get:
+      description: Consulta el endpoint oficial de OpenCode Go y devuelve el consumo
+        rolling (5h), semanal y mensual con % usado y fecha de reset. Requiere rol
+        de administrador; el backend reutiliza AI_API_KEY.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/opencode.UsageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Consumo de OpenCode Go (solo admin)
+      tags:
+      - opencode
   /api/v1/profile:
     get:
       description: Obtiene los datos del usuario autenticado

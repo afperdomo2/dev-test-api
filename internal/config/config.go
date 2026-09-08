@@ -20,13 +20,19 @@ type AIConfig struct {
 	RequestTimeout int
 }
 
+type OpenCodeConfig struct {
+	UsageURL     string
+	UsageTimeout int
+}
+
 type Config struct {
-	Port    string
-	GinMode string
-	DB      DBConfig
-	JWT     JWTConfig
-	Cors    CorsConfig
-	AI      AIConfig
+	Port     string
+	GinMode  string
+	DB       DBConfig
+	JWT      JWTConfig
+	Cors     CorsConfig
+	AI       AIConfig
+	OpenCode OpenCodeConfig
 }
 
 type DBConfig struct {
@@ -80,6 +86,10 @@ func Load() *Config {
 			APIKey:         getEnv("AI_API_KEY", ""),
 			Model:          getEnv("AI_MODEL", "gpt-4o-mini"),
 			RequestTimeout: getIntEnv("AI_REQUEST_TIMEOUT", 120),
+		},
+		OpenCode: OpenCodeConfig{
+			UsageURL:     getEnv("OPENCODE_USAGE_URL", "https://opencode.ai/zen/go/v1/usage"),
+			UsageTimeout: getIntEnv("OPENCODE_USAGE_TIMEOUT", 10),
 		},
 	}
 

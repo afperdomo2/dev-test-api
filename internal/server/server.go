@@ -12,12 +12,14 @@ import (
 	"github.com/felipe/dev-test-api/internal/config"
 	"github.com/felipe/dev-test-api/internal/middleware"
 	"github.com/felipe/dev-test-api/internal/modules/auth"
+	opencodeModule "github.com/felipe/dev-test-api/internal/modules/opencode"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
 	"github.com/felipe/dev-test-api/internal/modules/sessions"
 	"github.com/felipe/dev-test-api/internal/modules/topics"
 	"github.com/felipe/dev-test-api/internal/modules/users"
 	"github.com/felipe/dev-test-api/internal/services/ai"
+	opencodeService "github.com/felipe/dev-test-api/internal/services/opencode"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
@@ -50,6 +52,10 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	authService := auth.NewService(userStore, cfg.JWT.SecretBytes(), cfg.JWT.ExpiryHrs)
 	authHandler := auth.NewHandler(authService)
 
+	opencodeClient := opencodeService.NewClient(cfg.AI, cfg.OpenCode)
+	opencodeSvc := opencodeModule.NewService(opencodeClient)
+	opencodeHandler := opencodeModule.NewHandler(opencodeSvc)
+
 	r := gin.Default()
 	r.Use(middleware.Logger())
 	r.Use(middleware.CORS(cfg.Cors.AllowedOrigins))
@@ -74,6 +80,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		admin.Use(middleware.AdminOnly())
 		{
 			users.RegisterAdminRoutes(admin, userHandler)
+			opencodeModule.RegisterAdminRoutes(admin, opencodeHandler)
 		}
 	}
 

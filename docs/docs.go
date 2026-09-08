@@ -135,6 +135,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/opencode/usage": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Consulta el endpoint oficial de OpenCode Go y devuelve el consumo rolling (5h), semanal y mensual con % usado y fecha de reset. Requiere rol de administrador; el backend reutiliza AI_API_KEY.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "opencode"
+                ],
+                "summary": "Consumo de OpenCode Go (solo admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/opencode.UsageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/profile": {
             "get": {
                 "security": [
@@ -1995,6 +2044,34 @@ const docTemplate = `{
             "properties": {
                 "initialized": {
                     "type": "boolean"
+                }
+            }
+        },
+        "opencode.UsageResponse": {
+            "type": "object",
+            "properties": {
+                "monthly": {
+                    "$ref": "#/definitions/opencode.UsageWindow"
+                },
+                "rolling": {
+                    "$ref": "#/definitions/opencode.UsageWindow"
+                },
+                "weekly": {
+                    "$ref": "#/definitions/opencode.UsageWindow"
+                }
+            }
+        },
+        "opencode.UsageWindow": {
+            "type": "object",
+            "properties": {
+                "percent": {
+                    "type": "number"
+                },
+                "resetsAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
                 }
             }
         },
