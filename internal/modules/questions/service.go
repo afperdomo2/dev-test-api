@@ -29,7 +29,7 @@ type Service interface {
 	Import(userID uuid.UUID, r io.Reader) (*ImportResult, error)
 	GetImportQuota(userID uuid.UUID) (*ImportQuota, error)
 	GetAiQuota(userID uuid.UUID) (*AiQuota, error)
-	Stats(userID uuid.UUID) (*QuestionStats, error)
+	Stats(isAdmin bool, userID uuid.UUID) (*QuestionStats, error)
 }
 
 type questionService struct {
@@ -234,8 +234,8 @@ func startOfDayUTC(t time.Time) time.Time {
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
 
-func (s *questionService) Stats(userID uuid.UUID) (*QuestionStats, error) {
-	stats, err := s.store.Stats(userID)
+func (s *questionService) Stats(isAdmin bool, userID uuid.UUID) (*QuestionStats, error) {
+	stats, err := s.store.Stats(isAdmin, userID)
 	if err != nil {
 		return nil, apierr.ErrInternal("Error al obtener las estadísticas", "")
 	}

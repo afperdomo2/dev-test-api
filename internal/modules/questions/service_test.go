@@ -24,7 +24,7 @@ type mockQuestionStore struct {
 	bulkCreateFn             func(questions []*models.Question) error
 	countImportedSinceFn     func(userID uuid.UUID, since time.Time) (int64, error)
 	countAiGeneratedSinceFn  func(userID uuid.UUID, since time.Time) (int64, error)
-	statsFn                  func(userID uuid.UUID) (*QuestionStats, error)
+	statsFn                  func(isAdmin bool, userID uuid.UUID) (*QuestionStats, error)
 }
 
 func (m *mockQuestionStore) FindPage(p ListQuestionsParams) ([]models.Question, int64, error) {
@@ -62,9 +62,9 @@ func (m *mockQuestionStore) CountAiGeneratedSince(uid uuid.UUID, since time.Time
 	}
 	return 0, nil
 }
-func (m *mockQuestionStore) Stats(uid uuid.UUID) (*QuestionStats, error) {
+func (m *mockQuestionStore) Stats(isAdmin bool, uid uuid.UUID) (*QuestionStats, error) {
 	if m.statsFn != nil {
-		return m.statsFn(uid)
+		return m.statsFn(isAdmin, uid)
 	}
 	return &QuestionStats{}, nil
 }

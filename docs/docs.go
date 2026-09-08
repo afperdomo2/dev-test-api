@@ -667,7 +667,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve conteos de preguntas visibles para el usuario autenticado, agrupados por tema, categoría, dificultad y tipo",
+                "description": "Devuelve conteos de preguntas visibles para el usuario autenticado (o, para el administrador, el banco compartido: IA + públicas), agrupados por tema, categoría, dificultad y tipo",
                 "produces": [
                     "application/json"
                 ],
@@ -684,12 +684,6 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/apierr.APIError"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }

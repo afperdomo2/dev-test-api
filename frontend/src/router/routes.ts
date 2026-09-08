@@ -89,7 +89,6 @@ export const routes: Array<RouteRecordRaw> = [
         path: 'stats',
         name: 'QuestionStats',
         component: () => import('@/features/stats/pages/QuestionStatsPage.vue'),
-        meta: { requiresNotAdmin: true },
       },
     ],
   },

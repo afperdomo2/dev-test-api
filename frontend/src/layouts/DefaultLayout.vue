@@ -29,7 +29,7 @@ const navSections: Array<NavSection> = [
       { title: 'Preguntas', to: '/questions', icon: 'mdi-help-circle' },
       { title: 'Importar', to: '/questions/import', icon: 'mdi-file-upload' },
       { title: 'Temas', to: '/topics', icon: 'mdi-tag' },
-      { title: 'Estadísticas', to: '/stats', icon: 'mdi-chart-bar', userOnly: true },
+      { title: 'Estadísticas', to: '/stats', icon: 'mdi-chart-bar' },
     ],
   },
   {

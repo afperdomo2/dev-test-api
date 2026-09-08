@@ -21,7 +21,7 @@ type Store interface {
 	BulkCreate(questions []*models.Question) error
 	CountImportedSince(userID uuid.UUID, since time.Time) (int64, error)
 	CountAiGeneratedSince(userID uuid.UUID, since time.Time) (int64, error)
-	Stats(userID uuid.UUID) (*QuestionStats, error)
+	Stats(isAdmin bool, userID uuid.UUID) (*QuestionStats, error)
 }
 
 type gormStore struct {
@@ -167,8 +167,13 @@ func (s *gormStore) CountAiGeneratedSince(userID uuid.UUID, since time.Time) (in
 	return count, err
 }
 
-func (s *gormStore) Stats(userID uuid.UUID) (*QuestionStats, error) {
-	visibility := s.db.Model(&models.Question{}).Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true)
+func (s *gormStore) Stats(isAdmin bool, userID uuid.UUID) (*QuestionStats, error) {
+	var visibility *gorm.DB
+	if isAdmin {
+		visibility = s.db.Model(&models.Question{}).Where("(questions.source = ? OR questions.is_public = ?)", "ai_generated", true)
+	} else {
+		visibility = s.db.Model(&models.Question{}).Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true)
+	}
 
 	var total int64
 	if err := visibility.Count(&total).Error; err != nil {
@@ -194,12 +199,18 @@ func (s *gormStore) Stats(userID uuid.UUID) (*QuestionStats, error) {
 	}
 
 	// ByTopic — join question_topics + topics
+	topicWhere, topicArgs := func() (string, []any) {
+		if isAdmin {
+			return "(questions.source = ? OR questions.is_public = ?)", []any{"ai_generated", true}
+		}
+		return "(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", []any{"ai_generated", userID, true}
+	}()
 	var byTopic []TopicCount
 	if err := s.db.Model(&models.Question{}).
 		Select("topics.id as topic_id, topics.name, topics.slug, topics.category, COUNT(*) as count").
 		Joins("JOIN question_topics ON question_topics.question_id = questions.id").
 		Joins("JOIN topics ON topics.id = question_topics.topic_id").
-		Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true).
+		Where(topicWhere, topicArgs...).
 		Group("topics.id, topics.name, topics.slug, topics.category").
 		Order("count DESC, topics.name ASC").
 		Scan(&byTopic).Error; err != nil {
@@ -215,7 +226,7 @@ func (s *gormStore) Stats(userID uuid.UUID) (*QuestionStats, error) {
 		Select("topics.category as category, COUNT(*) as count").
 		Joins("JOIN question_topics ON question_topics.question_id = questions.id").
 		Joins("JOIN topics ON topics.id = question_topics.topic_id").
-		Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true).
+		Where(topicWhere, topicArgs...).
 		Group("topics.category").
 		Order("count DESC").
 		Scan(&byCategory).Error; err != nil {

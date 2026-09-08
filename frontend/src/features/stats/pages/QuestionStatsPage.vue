@@ -5,9 +5,11 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { questionStatsOptions } from '@/queries/questions.queries'
 import { DIFFICULTY_COLORS, DIFFICULTY_LABELS, TYPE_ICONS } from '@/types/question.types'
 import type { TopicCount, CategoryCount, DifficultyCount, TypeCount } from '@/types/question.types'
+import { useAuthStore } from '@/stores/auth.store'
 
 const router = useRouter()
 const queryClient = useQueryClient()
+const authStore = useAuthStore()
 
 const { data: stats, isLoading, isError } = useQuery(questionStatsOptions())
 
@@ -77,8 +79,16 @@ const categoryHeaders = [
               <v-icon size="48" color="primary">mdi-help-circle</v-icon>
               <div>
                 <div class="text-h3 font-weight-bold">{{ total }}</div>
-                <div class="text-body-2 text-medium-emphasis">Preguntas visibles</div>
-                <div class="text-caption text-medium-emphasis">Tus preguntas + IA compartidas</div>
+                <div class="text-body-2 text-medium-emphasis">
+                  {{ authStore.isAdmin ? 'Preguntas del banco' : 'Preguntas visibles' }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  {{
+                    authStore.isAdmin
+                      ? 'IA compartidas + públicas (visibles para todos)'
+                      : 'Tus preguntas + IA compartidas + públicas'
+                  }}
+                </div>
               </div>
             </v-card-text>
           </v-card>

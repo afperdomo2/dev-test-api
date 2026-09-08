@@ -284,13 +284,12 @@ func (h *Handler) Import(c *gin.Context) {
 }
 
 // @Summary      Estadísticas de preguntas
-// @Description  Devuelve conteos de preguntas visibles para el usuario autenticado, agrupados por tema, categoría, dificultad y tipo
+// @Description  Devuelve conteos de preguntas visibles para el usuario autenticado (o, para el administrador, el banco compartido: IA + públicas), agrupados por tema, categoría, dificultad y tipo
 // @Tags         questions
 // @Security     BearerAuth
 // @Produce      json
 // @Success      200  {object}  QuestionStats
 // @Failure      401  {object}  apierr.APIError
-// @Failure      403  {object}  apierr.APIError
 // @Router       /api/v1/questions/stats [get]
 func (h *Handler) Stats(c *gin.Context) {
 	isAdmin, userID, apiErr := getUserRoleAndID(c)
@@ -299,12 +298,8 @@ func (h *Handler) Stats(c *gin.Context) {
 		response.Problem(c, apiErr)
 		return
 	}
-	if isAdmin {
-		response.Problem(c, apierr.ErrForbidden("Los administradores no pueden consultar estadísticas de preguntas", c.Request.URL.Path))
-		return
-	}
 
-	stats, err := h.service.Stats(userID)
+	stats, err := h.service.Stats(isAdmin, userID)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
