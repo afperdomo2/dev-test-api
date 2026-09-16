@@ -2,7 +2,11 @@
 
 > REST API con **Go** + **Gin** · **JWT** · **PostgreSQL** · **Swagger** · live reload con **Air**
 >
-> Frontend SPA con **Vue 3** + **Vite** + **Vuetify** + **Pinia** + **TanStack Query** → [`frontend/`](frontend/)
+> Frontend SPA con **Vue 3** + **Vite** + **Vuetify** + **Pinia** + **TanStack Query** → [`apps/web/`](apps/web/)
+>
+> App mobile con **React Native** + **Expo** → [`apps/mobile/`](apps/mobile/)
+>
+> Paquete compartido **TypeScript** → [`packages/shared/`](packages/shared/)
 
 ## 📋 Requisitos
 
@@ -10,6 +14,8 @@
 |------------|---------|
 | Go         | 1.26+   |
 | PostgreSQL | 14+     |
+| Node.js    | 20+     |
+| pnpm       | —       |
 | make       | —       |
 
 ## 📁 Estructura del proyecto
@@ -26,7 +32,13 @@ dev-test-api/
 │   └── server/
 ├── pkg/                       # Paquetes públicos
 ├── docs/                      # Swagger auto-generado
-├── frontend/                  # SPA Vue 3 + Vite (ver frontend/README.md)
+├── apps/
+│   ├── web/                   # SPA Vue 3 + Vite (ver apps/web/README.md)
+│   └── mobile/                # Expo React Native (ver apps/mobile/README.md)
+├── packages/
+│   └── shared/                # Tipos, utils, constants compartidos (ver packages/shared/)
+├── .agents/                   # Reglas de arquitectura por capa
+├── pnpm-workspace.yaml
 ├── Makefile
 └── README.md
 ```
@@ -102,7 +114,7 @@ cp .env.example .env
 | `make test-cover` | Pruebas con cobertura |
 | `make setup` | Instala git hooks (lefthook) |
 
-### Frontend
+### Web (apps/web/)
 
 | Comando | Descripción |
 |---------|-------------|
@@ -111,6 +123,21 @@ cp .env.example .env
 | `make fe-build` | Build de producción |
 | `make fe-lint` | ESLint |
 | `make fe-check` | TypeScript check |
+
+### Mobile (apps/mobile/)
+
+| Comando | Descripción |
+|---------|-------------|
+| `pnpm --filter mobile start` | Expo dev server |
+| `pnpm --filter mobile typecheck` | TypeScript check |
+
+### Workspace
+
+| Comando | Descripción |
+|---------|-------------|
+| `pnpm typecheck` | Type-check de todos los packages |
+| `pnpm web` | Iniciar dev server web |
+| `pnpm mobile` | Iniciar Expo dev server |
 
 ## 📖 Documentación Swagger
 
@@ -123,6 +150,8 @@ make swagger
 Con el servidor corriendo: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
 
 ## 📦 Dependencias
+
+### Backend
 
 | Paquete | Uso |
 |---------|-----|
@@ -137,7 +166,19 @@ Con el servidor corriendo: [http://localhost:8080/swagger/index.html](http://loc
 | `air-verse/air` | Live reload (project tool) |
 | `stretchr/testify` | Pruebas unitarias |
 
+### Shared (@devtest/shared)
+
+Paquete de TypeScript puro compartido entre web y mobile:
+- DTOs y tipos de API (`ApiError`, `PaginatedResponse`, etc.)
+- Utilidades de formato (`formatDateTime`, `formatScore`)
+- Predicados de validación (`isValidEmail`, `isRequired`)
+- Constantes (`ITEMS_PER_PAGE_OPTIONS`, `DEFAULT_PER_PAGE`)
+
+Ver `packages/shared/` y `.agents/shared/architecture.md` para detalles.
+
 ## 🧪 Testing
+
+### Backend
 
 Pruebas unitarias con `testing` stdlib + `testify`. Sin BD (mocks de `Store`).
 
@@ -149,13 +190,22 @@ go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 ```
 
-Hooks pre-commit (`lefthook.yml`) ejecutan `go vet` + `go test` automáticamente. Pre-push reservado para futuras pruebas de integración con Postgres real.
+### Web
+
+Pruebas con Vitest + Vue Test Utils + Testing Library.
+
+```bash
+pnpm --filter dev-test-frontend test:run
+```
+
+Hooks pre-commit (`lefthook.yml`) ejecutan `go vet` + `go test` automáticamente.
 
 ## 🧪 Primer uso
 
 ```bash
 # 1. Instalar dependencias
 make install
+pnpm install
 
 # 2. Configurar .env con los datos de tu PostgreSQL
 cp .env.example .env

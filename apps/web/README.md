@@ -12,20 +12,18 @@
 ## 🚀 Inicio rápido
 
 ```bash
-# Instalar dependencias
+# Desde la raíz del workspace
 pnpm install
+pnpm web              # Servidor de desarrollo (:3000)
 
-# Iniciar servidor de desarrollo (localhost:3000)
-pnpm dev
-
-# Build de producción
-pnpm build
+# O desde esta carpeta
+make fe-dev
 ```
 
 ## 📁 Estructura
 
 ```
-frontend/
+apps/web/
 ├── src/
 │   ├── api/                     # Capa HTTP (Axios + interceptores)
 │   │   ├── client.ts            # Axios instance: JWT, unwrap envelope, errores RFC 9457
@@ -68,13 +66,14 @@ frontend/
 │   │   ├── auth.store.ts        # JWT, user, login/logout
 │   │   └── app.store.ts         # Tema, sidebar, snackbar
 │   │
-│   ├── types/                   # Tipos TypeScript (DTOs)
-│   │   ├── api.types.ts         # ApiResponse<T>, ApiError, PaginatedResponse<T>
+│   ├── types/                   # Re-exports desde @devtest/shared
+│   │   ├── api.types.ts         # → ApiError, ApiResponse, PaginatedResponse
+│   │   ├── auth.types.ts        # → LoginRequest, AuthResponse
 │   │   └── ...
 │   │
-│   ├── utils/                   # Utilidades puras
-│   │   ├── format.ts            # Formateo de fechas, puntuaciones
-│   │   ├── validators.ts        # Reglas de validación de formularios
+│   ├── utils/                   # Utilidades
+│   │   ├── format.ts            # Re-export desde @devtest/shared
+│   │   ├── validators.ts        # Reglas Vuetify (predicados desde shared)
 │   │   └── storage.ts           # localStorage helpers (token)
 │   │
 │   └── plugins/                 # Plugins
@@ -87,6 +86,14 @@ frontend/
 ├── vite.config.ts               # Vite + Vue + Vuetify + proxy /api
 └── tsconfig.json
 ```
+
+## 🔗 Paquete compartido (@devtest/shared)
+
+Los `types/*`, `constants/*` y `utils/format.ts` son **re-exports** desde `packages/shared/`. Los predicados de validación (`isValidEmail`, `isRequired`) también viven en shared; las reglas Vuetify (`requiredRule`, `emailRule`) se definen en `utils/validators.ts` importando desde shared.
+
+Al agregar un tipo nuevo: agregar la definición en `packages/shared/src/types/` y luego el re-export en `apps/web/src/types/`.
+
+Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/backend/responses.md`.
 
 ## 🔗 Conexión con la API
 

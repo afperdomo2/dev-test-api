@@ -99,9 +99,9 @@ Stores are global (app-level or cross-feature). Feature-specific state belongs i
 
 ## Pagination
 
-Constants in `constants/index.ts`:
+Constants in `packages/shared/src/constants/index.ts` (re-exported via `@/constants`):
 - `ITEMS_PER_PAGE_OPTIONS = [10, 20, 50]`
-- `DEFAULT_PER_PAGE = 20`
+- `DEFAULT_PER_PAGE = 10`
 
 Use `usePagination()` composable in list pages:
 
@@ -109,7 +109,7 @@ Use `usePagination()` composable in list pages:
 import { usePagination } from '@/composables/usePagination'
 
 const { page, perPage, reset } = usePagination()
-// perPage defaults to DEFAULT_PER_PAGE (20) from constants
+// perPage defaults to DEFAULT_PER_PAGE (10) from shared constants
 ```
 
 `usePagination` returns reactive refs. Pass `page` and `perPage` to `queryOptions()`. Use `reset()` when filters change or on refresh.
