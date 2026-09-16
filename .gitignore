@@ -140,6 +140,11 @@ $RECYCLE.BIN/
 
 .env
 
+# Node / pnpm workspace
+node_modules/
+dist/
+coverage.out
+
 # IA
 .agents/skills/
 .kiro/

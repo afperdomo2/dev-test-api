@@ -17,6 +17,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@devtest/shared": "workspace:*",
     "@mdi/font": "^7.4.47",
     "@tanstack/vue-query": "^5.60.5",
     "@vueuse/core": "^12.8.0",

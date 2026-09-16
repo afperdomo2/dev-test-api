@@ -3,33 +3,49 @@ name: Frontend CI
 on:
   push:
     branches: [main]
-    paths: ["frontend/**"]
+    paths: ["apps/web/**", "packages/shared/**"]
   pull_request:
-    paths: ["frontend/**"]
+    paths: ["apps/web/**", "packages/shared/**"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  shared:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/shared
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
   build:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: apps/web
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: frontend/package.json
+          version: 10
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "pnpm"
-          cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install
         run: pnpm install --frozen-lockfile

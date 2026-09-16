@@ -1,5 +1,1 @@
-export const ITEMS_PER_PAGE_OPTIONS = [10, 20, 50] as const
-
-export const DEFAULT_PER_PAGE = 10
-
-export const REFRESH_COOLDOWN_MS = 1000
+export { ITEMS_PER_PAGE_OPTIONS, DEFAULT_PER_PAGE, REFRESH_COOLDOWN_MS } from '@devtest/shared'

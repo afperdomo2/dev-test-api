@@ -67,34 +67,34 @@ db-seed:
 
 fe-install:
 	@echo "📦 Installing frontend dependencies..."
-	cd frontend && pnpm install
+	cd apps/web && pnpm install
 	@echo "✅ Frontend dependencies installed"
 
 fe-dev:
 	@echo "🔥 Starting frontend dev server..."
-	cd frontend && pnpm dev
+	cd apps/web && pnpm dev
 
 fe-build:
 	@echo "📦 Building frontend..."
-	cd frontend && pnpm build
-	@echo "✅ Frontend built at frontend/dist/"
+	cd apps/web && pnpm build
+	@echo "✅ Frontend built at apps/web/dist/"
 
 fe-lint:
 	@echo "🔍 Linting frontend..."
-	cd frontend && pnpm lint
+	cd apps/web && pnpm lint
 	@echo "✅ Frontend lint OK"
 
 fe-check:
 	@echo "🔍 Type-checking frontend..."
-	cd frontend && pnpm type-check
+	cd apps/web && pnpm type-check
 	@echo "✅ Frontend type-check OK"
 
 fe-test:
 	@echo "🧪 Running frontend unit tests..."
-	cd frontend && pnpm test:run
+	cd apps/web && pnpm test:run
 	@echo "✅ Frontend unit tests passed"
 
 fe-test-cover:
 	@echo "🧪 Running frontend tests with coverage..."
-	cd frontend && pnpm test:cover
+	cd apps/web && pnpm test:cover
 	@echo "✅ Frontend coverage report"

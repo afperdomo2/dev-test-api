@@ -25,7 +25,6 @@ describe('format utils', () => {
       const iso = '2026-01-15T10:20:30.000Z'
       const d = formatDate(iso)
       const dt = formatDateTime(iso)
-      // dateTime should be longer or at least different
       expect(dt).not.toBe(d)
     })
   })

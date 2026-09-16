@@ -17,21 +17,21 @@ pre-commit:
       fail_text: "❌ unit tests failed"
 
     - name: fe-format
-      glob: "frontend/**/*.{ts,vue,tsx,js,scss,css,json}"
-      run: cd frontend && pnpm prettier --write src/
+      glob: "apps/web/**/*.{ts,vue,tsx,js,scss,css,json}"
+      run: cd apps/web && pnpm prettier --write src/
       stage_fixed: true
 
     - name: fe-lint
-      glob: ["frontend/**/*.{ts,vue,tsx}", "frontend/.eslintrc.json", "frontend/package.json"]
-      run: cd frontend && pnpm eslint . --ext .vue,.ts,.tsx
+      glob: ["apps/web/**/*.{ts,vue,tsx}", "apps/web/.eslintrc.json", "apps/web/package.json"]
+      run: cd apps/web && pnpm eslint . --ext .vue,.ts,.tsx
 
     - name: fe-type-check
-      glob: ["frontend/**/*.{ts,vue,tsx}", "frontend/tsconfig*.json", "frontend/package.json", "frontend/vite.config.ts"]
-      run: cd frontend && pnpm vue-tsc --build --noEmit
+      glob: ["apps/web/**/*.{ts,vue,tsx}", "apps/web/tsconfig*.json", "apps/web/package.json", "apps/web/vite.config.ts"]
+      run: cd apps/web && pnpm vue-tsc --build --noEmit
 
     - name: fe-test
-      glob: ["frontend/**/*.{ts,vue,tsx}", "frontend/package.json", "frontend/vite.config.ts"]
-      run: cd frontend && pnpm test:run
+      glob: ["apps/web/**/*.{ts,vue,tsx}", "apps/web/package.json", "apps/web/vite.config.ts"]
+      run: cd apps/web && pnpm test:run
       fail_text: "❌ frontend unit tests failed"
 
 pre-push:
@@ -54,21 +54,21 @@ pre-push:
       fail_text: "❌ unit tests failed"
 
     - name: fe-format-check
-      run: cd frontend && pnpm prettier --check src/
+      run: cd apps/web && pnpm prettier --check src/
       fail_text: "❌ frontend format failed — ejecuta pnpm format"
 
     - name: fe-lint
-      run: cd frontend && pnpm eslint . --ext .vue,.ts,.tsx
+      run: cd apps/web && pnpm eslint . --ext .vue,.ts,.tsx
       fail_text: "❌ frontend lint failed"
 
     - name: fe-type-check
-      run: cd frontend && pnpm type-check
+      run: cd apps/web && pnpm type-check
       fail_text: "❌ frontend type-check failed"
 
     - name: fe-test
-      run: cd frontend && pnpm test:run
+      run: cd apps/web && pnpm test:run
       fail_text: "❌ frontend unit tests failed"
 
     - name: fe-build
-      run: cd frontend && pnpm build-only
+      run: cd apps/web && pnpm build-only
       fail_text: "❌ frontend build failed"

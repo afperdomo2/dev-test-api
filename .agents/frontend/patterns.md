@@ -116,7 +116,7 @@ const { page, perPage, reset } = usePagination()
 
 ## Shared list components
 
-Two standardized components live in `frontend/src/components/`. Every list page MUST use them.
+Two standardized components live in `apps/web/src/components/`. Every list page MUST use them.
 
 ### `ListPageHeader.vue`
 
@@ -241,7 +241,7 @@ function handleRefresh() {
 - Theme toggle: `stores/app.store.ts` → `toggleTheme()`
 - Font: Roboto via `unplugin-fonts` (configured in `vite.config.ts`)
 - Icons: `@mdi/font` (Material Design Icons, imported in `plugins/vuetify.ts`)
-- SASS overrides: `frontend/src/styles/settings.scss`
+- SASS overrides: `apps/web/src/styles/settings.scss`
 
 ## Delete confirmation rule
 
@@ -302,7 +302,7 @@ make fe-test       # pnpm test:run
 make fe-test-cover # pnpm test:cover
 ```
 
-CI: `.github/workflows/frontend.yml` runs `pnpm test:run --coverage` after type-check. Pre-commit: `lefthook.yml` `fe-test: cd frontend && pnpm test:run`.
+CI: `.github/workflows/frontend.yml` runs `pnpm test:run --coverage` after type-check. Pre-commit: `lefthook.yml` `fe-test: cd apps/web && pnpm test:run`.
 
 ### Conventions
 

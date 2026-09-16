@@ -4,20 +4,19 @@
 
 | Path | Purpose | Editable? |
 |------|---------|-----------|
-| `frontend/src/api/client.ts` | Axios instance + interceptors (JWT, envelope unwrap, RFC 9457 errors) | Rarely |
-| `frontend/src/api/services/*.service.ts` | Pure HTTP functions per domain | Yes — add new endpoints here |
-| `frontend/src/queries/*.queries.ts` | TanStack Query: `queryOptions()` + mutation definitions | Yes — per domain |
-| `frontend/src/features/<domain>/` | Business domains: pages + components | Yes — add features here |
-| `frontend/src/stores/` | Pinia stores (auth, app) | Yes — add global state |
-| `frontend/src/router/` | Vue Router: routes.ts + index.ts with guards | Yes — add routes here |
-| `frontend/src/composables/` | Reusable composables (useDebounce, usePagination, useFormErrors) | Yes |
-| `frontend/src/types/` | TypeScript DTOs + constant maps | Yes — add types per domain |
-| `frontend/src/utils/` | Pure utilities (storage, format, validators) | Yes |
-| `frontend/src/components/` | Shared components (ErrorState, ListPageHeader, PaginatedFooter) | Yes — add reusable UI here |
-| `frontend/src/constants/` | Global constants (ITEMS_PER_PAGE_OPTIONS, REFRESH_COOLDOWN_MS) | Yes |
-| `frontend/src/plugins/` | Vuetify + VueQueryPlugin setup | Rarely |
-| `frontend/src/components/` | Shared components (ErrorState) | Yes |
-| `frontend/dist/` | Build output | **NEVER** — use `pnpm build` |
+| `apps/web/src/api/client.ts` | Axios instance + interceptors (JWT, envelope unwrap, RFC 9457 errors) | Rarely |
+| `apps/web/src/api/services/*.service.ts` | Pure HTTP functions per domain | Yes — add new endpoints here |
+| `apps/web/src/queries/*.queries.ts` | TanStack Query: `queryOptions()` + mutation definitions | Yes — per domain |
+| `apps/web/src/features/<domain>/` | Business domains: pages + components | Yes — add features here |
+| `apps/web/src/stores/` | Pinia stores (auth, app) | Yes — add global state |
+| `apps/web/src/router/` | Vue Router: routes.ts + index.ts with guards | Yes — add routes here |
+| `apps/web/src/composables/` | Reusable composables (useDebounce, usePagination, useFormErrors) | Yes |
+| `apps/web/src/types/` | TypeScript DTOs + constant maps | Yes — add types per domain |
+| `apps/web/src/utils/` | Pure utilities (storage, format, validators) | Yes |
+| `apps/web/src/components/` | Shared components (ErrorState, ListPageHeader, PaginatedFooter) | Yes — add reusable UI here |
+| `apps/web/src/constants/` | Global constants (ITEMS_PER_PAGE_OPTIONS, REFRESH_COOLDOWN_MS) | Yes |
+| `apps/web/src/plugins/` | Vuetify + VueQueryPlugin setup | Rarely |
+| `apps/web/dist/` | Build output | **NEVER** — use `pnpm build` |
 
 ## Data flow
 
