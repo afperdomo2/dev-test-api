@@ -77,9 +77,65 @@ Always run `make fe-check` and `make fe-lint` after any web change. `make fe-bui
 - **Envelope / RFC 9457 / error language** — the canonical contract is in `.agents/backend/resues.md`. The web and mobile clients implement the consuming side; shared defines the TypeScript mirror (`ApiError`, `PaginatedResponse`).
 - **Context7 MCP** — available for Gin, GORM, jwt, swag docs. Always `resolve-library-id` first, then `query-docs`.
 - **Vuetify MCP** — available via `opencode.json`. Query component APIs with `vuetify_get_component_api_by_version` or `vuetify_get_feature_guide`.
-- **Bash defensive patterns** — skill `bash-defensive-patterns` (`wshobson/agents`) ya instalada (ver `skills-lock.json:9`). Todo script `*.sh` / hook `lefthook.yml` / `scripts/` debe seguirla: `#!/usr/bin/env bash` + `set -Eeuo pipefail`, `trap ERR/EXIT`, `command -v` dependency checks, variables siempre `"$quoted"`, `[[ ]]`, `mapfile/readarray`, `mktemp -d` con `trap EXIT`, y `atomic_write` para escrituras. Referencia: `.agents/skills/bash-defensive-patterns/SKILL.md` (gitignored, fuente es `skills-lock.json`).
+- **Bash defensive patterns** — any `.sh` script must follow strict mode (`set -Eeuo pipefail`). See skill `bash-defensive-patterns` in the Skills section below.
 - **Log icons** — prefix Go `log.*` calls with emoji (❌ errors, ✅ success, 🚀 startup, 🛢️ database, 🌱 seed). Pick the most descriptive icon per context.
 - **Tests** — backend: `testing` + `testify` unit tests (mocked `Store`). `make test` (unit, no DB), `make test-cover`. Lefthook pre-commit runs `go test -short`.
+
+## Skills
+
+Load the relevant skill with the `skill` tool when working in each ecosystem. Full skill files live in `.agents/skills/` (gitignored); source registry in `skills-lock.json`.
+
+### Backend (Go) — `internal/`, `pkg/`, `main.go`
+
+| Skill | When to use |
+|-------|-------------|
+| `golang-patterns` | Idiomatic Go patterns, error handling, concurrency, package design |
+| `golang-testing` | Table-driven tests, benchmarks, fuzzing, test coverage |
+
+### Web (Vue/Vite) — `apps/web/`
+
+| Skill | When to use |
+|-------|-------------|
+| `vue` | Vue 3 Composition API, `<script setup>`, reactivity, Teleport/Suspense |
+| `vue-best-practices` | Composition API conventions, reactivity gotchas, watcher patterns |
+| `vue-pinia-best-practices` | Pinia store setup, destructuring, URL state patterns |
+| `vue-debug-guides` | Debugging reactivity bugs, computed/watcher issues, async failures |
+| `vite` | Vite config, plugin API, build optimization, `import.meta.glob` |
+| `vitest` | Test setup, mocking, coverage, snapshots, fixtures |
+| `frontend-design` | Creating distinctive UI, typography, color, layout (anti "AI slop") |
+| `seo` | Meta tags, structured data, Core Web Vitals, crawlability |
+| `accessibility` | WCAG 2.2, keyboard navigation, screen reader support |
+
+### Mobile (Expo/RN) — `apps/mobile/`
+
+| Skill | When to use |
+|-------|-------------|
+| `building-native-ui` | Expo Router, animations, native controls, tabs, visual effects |
+| `expo-api-routes` | Server-side routes, proxies, webhooks, EAS Hosting |
+| `expo-cicd-workflows` | EAS Workflows, CI/CD pipelines, build automation |
+| `expo-deployment` | iOS/Android store submission, EAS CLI, TestFlight, Play Store |
+| `expo-dev-client` | Custom dev builds, EAS Build config, native module testing |
+| `expo-tailwind-setup` | NativeWind v5, universal styling (if adding Tailwind) |
+| `native-data-fetching` | fetch API, React Query/SWR, loaders, offline support |
+| `upgrading-expo` | SDK version migration, dependency fixes, New Architecture |
+| `use-dom` | Web libraries in webview, canvas/WebGL components |
+| `design-mobile-apps` | Mobile UX design patterns, AI-powered design |
+| `react-best-practices` | React performance, waterfall elimination, bundle optimization |
+| `composition-patterns` | Compound components, render props, context providers |
+
+### Shared (TypeScript) — `packages/shared/`
+
+| Skill | When to use |
+|-------|-------------|
+| `typescript-advanced-types` | Generics, conditional/mapped types, template literals, utility types |
+
+### Cross-cutting
+
+| Skill | When to use |
+|-------|-------------|
+| `bash-defensive-patterns` | Any `.sh` script, `lefthook.yml`, `scripts/` — strict mode, error handling, portability |
+| `nodejs-backend-patterns` | If adding Node.js tooling (Express/Fastify middleware, auth, DB) |
+| `nodejs-best-practices` | If adding Node.js services (framework selection, async patterns, security) |
 
 ## Domain rules
 
