@@ -16,10 +16,10 @@ pre-commit:
       run: go test -short -count=1 -timeout 60s ./...
       fail_text: "❌ unit tests failed"
 
-    - name: fe-format
+    - name: fe-format-check
       glob: "apps/web/**/*.{ts,vue,tsx,js,scss,css,json}"
-      run: cd apps/web && pnpm prettier --write src/
-      stage_fixed: true
+      run: cd apps/web && pnpm prettier --check src/
+      fail_text: "❌ frontend format failed — ejecuta pnpm format"
 
     - name: fe-lint
       glob: ["apps/web/**/*.{ts,vue,tsx}", "apps/web/.eslintrc.json", "apps/web/package.json"]
