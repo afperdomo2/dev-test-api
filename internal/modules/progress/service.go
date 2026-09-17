@@ -14,6 +14,7 @@ import (
 
 type Service interface {
 	Answer(userID, questionID uuid.UUID, isCorrect bool) (*ProgressResponse, error)
+	Get(userID, questionID uuid.UUID) (*ProgressResponse, error)
 	Upcoming(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error)
 	Saved(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error)
 	ToggleSave(userID, questionID uuid.UUID) (*ProgressResponse, error)
@@ -46,6 +47,22 @@ func (s *progressService) Answer(userID, questionID uuid.UUID, isCorrect bool) (
 		return nil, apierr.ErrInternal("Error al guardar el progreso", "")
 	}
 
+	return toProgressResponse(p), nil
+}
+
+func (s *progressService) Get(userID, questionID uuid.UUID) (*ProgressResponse, error) {
+	p, err := s.store.FindByUserAndQuestion(userID, questionID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return &ProgressResponse{
+				QuestionID: questionID,
+				EaseFactor: 2.5,
+				IsSaved:    false,
+				IsMastered: false,
+			}, nil
+		}
+		return nil, apierr.ErrInternal("Error al obtener el progreso", "")
+	}
 	return toProgressResponse(p), nil
 }
 
@@ -88,7 +105,6 @@ func (s *progressService) ToggleSave(userID, questionID uuid.UUID) (*ProgressRes
 			p = &models.UserQuestionProgress{
 				UserID:     userID,
 				QuestionID: questionID,
-				IsSaved:    true,
 			}
 		} else {
 			return nil, apierr.ErrInternal("Error al obtener el progreso", "")

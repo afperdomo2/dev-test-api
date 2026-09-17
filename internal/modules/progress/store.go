@@ -39,7 +39,7 @@ func (s *gormStore) FindUpcoming(userID uuid.UUID, params common.PaginationParam
 	var items []models.UserQuestionProgress
 	var total int64
 
-	base := s.db.Where("user_id = ? AND is_saved = true AND next_review_at <= now()", userID)
+	base := s.db.Where("user_id = ? AND next_review_at IS NOT NULL AND next_review_at <= now() AND is_mastered = false", userID)
 	base.Model(&models.UserQuestionProgress{}).Count(&total)
 
 	err := base.Offset((params.Page - 1) * params.PerPage).Limit(params.PerPage).

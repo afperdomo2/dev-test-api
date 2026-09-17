@@ -21,6 +21,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   edit: [question: Question]
   delete: [question: Question]
+  view: [question: Question]
 }>()
 
 function canModify(question: Question): boolean {
@@ -71,11 +72,14 @@ const headers = [
     </template>
 
     <template #[`item.content`]="{ item }">
-      <router-link :to="`/questions/${item.id}`" class="text-decoration-none text-body-2">
+      <span
+        class="text-decoration-none text-body-2 text-primary cursor-pointer"
+        @click="emit('view', item)"
+      >
         <span class="text-truncate d-inline-block" style="max-width: 400px" :title="item.content">
           {{ item.content }}
         </span>
-      </router-link>
+      </span>
     </template>
 
     <template #[`item.difficulty`]="{ item }">

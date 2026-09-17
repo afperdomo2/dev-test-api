@@ -1,5 +1,6 @@
 import {
   submitProgressAnswer,
+  getProgress,
   getUpcomingReviews,
   getSavedQuestions,
   toggleSaveQuestion,
@@ -23,6 +24,14 @@ describe('progress.service', () => {
     mockedPost.mockResolvedValue({})
     await submitProgressAnswer('q1', true)
     expect(mockedPost).toHaveBeenCalledWith('/api/v1/progress/q1/answer', { isCorrect: true })
+  })
+
+  it('getProgress', async () => {
+    const progress = { questionId: 'q1', isSaved: true }
+    mockedGet.mockResolvedValue({ data: progress })
+    const res = await getProgress('q1')
+    expect(mockedGet).toHaveBeenCalledWith('/api/v1/progress/q1')
+    expect(res).toEqual(progress)
   })
 
   it('getUpcomingReviews', async () => {

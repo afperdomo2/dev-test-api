@@ -52,11 +52,6 @@ export const routes: Array<RouteRecordRaw> = [
         component: () => import('@/features/questions/pages/QuestionImportPage.vue'),
       },
       {
-        path: 'questions/:id',
-        name: 'QuestionDetail',
-        component: () => import('@/features/questions/pages/QuestionDetailPage.vue'),
-      },
-      {
         path: 'topics',
         name: 'TopicsList',
         component: () => import('@/features/topics/pages/TopicsListPage.vue'),

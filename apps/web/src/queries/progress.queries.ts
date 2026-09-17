@@ -1,6 +1,14 @@
 import { queryOptions } from '@tanstack/vue-query'
 import * as progressService from '@/api/services/progress.service'
 
+export function progressOptions(id: () => string) {
+  return queryOptions({
+    queryKey: ['progress', 'detail', id],
+    queryFn: () => progressService.getProgress(id()),
+    staleTime: 30 * 1000,
+  })
+}
+
 export function upcomingQuestionsOptions(page: () => number, perPage: () => number) {
   return queryOptions({
     queryKey: ['progress', 'upcoming', page, perPage],

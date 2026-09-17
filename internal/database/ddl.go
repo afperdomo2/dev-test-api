@@ -31,9 +31,10 @@ func runDDL(db *gorm.DB) error {
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_topics_slug_created_by
 			ON topics (slug, created_by) NULLS NOT DISTINCT;`,
 
-		`CREATE INDEX IF NOT EXISTS idx_user_question_progress_next_review
+		`DROP INDEX IF EXISTS idx_user_question_progress_next_review;
+		CREATE INDEX idx_user_question_progress_next_review
 			ON user_question_progress (user_id, next_review_at)
-			WHERE is_saved = true;`,
+			WHERE next_review_at IS NOT NULL;`,
 
 		`CREATE INDEX IF NOT EXISTS idx_user_question_progress_mastered
 			ON user_question_progress (user_id, is_mastered)

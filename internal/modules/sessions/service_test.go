@@ -87,6 +87,9 @@ type fakeProgressAdapter struct{}
 func (f *fakeProgressAdapter) Answer(a, b uuid.UUID, c bool) (*progress.ProgressResponse, error) {
 	return nil, nil
 }
+func (f *fakeProgressAdapter) Get(a, b uuid.UUID) (*progress.ProgressResponse, error) {
+	return nil, nil
+}
 func (f *fakeProgressAdapter) Upcoming(a uuid.UUID, p common.PaginationParams) ([]progress.UpcomingItem, int64, error) {
 	return nil, 0, nil
 }

@@ -792,6 +792,32 @@ paths:
       summary: Obtener perfil
       tags:
       - profile
+  /api/v1/progress/{question_id}:
+    get:
+      description: Devuelve el progreso SM-2 del usuario para una pregunta concreta
+        (o uno vacío si aún no tiene registro)
+      parameters:
+      - description: Question ID
+        in: path
+        name: question_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/progress.ProgressResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Obtener progreso de una pregunta
+      tags:
+      - progress
   /api/v1/progress/{question_id}/answer:
     post:
       consumes:

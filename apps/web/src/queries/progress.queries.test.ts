@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
+  progressOptions,
   upcomingQuestionsOptions,
   savedQuestionsOptions,
   submitProgressAnswerMutation,
@@ -8,6 +9,7 @@ import {
 import * as progressService from '@/api/services/progress.service'
 
 vi.mock('@/api/services/progress.service', () => ({
+  getProgress: vi.fn(),
   getUpcomingReviews: vi.fn(),
   getSavedQuestions: vi.fn(),
   submitProgressAnswer: vi.fn(),
@@ -16,6 +18,15 @@ vi.mock('@/api/services/progress.service', () => ({
 
 describe('progress.queries', () => {
   beforeEach(() => vi.clearAllMocks())
+
+  it('progressOptions', async () => {
+    vi.mocked(progressService.getProgress).mockResolvedValue({ questionId: 'q1' } as never)
+    const idFn = () => 'q1'
+    const opts = progressOptions(idFn)
+    expect(opts.queryKey).toEqual(['progress', 'detail', idFn])
+    await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
+    expect(progressService.getProgress).toHaveBeenCalledWith('q1')
+  })
 
   it('upcomingQuestionsOptions', async () => {
     vi.mocked(progressService.getUpcomingReviews).mockResolvedValue({ data: [] } as never)

@@ -11,7 +11,8 @@ import { usePagination } from '@/composables/usePagination'
 import ListPageHeader from '@/components/ListPageHeader.vue'
 import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import ProgressCard from '../components/ProgressCard.vue'
-import type { UpcomingQuestion } from '@/types/progress.types'
+import QuestionDetailDialog from '@/features/questions/components/QuestionDetailDialog.vue'
+import type { ProgressItem } from '@/types/progress.types'
 
 const appStore = useAppStore()
 const queryClient = useQueryClient()
@@ -36,15 +37,15 @@ const { data: savedData, isLoading: savedLoading } = useQuery(
 const toggleMut = useMutation(toggleSaveMutation())
 const togglingId = ref<string | null>(null)
 
-const upcomingList = computed<Array<UpcomingQuestion>>(() => {
+const upcomingList = computed<Array<ProgressItem>>(() => {
   return upcomingData.value?.data ?? []
 })
 
-const savedList = computed<Array<UpcomingQuestion>>(() => {
+const savedList = computed<Array<ProgressItem>>(() => {
   return savedData.value?.data ?? []
 })
 
-const currentList = computed<Array<UpcomingQuestion>>(() => {
+const currentList = computed<Array<ProgressItem>>(() => {
   return activeTab.value === 'upcoming' ? upcomingList.value : savedList.value
 })
 
@@ -85,6 +86,18 @@ async function handleToggle(questionId: string) {
     togglingId.value = null
   }
 }
+
+const selectedItem = ref<ProgressItem | null>(null)
+const showDialog = computed({
+  get: () => selectedItem.value !== null,
+  set: (val: boolean) => {
+    if (!val) selectedItem.value = null
+  },
+})
+
+function handleSelect(item: ProgressItem) {
+  selectedItem.value = item
+}
 </script>
 
 <template>
@@ -109,13 +122,13 @@ async function handleToggle(questionId: string) {
       </v-row>
 
       <v-row v-else-if="currentList.length" class="ma-0">
-        <v-col v-for="question in currentList" :key="question.id" cols="12" sm="6" lg="4">
+        <v-col v-for="question in currentList" :key="question.question.id" cols="12" sm="6" lg="4">
           <ProgressCard
-            :question="question"
+            :item="question"
             :show-toggle="true"
-            :is-saved="activeTab === 'saved'"
-            :toggling="togglingId === question.id"
+            :toggling="togglingId === question.question.id"
             @toggle="handleToggle"
+            @select="handleSelect"
           />
         </v-col>
       </v-row>
@@ -142,5 +155,11 @@ async function handleToggle(questionId: string) {
         />
       </template>
     </v-card>
+
+    <QuestionDetailDialog
+      v-model="showDialog"
+      :question="selectedItem?.question ?? null"
+      :progress="selectedItem?.progress ?? null"
+    />
   </v-container>
 </template>

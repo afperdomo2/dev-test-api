@@ -2,7 +2,11 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { questionsListOptions, deleteQuestionMutation } from '@/queries/questions.queries'
+import {
+  questionsListOptions,
+  questionDetailOptions,
+  deleteQuestionMutation,
+} from '@/queries/questions.queries'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import { usePagination } from '@/composables/usePagination'
@@ -11,6 +15,7 @@ import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import QuestionFilters from '../components/QuestionFilters.vue'
 import QuestionTable from '../components/QuestionTable.vue'
 import QuestionFormDialog from '../components/QuestionFormDialog.vue'
+import QuestionDetailDialog from '../components/QuestionDetailDialog.vue'
 import type { Question } from '@/types/question.types'
 import type { QuestionsFilters } from '@/api/services/questions.service'
 
@@ -54,6 +59,23 @@ const deleteDialog = ref(false)
 
 const formDialogOpen = ref(false)
 const editingQuestion = ref<Question | null>(null)
+
+const selectedId = ref<string | null>(null)
+const detailDialog = computed({
+  get: () => selectedId.value !== null,
+  set: (val: boolean) => {
+    if (!val) selectedId.value = null
+  },
+})
+
+const { data: detailData, isLoading: detailLoading } = useQuery({
+  ...questionDetailOptions(() => selectedId.value ?? ''),
+  enabled: computed(() => !!selectedId.value),
+})
+
+function handleView(question: Question) {
+  selectedId.value = question.id
+}
 
 const questionList = computed<Array<Question>>(() => {
   return data.value?.data ?? []
@@ -140,6 +162,7 @@ watch(filters, () => {
           :current-user-id="authStore.user?.id"
           @edit="openEdit"
           @delete="confirmDelete"
+          @view="handleView"
         >
           <template #footer>
             <PaginatedFooter
@@ -180,5 +203,11 @@ watch(filters, () => {
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <QuestionDetailDialog
+      v-model="detailDialog"
+      :question="detailData ?? null"
+      :loading="detailLoading"
+    />
   </v-container>
 </template>

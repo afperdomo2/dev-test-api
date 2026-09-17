@@ -135,8 +135,8 @@ func TestProgressToggleSave(t *testing.T) {
 		svc := NewService(store)
 		resp, err := svc.ToggleSave(uid, qid)
 		require.NoError(t, err)
-		// new record starts with IsSaved=true then toggled → false
-		assert.False(t, resp.IsSaved)
+		// new record starts with IsSaved=false then toggled → true
+		assert.True(t, resp.IsSaved)
 	})
 
 	t.Run("toggles existing", func(t *testing.T) {
@@ -157,6 +157,45 @@ func TestProgressToggleSave(t *testing.T) {
 		}
 		svc := NewService(store)
 		_, err := svc.ToggleSave(uid, qid)
+		require.Error(t, err)
+	})
+}
+
+func TestProgressGet(t *testing.T) {
+	uid, qid := uuid.New(), uuid.New()
+
+	t.Run("existing record", func(t *testing.T) {
+		store := newProgressMock()
+		store.findByUserAndQuestionFn = func(uuid.UUID, uuid.UUID) (*models.UserQuestionProgress, error) {
+			return &models.UserQuestionProgress{UserID: uid, QuestionID: qid, IsSaved: true, Repetitions: 2, EaseFactor: 2.6}, nil
+		}
+		svc := NewService(store)
+		resp, err := svc.Get(uid, qid)
+		require.NoError(t, err)
+		assert.Equal(t, qid, resp.QuestionID)
+		assert.True(t, resp.IsSaved)
+		assert.Equal(t, 2, resp.Repetitions)
+	})
+
+	t.Run("not found returns default", func(t *testing.T) {
+		store := newProgressMock()
+		svc := NewService(store)
+		resp, err := svc.Get(uid, qid)
+		require.NoError(t, err)
+		assert.Equal(t, qid, resp.QuestionID)
+		assert.False(t, resp.IsSaved)
+		assert.False(t, resp.IsMastered)
+		assert.Equal(t, 0, resp.Repetitions)
+		assert.Equal(t, 2.5, resp.EaseFactor)
+	})
+
+	t.Run("find error", func(t *testing.T) {
+		store := newProgressMock()
+		store.findByUserAndQuestionFn = func(uuid.UUID, uuid.UUID) (*models.UserQuestionProgress, error) {
+			return nil, errors.New("db fail")
+		}
+		svc := NewService(store)
+		_, err := svc.Get(uid, qid)
 		require.Error(t, err)
 	})
 }

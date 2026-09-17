@@ -62,6 +62,40 @@ func (h *Handler) Answer(c *gin.Context) {
 	response.Success(c, http.StatusOK, resp)
 }
 
+// @Summary      Obtener progreso de una pregunta
+// @Description  Devuelve el progreso SM-2 del usuario para una pregunta concreta (o uno vacío si aún no tiene registro)
+// @Tags         progress
+// @Security     BearerAuth
+// @Produce      json
+// @Param        question_id  path  string  true  "Question ID"
+// @Success      200  {object}  ProgressResponse
+// @Failure      401  {object}  apierr.APIError
+// @Router       /api/v1/progress/{question_id} [get]
+func (h *Handler) Get(c *gin.Context) {
+	questionID, err := uuid.Parse(c.Param("question_id"))
+	if err != nil {
+		response.NotFound(c, "Pregunta", c.Request.URL.Path)
+		return
+	}
+
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	resp, err := h.service.Get(userID, questionID)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
 // @Summary      Preguntas pendientes (con paginación)
 // @Description  Lista las preguntas marcadas para repasar cuyo próximo repaso es hoy
 // @Tags         progress

@@ -1,55 +1,55 @@
 <script setup lang="ts">
-import type { UpcomingQuestion } from '@/types/progress.types'
+import type { ProgressItem } from '@/types/progress.types'
 import { DIFFICULTY_COLORS, TYPE_ICONS } from '@/types/question.types'
 import { formatDate } from '@/utils/format'
 
 interface Props {
-  question: UpcomingQuestion
+  item: ProgressItem
   showToggle?: boolean
-  isSaved?: boolean
   toggling?: boolean
 }
 
 defineProps<Props>()
 
 const emit = defineEmits<{
+  select: [item: ProgressItem]
   toggle: [questionId: string]
 }>()
 </script>
 
 <template>
-  <v-card hover>
+  <v-card hover class="cursor-pointer" @click="emit('select', item)">
     <v-card-item>
       <template #prepend>
-        <v-icon :icon="TYPE_ICONS[question.type]" color="primary" />
+        <v-icon :icon="TYPE_ICONS[item.question.type]" color="primary" />
       </template>
       <v-card-title class="text-body-1">
-        {{ question.content }}
+        {{ item.question.content }}
       </v-card-title>
       <v-card-subtitle>
         <v-chip
-          :color="DIFFICULTY_COLORS[question.difficulty]"
+          :color="DIFFICULTY_COLORS[item.question.difficulty]"
           size="x-small"
           variant="tonal"
           class="mr-1"
         >
-          {{ question.difficulty }}
+          {{ item.question.difficulty }}
         </v-chip>
         <v-chip
-          v-for="topic in question.topics"
-          :key="topic.id"
+          v-for="topic in item.question.topics"
+          :key="topic"
           size="x-small"
           variant="outlined"
           class="mr-1"
         >
-          {{ topic.name }}
+          {{ topic }}
         </v-chip>
       </v-card-subtitle>
     </v-card-item>
 
     <v-card-text>
-      <div v-if="question.nextReviewAt" class="text-caption text-medium-emphasis">
-        Próximo repaso: {{ formatDate(question.nextReviewAt) }}
+      <div v-if="item.progress.nextReviewAt" class="text-caption text-medium-emphasis">
+        Próximo repaso: {{ formatDate(item.progress.nextReviewAt) }}
       </div>
     </v-card-text>
 
@@ -57,12 +57,12 @@ const emit = defineEmits<{
       <v-spacer />
       <v-btn
         v-if="showToggle"
-        :icon="isSaved ? 'mdi-bookmark' : 'mdi-bookmark-outline'"
-        :color="isSaved ? 'warning' : ''"
+        :icon="item.progress.isSaved ? 'mdi-bookmark' : 'mdi-bookmark-outline'"
+        :color="item.progress.isSaved ? 'warning' : ''"
         variant="text"
         size="small"
         :loading="toggling"
-        @click="emit('toggle', question.id)"
+        @click.stop="emit('toggle', item.question.id)"
       />
     </v-card-actions>
   </v-card>

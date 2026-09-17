@@ -19,6 +19,7 @@ func init() { gin.SetMode(gin.TestMode) }
 
 type mockProgressService struct {
 	answerFn     func(userID, questionID uuid.UUID, isCorrect bool) (*ProgressResponse, error)
+	getFn        func(userID, questionID uuid.UUID) (*ProgressResponse, error)
 	upcomingFn   func(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error)
 	savedFn      func(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error)
 	toggleSaveFn func(userID, questionID uuid.UUID) (*ProgressResponse, error)
@@ -26,6 +27,9 @@ type mockProgressService struct {
 
 func (m *mockProgressService) Answer(u, q uuid.UUID, c bool) (*ProgressResponse, error) {
 	return m.answerFn(u, q, c)
+}
+func (m *mockProgressService) Get(u, q uuid.UUID) (*ProgressResponse, error) {
+	return m.getFn(u, q)
 }
 func (m *mockProgressService) Upcoming(u uuid.UUID, p common.PaginationParams) ([]UpcomingItem, int64, error) {
 	return m.upcomingFn(u, p)
@@ -108,6 +112,59 @@ func TestProgressHandler_Answer(t *testing.T) {
 		c.Params = gin.Params{{Key: "question_id", Value: qid.String()}}
 		c.Set("user_claims", pClaims(uid))
 		h.Answer(c)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+}
+
+func TestProgressHandler_Get(t *testing.T) {
+	uid, qid := uuid.New(), uuid.New()
+	t.Run("success", func(t *testing.T) {
+		svc := &mockProgressService{
+			getFn: func(uuid.UUID, uuid.UUID) (*ProgressResponse, error) {
+				return &ProgressResponse{QuestionID: qid, IsSaved: true}, nil
+			},
+		}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/progress/"+qid.String(), nil)
+		c.Params = gin.Params{{Key: "question_id", Value: qid.String()}}
+		c.Set("user_claims", pClaims(uid))
+		h.Get(c)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+	t.Run("invalid uuid 404", func(t *testing.T) {
+		h := NewHandler(&mockProgressService{})
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/progress/bad", nil)
+		c.Params = gin.Params{{Key: "question_id", Value: "bad"}}
+		c.Set("user_claims", pClaims(uid))
+		h.Get(c)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+	t.Run("unauthorized", func(t *testing.T) {
+		h := NewHandler(&mockProgressService{})
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/progress/"+qid.String(), nil)
+		c.Params = gin.Params{{Key: "question_id", Value: qid.String()}}
+		h.Get(c)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+	t.Run("service error", func(t *testing.T) {
+		svc := &mockProgressService{
+			getFn: func(uuid.UUID, uuid.UUID) (*ProgressResponse, error) {
+				return nil, apierr.ErrInternal("fail", "")
+			},
+		}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/progress/"+qid.String(), nil)
+		c.Params = gin.Params{{Key: "question_id", Value: qid.String()}}
+		c.Set("user_claims", pClaims(uid))
+		h.Get(c)
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 }
