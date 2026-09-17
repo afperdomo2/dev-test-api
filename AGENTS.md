@@ -120,6 +120,7 @@ Load the relevant skill with the `skill` tool when working in each ecosystem. Fu
 | `upgrading-expo` | SDK version migration, dependency fixes, New Architecture |
 | `use-dom` | Web libraries in webview, canvas/WebGL components |
 | `design-mobile-apps` | Mobile UX design patterns, AI-powered design |
+| `apple-design` | Motion fluido, springs, gestos, materiales translúcidos, tipografía (Apple HIG traducido) — aplicar vía reanimated + gesture-handler |
 | `react-best-practices` | React performance, waterfall elimination, bundle optimization |
 | `composition-patterns` | Compound components, render props, context providers |
 
@@ -136,10 +137,11 @@ Load the relevant skill with the `skill` tool when working in each ecosystem. Fu
 | `bash-defensive-patterns` | Any `.sh` script, `lefthook.yml`, `scripts/` — strict mode, error handling, portability |
 | `nodejs-backend-patterns` | If adding Node.js tooling (Express/Fastify middleware, auth, DB) |
 | `nodejs-best-practices` | If adding Node.js services (framework selection, async patterns, security) |
+| `ui-ux-pro-max` | Design intelligence web/mobile/desktop: estilos, paletas, tipografía, reglas UX, generación de design system. Invocar: `python .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" [--design-system | --domain <d> | --stack <s>]` |
 
 ## Domain rules
 
-Backend, web, mobile, and shared have separate rule files with detailed conventions:
+Backend, web, mobile, and shared have separate rule files with detailed conventions. Each app/package also has a thin `AGENTS.md` (quick context) registered in `opencode.json` → `instructions`: `apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md`. Backend lives at the repo root — covered by this file + `.agents/backend/`.
 
 ### Backend: `.agents/backend/`
 
@@ -162,7 +164,8 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 
 | File | Purpose |
 |------|---------|
-| `architecture.md` | Expo/RN structure, metro monorepo, shared usage, SecureStore token storage, HTTP client |
+| `architecture.md` | Expo Router (`app/`), feature-driven (`src/features` + `src/core`), NativeTabs, design tokens, metro monorepo, SecureStore, HTTP client |
+| `design-system.md` | **SOURCE OF TRUTH** del diseño mobile: Dark Mode (OLED), paleta, tipografía, anti-patrones |
 | `dependencies.md` | Safety checks before `pnpm add` — Expo compatibility, native module checks |
 
 ### Shared: `.agents/shared/`
@@ -183,5 +186,7 @@ Each fact has a **single source of truth**. Other files reference it, not duplic
 | Directory structure | `README.md` (root) | this file (light reference) |
 | Commands | `Makefile` + `package.json` scripts | README.md, this file |
 | Dependency safety | per-ecosystem: `.agents/{backend,web,mobile}/dependencies.md` | this file |
+| Design system (mobile) | `.agents/mobile/design-system.md` | `apps/mobile/src/core/theme/tokens.ts`, `.agents/mobile/architecture.md`, `apps/mobile/README.md`, this file |
+| Per-project quick context | `apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md` | `opencode.json` (`instructions`), this file |
 
 **When updating architecture**: touch the source of truth, then update every file that references it. Never duplicate the same fact in two places.

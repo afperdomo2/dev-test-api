@@ -25,13 +25,18 @@ cd apps/mobile && npx expo start
 
 ```
 apps/mobile/
-├── App.tsx           # Entrypoint (scaffold mínimo)
-├── metro.config.js   # Config monorepo (watchFolders, nodeModulesPaths)
-├── app.json          # Config Expo (splash, icons)
-├── tsconfig.json     # Extiende expo/tsconfig.base
-├── assets/           # Íconos, splash
-└── src/              # Features, screens, API client (por construir)
+├── app/               # Expo Router — solo rutas y _layout (app/(tabs)/, +not-found)
+├── src/
+│   ├── features/      # Dominios: home, themes, progress, profile (screens/, components/)
+│   └── core/          # theme (tokens), components (Screen), api (por construir)
+├── metro.config.js    # Config monorepo (watchFolders, nodeModulesPaths)
+├── app.json           # Config Expo (plugin expo-router, dark, scheme "devtest")
+├── tsconfig.json      # Extiende expo/tsconfig.base + alias "@/*" → src/*
+└── assets/            # Íconos, splash
 ```
+
+- Navegación: **Expo Router** con **NativeTabs** (4 tabs: Inicio, Temas, Progreso, Perfil).
+- Design system (dark, OLED): `.agents/mobile/design-system.md` → tokens en `src/core/theme/tokens.ts`.
 
 ## 🔗 Paquete compartido (@devtest/shared)
 
