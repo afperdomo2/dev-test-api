@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { listTopics } from '@/api/services/topics.service'
 import { importQuestions, getImportQuota } from '@/api/services/questions.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
+import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
 import { MAX_QUESTIONS_PER_FILE, type ImportResult } from '@/types/question.types'
 import {
   IMPORT_CSV_TEMPLATE,
@@ -35,12 +35,6 @@ const importResult = ref<ImportResult | null>(null)
 const importing = ref(false)
 const promptValidated = ref(false)
 
-const { data: topicsData } = useQuery({
-  queryKey: ['topics', 'list', 1, 100, 'name', 'asc'],
-  queryFn: () => listTopics(1, 100, 'name', 'asc'),
-  staleTime: 60 * 1000,
-})
-
 const { data: quota } = useQuery({
   queryKey: ['questions', 'import-quota'],
   queryFn: () => getImportQuota(),
@@ -48,18 +42,9 @@ const { data: quota } = useQuery({
   enabled: computed(() => !authStore.isAdmin),
 })
 
-const topicItems = computed(() =>
-  (topicsData.value?.data ?? []).map((t: Topic) => ({
-    title: `${t.name} (${t.slug})`,
-    value: t.id,
-    raw: t,
-  })),
-)
+const selectedTopics = ref<Array<Topic>>([])
 
-const selectedTopics = computed<Array<Topic>>(() => {
-  const map = new Map((topicsData.value?.data ?? []).map((t: Topic) => [t.id, t]))
-  return selectedTopicIds.value.map((id) => map.get(id)).filter(Boolean) as Array<Topic>
-})
+const topicTitle = (topic: Topic) => `${topic.name} (${topic.slug})`
 
 const quotaPercent = computed(() => {
   if (!quota.value || quota.value.dailyLimit === 0) return 0
@@ -242,18 +227,14 @@ async function doImport() {
             </v-alert>
             <v-row dense class="mb-3">
               <v-col style="flex: 0 0 60%; max-width: 60%">
-                <v-autocomplete
+                <TopicAutocomplete
                   v-model="selectedTopicIds"
+                  v-model:selected-topics="selectedTopics"
                   label="Temas para el prompt *"
-                  :items="topicItems"
-                  item-title="title"
-                  multiple
-                  chips
-                  closable-chips
-                  clearable
-                  density="compact"
+                  :item-title="topicTitle"
                   :error-messages="topicsPromptError"
                   required
+                  density="compact"
                   placeholder="Elige temas para el prompt"
                 />
               </v-col>

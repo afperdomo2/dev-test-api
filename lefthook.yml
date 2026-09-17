@@ -27,7 +27,7 @@ pre-commit:
 
     - name: fe-type-check
       glob: ["apps/web/**/*.{ts,vue,tsx}", "apps/web/tsconfig*.json", "apps/web/package.json", "apps/web/vite.config.ts"]
-      run: cd apps/web && pnpm vue-tsc --build --noEmit
+      run: cd apps/web && pnpm type-check
 
     - name: fe-test
       glob: ["apps/web/**/*.{ts,vue,tsx}", "apps/web/package.json", "apps/web/vite.config.ts"]

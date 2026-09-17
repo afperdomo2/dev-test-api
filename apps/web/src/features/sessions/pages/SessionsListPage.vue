@@ -16,7 +16,7 @@ import {
   SESSION_STATUS_FILTERS,
 } from '@/types/session.types'
 import { requiredRule, validateRules } from '@/utils/validators'
-import { listTopics } from '@/api/services/topics.service'
+import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
@@ -64,20 +64,6 @@ function openCreateDialog() {
   resetCreateForm()
   createDialog.value = true
 }
-
-const { data: topicsData, isLoading: topicsLoading } = useQuery({
-  queryKey: ['topics', 'list', 1, 100, 'name', 'asc'],
-  queryFn: () => listTopics(1, 100, 'name', 'asc'),
-  staleTime: 60 * 1000,
-  enabled: computed(() => createDialog.value),
-})
-const topicItems = computed(() =>
-  (topicsData.value?.data ?? []).map((t) => ({
-    title: t.name,
-    value: t.id,
-    props: { subtitle: t.category },
-  })),
-)
 
 const { data: aiQuota } = useQuery({
   queryKey: ['questions', 'ai-quota'],
@@ -337,18 +323,12 @@ async function handleCreate() {
               persistent-hint
             />
 
-            <v-autocomplete
+            <TopicAutocomplete
               v-model="createForm.topicIds"
+              :active="createDialog"
               label="Temas"
-              :items="topicItems"
-              item-title="title"
-              item-props="props"
               :error-messages="createErrors.topicIds"
               :disabled="creating"
-              :loading="topicsLoading"
-              multiple
-              chips
-              clearable
               required
               hint="Busca y selecciona los temas a incluir"
               persistent-hint

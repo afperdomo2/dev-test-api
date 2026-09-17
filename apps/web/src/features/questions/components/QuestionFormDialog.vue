@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { createQuestionMutation, updateQuestionMutation } from '@/queries/questions.queries'
-import { listTopics } from '@/api/services/topics.service'
 import { useAppStore } from '@/stores/app.store'
 import { useFormErrors } from '@/composables/useFormErrors'
 import { requiredRule, validateRules } from '@/utils/validators'
+import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
 import { QUESTION_TYPES, QUESTION_DIFFICULTIES } from '@/types/question.types'
 import type {
   Question,
@@ -34,21 +34,6 @@ const { extractFieldErrors } = useFormErrors()
 
 const isEdit = computed(() => !!props.question)
 const dialogTitle = computed(() => (isEdit.value ? 'Editar pregunta' : 'Nueva pregunta'))
-
-const { data: topicsData, isLoading: topicsLoading } = useQuery({
-  queryKey: ['topics', 'list', 1, 100, 'name', 'asc'],
-  queryFn: () => listTopics(1, 100, 'name', 'asc'),
-  staleTime: 60 * 1000,
-  enabled: computed(() => props.modelValue),
-})
-
-const topicItems = computed(() =>
-  (topicsData.value?.data ?? []).map((t) => ({
-    title: t.name,
-    value: t.id,
-    props: { subtitle: t.category },
-  })),
-)
 
 const selectedType = ref<QuestionType>('single_choice')
 const content = ref('')
@@ -277,19 +262,12 @@ function close() {
             class="mb-3"
           />
 
-          <v-autocomplete
+          <TopicAutocomplete
             v-model="topicIds"
+            :active="modelValue"
             label="Temas"
-            :items="topicItems"
-            item-title="title"
-            item-props="props"
-            :loading="topicsLoading"
             :error-messages="fieldError('topicIds')"
-            :disabled="saving || !topicItems.length"
-            multiple
-            chips
-            closable-chips
-            clearable
+            :disabled="saving"
             hide-details
             density="compact"
             class="mb-3"

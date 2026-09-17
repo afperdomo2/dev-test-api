@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
-import { listTopics } from '@/api/services/topics.service'
 import type { QuestionsFilters } from '@/api/services/questions.service'
+import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
 import { QUESTION_TYPES, QUESTION_DIFFICULTIES } from '@/types/question.types'
 
 const props = defineProps<{
@@ -16,20 +15,6 @@ const emit = defineEmits<{
 const selectedType = ref<string>('')
 const selectedDifficulty = ref<string>('')
 const selectedTopicIds = ref<Array<string>>([])
-
-const { data: topicsData } = useQuery({
-  queryKey: ['topics', 'list', 1, 100, 'name', 'asc'],
-  queryFn: () => listTopics(1, 100, 'name', 'asc'),
-  staleTime: 60 * 1000,
-})
-
-const topicItems = computed(() =>
-  (topicsData.value?.data ?? []).map((t) => ({
-    title: t.name,
-    value: t.id,
-    props: { subtitle: t.category },
-  })),
-)
 
 const hasFilters = computed(
   () => !!selectedType.value || !!selectedDifficulty.value || selectedTopicIds.value.length > 0,
@@ -68,18 +53,13 @@ function clearFilters() {
     <v-card-text>
       <v-row align="center" dense>
         <v-col cols="12" md="4">
-          <v-autocomplete
+          <TopicAutocomplete
             v-model="selectedTopicIds"
             label="Tema"
-            :items="topicItems"
-            multiple
-            chips
-            closable-chips
-            clearable
+            no-data-text="Sin temas"
             hide-details
             density="compact"
             placeholder="Filtrar por tema"
-            no-data-text="Sin temas"
           />
         </v-col>
 

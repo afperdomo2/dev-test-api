@@ -1,5 +1,5 @@
-.PHONY: install dev build swagger clean run fmt vet check setup test test-cover db-seed \
-        fe-install fe-dev fe-build fe-lint fe-check fe-test fe-test-cover
+.PHONY: install dev build swagger clean run fmt fmt-check vet check setup test test-cover db-seed \
+        fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover
 
 # ── Backend ──────────────────────────────────────────────
 
@@ -34,6 +34,10 @@ clean:
 fmt:
 	@echo "🔧 Formatting Go..."
 	go fmt ./...
+
+fmt-check:
+	@echo "🔍 Checking Go formatting..."
+	bash scripts/check-fmt.sh
 
 vet:
 	@echo "🔍 Vetting Go..."
@@ -83,6 +87,16 @@ fe-lint:
 	@echo "🔍 Linting frontend..."
 	cd apps/web && pnpm lint
 	@echo "✅ Frontend lint OK"
+
+fe-format-check:
+	@echo "🎨 Checking frontend formatting..."
+	cd apps/web && pnpm prettier --check src/
+	@echo "✅ Frontend format OK"
+
+fe-format:
+	@echo "🎨 Formatting frontend..."
+	cd apps/web && pnpm prettier --write src/
+	@echo "✅ Frontend formatted"
 
 fe-check:
 	@echo "🔍 Type-checking frontend..."

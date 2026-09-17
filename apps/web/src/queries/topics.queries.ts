@@ -1,5 +1,27 @@
-import { queryOptions } from '@tanstack/vue-query'
+import { queryOptions, infiniteQueryOptions } from '@tanstack/vue-query'
 import * as topicsService from '@/api/services/topics.service'
+import type { PaginatedResponse } from '@/types/api.types'
+import type { Topic } from '@/types/topic.types'
+
+const TOPICS_PER_PAGE = 20
+
+export function topicsInfiniteOptions(search: () => string, enabled: () => boolean) {
+  return infiniteQueryOptions({
+    queryKey: ['topics', 'list', 'infinite', search],
+    queryFn: ({ pageParam = 1 }) =>
+      topicsService.listTopics(pageParam as number, TOPICS_PER_PAGE, 'name', 'asc', search()),
+    getNextPageParam: (
+      lastPage: PaginatedResponse<Topic>,
+      allPages: Array<PaginatedResponse<Topic>>,
+    ) => {
+      const totalFetched = allPages.reduce((sum, p) => sum + p.data.length, 0)
+      return totalFetched < lastPage.meta.total ? allPages.length + 1 : undefined
+    },
+    initialPageParam: 1,
+    staleTime: 60 * 1000,
+    enabled,
+  })
+}
 
 export function topicsListOptions(
   page: () => number,

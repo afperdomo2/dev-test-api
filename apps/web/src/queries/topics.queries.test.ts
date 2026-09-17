@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
   topicsListOptions,
+  topicsInfiniteOptions,
   topicDetailOptions,
   createTopicMutation,
   updateTopicMutation,
@@ -58,6 +59,39 @@ describe('topics.queries', () => {
       undefined,
       undefined,
     )
+  })
+
+  it('topicsInfiniteOptions queryFn calls service with search', async () => {
+    vi.mocked(topicsService.listTopics).mockResolvedValue({ data: [] } as never)
+    const opts = topicsInfiniteOptions(
+      () => 'vue',
+      () => true,
+    )
+    await (
+      opts as unknown as { queryFn: (ctx: { pageParam: number }) => Promise<unknown> }
+    ).queryFn({ pageParam: 2 })
+    expect(topicsService.listTopics).toHaveBeenCalledWith(2, 20, 'name', 'asc', 'vue')
+  })
+
+  it('topicsInfiniteOptions getNextPageParam by total', () => {
+    const opts = topicsInfiniteOptions(
+      () => '',
+      () => true,
+    )
+    const getNextPageParam = (
+      opts as unknown as {
+        getNextPageParam: (
+          last: { data: Array<unknown>; meta: { total: number } },
+          all: Array<{ data: Array<unknown> }>,
+        ) => number | undefined
+      }
+    ).getNextPageParam
+
+    const page20 = { data: Array(20).fill(1), meta: { total: 45 } }
+    expect(getNextPageParam({ ...page20, meta: { total: 45 } }, [page20])).toBe(2)
+    expect(getNextPageParam({ ...page20, meta: { total: 45 } }, [page20, page20])).toBe(3)
+    const lastPartial = { ...page20, data: Array(5).fill(1) }
+    expect(getNextPageParam(lastPartial, [page20, page20, lastPartial])).toBe(undefined)
   })
 
   it('topicDetailOptions', async () => {
