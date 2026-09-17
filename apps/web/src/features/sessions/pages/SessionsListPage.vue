@@ -44,7 +44,7 @@ const createDialog = ref(false)
 function getDefaultCreateForm(): CreateSessionRequest {
   return {
     name: '',
-    mode: 'generate',
+    mode: 'review',
     difficulty: 'random',
     topicIds: [],
     questionLimit: undefined,

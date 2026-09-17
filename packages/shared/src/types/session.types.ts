@@ -43,8 +43,8 @@ export const SESSION_MODE_LABELS: Record<SessionMode, string> = {
 }
 
 export const SESSION_MODES: Array<{ title: string; value: SessionMode }> = [
-  { title: 'Generar preguntas', value: 'generate' },
   { title: 'Repasar', value: 'review' },
+  { title: 'Generar preguntas', value: 'generate' },
 ]
 
 export const SESSION_MODE_ICONS: Record<SessionMode, string> = {
