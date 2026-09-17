@@ -15,6 +15,22 @@
 | `docs/` | Swagger auto-generated | **NEVER** — use `make swagger` |
 | `tmp/` | Air build output | **NEVER** |
 
+## Modules (`internal/modules/`)
+
+| Module | Purpose |
+|--------|---------|
+| `auth` | Auth: `POST /auth/setup` (primer admin), `POST /auth/login`, `GET /auth/status` |
+| `users` | CRUD usuarios (admin) |
+| `topics` | CRUD temas |
+| `questions` | CRUD preguntas + importación + generación IA |
+| `sessions` | Sesiones de práctica (quiz) |
+| `progress` | Progreso SRS del usuario |
+| `opencode` | Admin: `GET /opencode/usage` |
+
+Servicios compartidos: `internal/services/ai` (generación IA), `internal/services/opencode` (client).
+
+Data model (tablas DB): ver `data-model.md`.
+
 ## Module anatomy
 
 Every business module follows this structure:

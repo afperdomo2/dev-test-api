@@ -147,9 +147,10 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 
 | File | Purpose |
 |------|---------|
-| `architecture.md` | Module anatomy (request → response → mapper → store → service → handler → routes), wiring, GORM, Swagger |
+| `architecture.md` | Modules list, module anatomy (request → response → mapper → store → service → handler → routes), wiring, GORM, Swagger |
 | `responses.md` | **SOURCE OF TRUTH**: envelope format, RFC 9457 errors, error language (title: EN, detail: ES), camelCase, DTO conventions, JWT context |
 | `dependencies.md` | Safety checks before `go get` — security, maintenance, licensing |
+| `data-model.md` | Contexto de tablas DB: 10 tablas + enums + índices (fuente canónica: `internal/models/*.go`, `database.go`, `ddl.go`) |
 
 ### Web: `.agents/web/`
 
@@ -186,6 +187,7 @@ Each fact has a **single source of truth**. Other files reference it, not duplic
 | Directory structure | `README.md` (root) | this file (light reference) |
 | Commands | `Makefile` + `package.json` scripts | README.md, this file |
 | Dependency safety | per-ecosystem: `.agents/{backend,web,mobile}/dependencies.md` | this file |
+| Data model (backend) | `.agents/backend/data-model.md` | `.agents/backend/architecture.md`, this file |
 | Design system (mobile) | `.agents/mobile/design-system.md` | `apps/mobile/src/core/theme/tokens.ts`, `.agents/mobile/architecture.md`, `apps/mobile/README.md`, this file |
 | Per-project quick context | `apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md` | `opencode.json` (`instructions`), this file |
 
