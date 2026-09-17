@@ -20,11 +20,17 @@ const { page, perPage, reset: resetPagination } = usePagination()
 const activeTab = ref<'upcoming' | 'saved'>('upcoming')
 
 const { data: upcomingData, isLoading: upcomingLoading } = useQuery(
-  upcomingQuestionsOptions({ page: page.value, perPage: perPage.value }),
+  upcomingQuestionsOptions(
+    () => page.value,
+    () => perPage.value,
+  ),
 )
 
 const { data: savedData, isLoading: savedLoading } = useQuery(
-  savedQuestionsOptions({ page: page.value, perPage: perPage.value }),
+  savedQuestionsOptions(
+    () => page.value,
+    () => perPage.value,
+  ),
 )
 
 const toggleMut = useMutation(toggleSaveMutation())

@@ -1,18 +1,18 @@
 import { queryOptions } from '@tanstack/vue-query'
 import * as progressService from '@/api/services/progress.service'
 
-export function upcomingQuestionsOptions(params: { page: number; perPage: number }) {
+export function upcomingQuestionsOptions(page: () => number, perPage: () => number) {
   return queryOptions({
-    queryKey: ['progress', 'upcoming', params],
-    queryFn: () => progressService.getUpcomingReviews(params.page, params.perPage),
+    queryKey: ['progress', 'upcoming', page, perPage],
+    queryFn: () => progressService.getUpcomingReviews(page(), perPage()),
     staleTime: 0,
   })
 }
 
-export function savedQuestionsOptions(params: { page: number; perPage: number }) {
+export function savedQuestionsOptions(page: () => number, perPage: () => number) {
   return queryOptions({
-    queryKey: ['progress', 'saved', params],
-    queryFn: () => progressService.getSavedQuestions(params.page, params.perPage),
+    queryKey: ['progress', 'saved', page, perPage],
+    queryFn: () => progressService.getSavedQuestions(page(), perPage()),
     staleTime: 30 * 1000,
   })
 }

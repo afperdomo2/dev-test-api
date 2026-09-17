@@ -19,15 +19,19 @@ describe('progress.queries', () => {
 
   it('upcomingQuestionsOptions', async () => {
     vi.mocked(progressService.getUpcomingReviews).mockResolvedValue({ data: [] } as never)
-    const opts = upcomingQuestionsOptions({ page: 1, perPage: 10 })
-    expect(opts.queryKey).toEqual(['progress', 'upcoming', { page: 1, perPage: 10 }])
+    const pageFn = () => 1
+    const perPageFn = () => 10
+    const opts = upcomingQuestionsOptions(pageFn, perPageFn)
+    expect(opts.queryKey).toEqual(['progress', 'upcoming', pageFn, perPageFn])
     await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
     expect(progressService.getUpcomingReviews).toHaveBeenCalledWith(1, 10)
   })
 
   it('savedQuestionsOptions', async () => {
     vi.mocked(progressService.getSavedQuestions).mockResolvedValue({ data: [] } as never)
-    const opts = savedQuestionsOptions({ page: 2, perPage: 20 })
+    const pageFn = () => 2
+    const perPageFn = () => 20
+    const opts = savedQuestionsOptions(pageFn, perPageFn)
     await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
     expect(progressService.getSavedQuestions).toHaveBeenCalledWith(2, 20)
   })
