@@ -3,9 +3,9 @@ name: Frontend CI
 on:
   push:
     branches: [main]
-    paths: ["apps/web/**", "packages/shared/**"]
+    paths: ["apps/web/**", "packages/shared/**", ".github/workflows/frontend.yml"]
   pull_request:
-    paths: ["apps/web/**", "packages/shared/**"]
+    paths: ["apps/web/**", "packages/shared/**", ".github/workflows/frontend.yml"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

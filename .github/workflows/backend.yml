@@ -3,9 +3,9 @@ name: Backend CI
 on:
   push:
     branches: [main]
-    paths: ["**.go", "go.mod", "go.sum"]
+    paths: ["**.go", "go.mod", "go.sum", ".github/workflows/backend.yml"]
   pull_request:
-    paths: ["**.go", "go.mod", "go.sum"]
+    paths: ["**.go", "go.mod", "go.sum", ".github/workflows/backend.yml"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
