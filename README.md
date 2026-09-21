@@ -128,6 +128,17 @@ cp .env.example .env
 
 | Comando | Descripción |
 |---------|-------------|
+| `make mobile-start` | Expo dev server |
+| `make mobile-android` | Abrir en Android |
+| `make mobile-ios` | Abrir en iOS |
+| `make mobile-web` | Abrir en web (Expo) |
+| `make mobile-typecheck` | TypeScript check |
+| `make mobile-lint` | Lint |
+
+Equivalentes directos con pnpm:
+
+| Comando | Descripción |
+|---------|-------------|
 | `pnpm --filter mobile start` | Expo dev server |
 | `pnpm --filter mobile typecheck` | TypeScript check |
 

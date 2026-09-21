@@ -1,4 +1,4 @@
-# PLAN — Nuevas funcionalidades (V/F, Tips, Visibilidad, Sesión diaria, Gamificación)
+# PLAN — Nuevas funcionalidades (V/F, Tips, Moderación, Sesión diaria, Gamificación)
 
 > Backend: Go + Gin + GORM (Postgres). Frontend: Vue 3 + Vite + Vuetify + TanStack Query + Pinia.
 > Objetivo: ir ejecutando poco a poco, marcando cada tarea del checklist al completarla.
@@ -8,25 +8,26 @@
 ## Estado general
 - [ ] Fase 0 — Fundaciones (modelos + migraciones)
 - [ ] Fase 1 — Preguntas Verdadero/Falso
-- [ ] Fase 2 — Visibilidad (private / pending_review / published)
-- [ ] Fase 3 — Tarjetas de tip
-- [ ] Fase 4 — Moderación (reportes)
-- [ ] Fase 5 — Gamificación (XP, racha, meta diaria, feedback inmediato)
-- [ ] Fase 6 — Sesión diaria inteligente ("Repasar hoy")
-- [ ] Fase 7 — Sync web/shared + docs
-- [ ] Fase 8 — Verificación final
+- [ ] Fase 2 — Tarjetas de tip (solo admin, públicas)
+- [ ] Fase 3 — Moderación (reportes)
+- [ ] Fase 4 — Gamificación (XP, racha, meta diaria, feedback inmediato)
+- [ ] Fase 5 — Sesión diaria inteligente ("Repasar hoy")
+- [ ] Fase 6 — Sync web/shared + docs
+- [ ] Fase 7 — Verificación final
 
 ---
 
-## Decisiones bloqueadas (ya confirmadas)
+## Decisiones bloqueadas (confirmadas)
 
 | Tema | Decisión |
 |---|---|
 | V/F | Extender `Question` con `type="true_false"` (2 opciones Verdadero/Falso, 1 correcta). Reusa pipeline create/import/answer. |
 | Tips ↔ temas | Un solo tema por tip: `Tip.TopicID` FK indexada. |
-| Import UI (web) | Una página unificada con selector de tipo "preguntas / V-F / tips"; cambia plantilla CSV + endpoint destino. |
+| Tips creación | **Solo admin**; siempre públicos. **Solo manual + import CSV** (sin IA). Usuario normal solo lectura. |
+| Visibilidad | **SIN cambios**: mantener `is_public` + `source` como está. Solo IA y admin son públicos; el usuario normal queda privado. Sin `pending_review`, sin acción "publicar", sin refactor `isPublic → visibility`. |
+| Moderación | Solo **reportar contenido público + revisión admin** (sin "publish"). |
+| Import UI (web) | Una página unificada con selector "preguntas / V-F / tips"; tips solo visible en la UI para admin. |
 | Gamificación | Un solo módulo `internal/modules/gamification/`. |
-| Visibilidad | Reemplazar `IsPublic bool` por `Visibility string` (`private` / `pending_review` / `published`). |
 | Sesión diaria | Modo `daily` nuevo en `Session` + selección on-the-fly (sin tabla de cola persistente). |
 
 ---
@@ -41,6 +42,7 @@
 - `Question.Type` es `string` (los `CREATE TYPE ... AS ENUM` de `ddl.go` son decorativos; la validación real es Go `binding:oneof`).
 - No existe hoy patrón de consultas paralelas: solo goroutines fire-and-forget (`go s.generateBatch(...)` en `sessions/service.go`).
 - Logs con emoji (❌✅🚀🛢️🌱🤖).
+- Documentación de esquema: toda tabla, columna, enum, función y trigger (nuevo o existente) debe llevar su `COMMENT ON ...` en `ddl.go`. Las tablas actuales se documentan en la tarea **0.4**; los objetos nuevos, en **0.3**.
 
 ---
 
@@ -58,61 +60,47 @@ Cambios:
 
 ---
 
-## 2. Tarjetas de tip
+## 2. Tarjetas de tip (solo admin, públicas)
 
-Modelo nuevo `internal/models/tip.go`:
+Modelo `internal/models/tip.go`:
 ```go
 type Tip struct {
-    ID         uuid.UUID      // pk
-    UserID     uuid.UUID      // not null, index
+    ID         uuid.UUID // pk
+    UserID     uuid.UUID // admin que lo crea (not null, index)
     User       *User
-    TopicID    uuid.UUID      // not null, index  (un solo tema)
+    TopicID    uuid.UUID // not null, index  (un solo tema)
     Topic      *Topic
-    Content    string         // text not null
-    Source     string         // ai_generated|manual|imported (default manual)
-    Visibility string         // private|pending_review|published (default private)
+    Content    string    // text not null
+    Source     string    // manual|imported (default manual) — sin ai_generated
     CreatedAt, UpdatedAt, DeletedAt
 }
 ```
-
-Módulo nuevo `internal/modules/tips/` (espejo simplificado de `questions`): request, response, mapper, store, service, handler, routes, import.
+- **Solo admin** crea/edita/elimina/importa (grupo `admin` en `server.go`).
+- **Siempre públicos** (sin columna `visibility`): cualquier usuario autenticado los lee (inicio + sesión diaria).
+- **Sin cupo diario** de importación (es admin). Sin `publish`. Sin `GenerateTip` (sin IA).
 
 Endpoints:
-| Método | Ruta | Propósito |
-|---|---|---|
-| GET | `/api/v1/tips` | Listar (paginado, filtro `topicId`) |
-| GET | `/api/v1/tips/:id` | Detalle |
-| POST | `/api/v1/tips` | Crear manual |
-| PUT | `/api/v1/tips/:id` | Actualizar (dueño) |
-| DELETE | `/api/v1/tips/:id` | Eliminar (dueño) |
-| POST | `/api/v1/tips/import` | Importar CSV/texto |
-| GET | `/api/v1/tips/import-quota` | Cupo diario (reusa `DailyImportLimit`) |
-| POST | `/api/v1/tips/:id/publish` | Publicar (ver §3) |
+| Método | Ruta | Acceso | Propósito |
+|---|---|---|---|
+| GET | `/api/v1/tips` | autenticado | Listar (paginado, filtro `topicId`) |
+| GET | `/api/v1/tips/:id` | autenticado | Detalle |
+| POST | `/api/v1/tips` | admin | Crear manual |
+| PUT | `/api/v1/tips/:id` | admin | Actualizar |
+| DELETE | `/api/v1/tips/:id` | admin | Eliminar |
+| POST | `/api/v1/tips/import` | admin | Importar CSV/texto |
 
-Dependencias del service: `tipStore`, `topicStore` (`FindBySlugAndUser`), `userStore` (`FindByID`), `aiGenerator`.
-
-Import: reutilizar `parseCSV` / `resolveTopicIDs` de `questions` (o extraer a helper compartido). Encabezado: `content,topic,difficulty?,source?` (definir junto a la UI unificada, Fase 7).
+- Método público del service: `GetTipOfTheDay(userID)` → usado por la sesión diaria (elige un tip de tema afín a errores recientes o aleatorio).
+- Dependencias del service: `tipStore`, `topicStore` (`FindBySlugAndUser` para import).
+- Import: reutilizar el parser CSV de `questions` (columna `content` + `topic`; sin `options`). Encabezado a definir con la UI unificada (Fase 6).
 
 ---
 
-## 3. Visibilidad + moderación
+## 3. Moderación (solo reportes)
 
-Reemplazar `IsPublic bool` por `Visibility string` en `questions` y `tips`. Valores: `private`, `pending_review`, `published`.
-
-Reglas:
-- Creador no-admin → `private` por defecto.
-- Admin / `source='ai_generated'` → `published` (banco compartido).
-- `publish` → validación automática por IA: coherente → `published`; dudoso → `pending_review`.
-- Filtro unificado: `(visibility='published' OR user_id=? OR source='ai_generated')`.
-
-Lugares a actualizar:
-- `questions/store.go`: `FindPage` (~L51), `Stats` (~L172–207).
-- `sessions/store.go`: `FindNextQuestion` (~L108), `CountAvailableQuestions` (~L135).
-- `ai/generator.go`: `existingContent` (~L147) — solo contenido `published`/`ai_generated`.
-- `questions/service.go` (`Import` ~L378, `Create`) y `mapper.go`/DTOs: `isPublic` → `visibility`.
-- **Topics quedan fuera**: ya modelan visibilidad con `is_system` + `created_by`.
-
-Validación por IA — nuevo método en `ai` service: `Validate(content string) (verdict, reason string, err error)` (approved/pending). Fallback sin IA: `published` para admin, `pending_review` para no-admin.
+**Visibilidad de preguntas: sin cambios.** Se mantiene `is_public` + `source`:
+- `source='ai_generated'` y `is_public=true` (admin) → visibles para todos.
+- Usuario normal (`manual`/`imported` con `is_public=false`) → privado para su creador.
+- Sin `pending_review`, sin acción "publicar", sin refactor de visibilidad.
 
 Modelo reporte `internal/models/report.go`:
 ```go
@@ -128,13 +116,13 @@ type Report struct {
 ```
 
 Módulo nuevo `internal/modules/moderation/`:
-| Método | Ruta | Propósito |
-|---|---|---|
-| POST | `/api/v1/reports` | Reportar contenido (`targetType`, `targetId`, `reason`) |
-| GET | `/api/v1/reports` (admin) | Listar reportes pendientes |
-| PUT | `/api/v1/reports/:id/review` (admin) | Marcar revisado (opcional: des-publicar target) |
+| Método | Ruta | Acceso | Propósito |
+|---|---|---|---|
+| POST | `/api/v1/reports` | autenticado | Reportar contenido (`targetType`, `targetId`, `reason`) |
+| GET | `/api/v1/reports` | admin | Listar reportes pendientes |
+| PUT | `/api/v1/reports/:id/review` | admin | Marcar revisado; opcional des-publicar target |
 
-`publish` vive en `questions` y `tips` (cada uno posee su store); `reports` vive en `moderation`.
+Nota sobre "des-publicar": solo aplica a contenido de admin (`is_public=true` → `false`). El contenido `ai_generated` no se puede "des-publicar" con este mecanismo (retiro = decisión futura, fuera de alcance).
 
 ---
 
@@ -144,7 +132,7 @@ Módulo nuevo `internal/modules/moderation/`:
 - `database/ddl.go`: enum `session_mode` + `'daily'`.
 
 Endpoint: `POST /api/v1/sessions/daily` → `CreateDaily(userID)`:
-1. En paralelo (goroutines + `sync.WaitGroup`) consultar: (a) repasos vencidos (`progress.FindUpcoming`), (b) tip del día (ligado a temas con errores recientes), (c) candidatos `true_false`.
+1. En paralelo (goroutines + `sync.WaitGroup`) consultar: (a) repasos vencidos (`progress.FindUpcoming`), (b) tip del día (**solo tips admin**, vía `tipService.GetTipOfTheDay`), (c) candidatos `true_false`.
 2. Crear `Session{Mode:"daily"}` con `TipID`, `Difficulty` derivada.
 3. Lanzar `go generateBatch(sess, 1..2)` (IA en background, igual que hoy) para no bloquear la respuesta.
 4. Responder: sesión + tip + contadores (`dueCount`, `warmupCount`).
@@ -245,12 +233,18 @@ gamificationStore := gamification.NewStore(db)
 gamificationService := gamification.NewService(gamificationStore)
 
 progressService := progress.NewService(progressStore, gamificationService)                             // +gamification
-sessionService  := sessions.NewService(sessionStore, progressService, aiGenerator, gamificationService) // +gamification
 
-tipService         := tips.NewService(tipStore, topicStore, userStore, aiGenerator)                    // nuevo
-moderationService  := moderation.NewService(reportStore)                                               // nuevo
+tipStore := tips.NewStore(db)
+tipService := tips.NewService(tipStore, topicStore)                                                    // nuevo (admin-only; sin aiGenerator)
+
+sessionService := sessions.NewService(sessionStore, progressService, aiGenerator, gamificationService, tipService) // +gamification +tipService
+
+moderationService := moderation.NewService(reportStore)                                                // nuevo
 ```
-Rutas: `tips`, `gamification` bajo `protected`; `moderation` bajo `protected` (admin para GET/PUT reports).
+Rutas:
+- `tips`: lectura (GET) bajo `protected`; CRUD + import bajo grupo `admin`.
+- `gamification`: bajo `protected`.
+- `moderation`: `POST /reports` bajo `protected`; `GET/PUT /reports` bajo `admin`.
 
 ---
 
@@ -261,19 +255,21 @@ Rutas: `tips`, `gamification` bajo `protected`; `moderation` bajo `protected` (a
 `ddl.go` añadir/actualizar:
 - enum `question_type` + `'true_false'`.
 - enum `session_mode` + `'daily'`.
-- enums nuevos (decorativos): `content_visibility` (`private,pending_review,published`), `report_status` (`pending,reviewed`).
-- Backfill: `UPDATE questions SET visibility='published' WHERE is_public OR source='ai_generated'; ... ELSE 'private'`.
-- Columnas: `questions.visibility`, `tips.visibility`, `users.daily_goal_xp`, `sessions.tip_id`.
-- Índices: `tips(topic_id)`, `reports(target_type,target_id)`, `reports(status)`, `questions(type, visibility)`, PKs compuestos `user_xp`/`user_topic_xp`/`user_streak`.
+- enum nuevo (decorativo): `report_status` (`pending,reviewed`).
+- Columnas: `users.daily_goal_xp`, `sessions.tip_id`.
+- Índices: `tips(topic_id)`, `reports(target_type,target_id)`, `reports(status)`, `questions(type)`, PKs compuestos `user_xp`/`user_topic_xp`/`user_streak`.
+- **Comentarios de documentación** (`COMMENT ON`) para los objetos nuevos: tablas `tips`/`reports`/`user_streak`/`user_xp`/`user_topic_xp`, columnas `users.daily_goal_xp` y `sessions.tip_id`, y enums `true_false`/`daily`/`report_status`. Si en fases posteriores se crean triggers/funciones, documentarlos igual.
+- **No**: `questions.visibility`, `tips.visibility`, enum `content_visibility`, backfill de visibilidad.
 
 ---
 
 ## Checklist ordenado por dependencias
 
 ### Fase 0 — Fundaciones (sin dependencias)
-- [ ] **0.1** Añadir modelos: `Tip`, `Report`, `UserStreak`, `UserXp`, `UserTopicXp`; campo `Visibility` + `true_false` en `Question`; `DailyGoalXp` en `User`; `TipID` + `Mode="daily"` en `Session`.
+- [ ] **0.1** Añadir modelos: `Tip`, `Report`, `UserStreak`, `UserXp`, `UserTopicXp`; `DailyGoalXp` en `User`; `TipID` + `Mode="daily"` en `Session`.
 - [ ] **0.2** `database.go`: registrar modelos en `AutoMigrate`.
-- [ ] **0.3** `ddl.go`: enums (`true_false`, `daily`, `content_visibility`, `report_status`), backfill de `visibility`, columnas e índices.
+- [ ] **0.3** `ddl.go`: enums (`true_false`, `daily`, `report_status`), columnas (`daily_goal_xp`, `tip_id`), índices, y **comentarios `COMMENT ON`** de los objetos nuevos (tablas/columnas/enums; y triggers/funciones si se crean).
+- [ ] **0.4** Documentar el esquema existente con `COMMENT ON` en `ddl.go`: tablas actuales (`users`, `topics`, `questions`, `question_options`, `code_challenges`, `question_topics`, `user_question_progress`, `sessions`, `session_topics`, `session_answers`), enums existentes (`question_type`, `question_difficulty`, `question_source`, `session_status`, `session_mode`, `session_difficulty`), función `calc_session_score()` y trigger `trg_sessions_score`.
 
 ### Fase 1 — Verdadero/Falso
 - [ ] **1.1** `questions/request.go` + `questions/service.go`: aceptar/validar `true_false`.
@@ -281,43 +277,39 @@ Rutas: `tips`, `gamification` bajo `protected`; `moderation` bajo `protected` (a
 - [ ] **1.3** `sessions/service.go` `evaluateCorrectness`: case `true_false`.
 - [ ] **1.4** Shared TS: `QuestionType` + `'true_false'` + maps/icons.
 
-### Fase 2 — Visibilidad (prerequisito de Tips y Moderación)
-- [ ] **2.1** Reemplazar filtros de visibilidad en `questions/store.go`, `sessions/store.go`, `ai/generator.go`.
-- [ ] **2.2** `questions/service.go` + `mapper.go`/DTOs: `Visibility`.
-- [ ] **2.3** `ai.Generator.Validate(content)` (revisión de coherencia).
+### Fase 2 — Tips (solo admin)
+- [ ] **2.1** Módulo `tips` (store/service/handler/routes/request/response/mapper) con CRUD admin + lectura pública.
+- [ ] **2.2** Import CSV/texto (admin, sin quota).
+- [ ] **2.3** `GetTipOfTheDay(userID)` para la sesión diaria.
+- [ ] **2.4** Tests `service_test.go` (store mockeado) + `handler_test.go`.
 
-### Fase 3 — Tips
-- [ ] **3.1** Módulo `tips` (store/service/handler/routes/request/response/mapper).
-- [ ] **3.2** Import CSV/texto + `import-quota` para tips.
-- [ ] **3.3** `publish` en tips (usa `ai.Validate`).
-- [ ] **3.4** (opcional) `ai.Generator.GenerateTip`.
+### Fase 3 — Moderación
+- [ ] **3.1** Módulo `moderation` (report + admin review).
+- [ ] **3.2** Rutas (POST `protected`; GET/PUT admin) + wiring en `server.go`.
+- [ ] **3.3** Tests.
 
-### Fase 4 — Moderación
-- [ ] **4.1** Módulo `moderation` (report + admin review).
-- [ ] **4.2** `publish` en `questions` (usa `ai.Validate`).
+### Fase 4 — Gamificación
+- [ ] **4.1** Módulo `gamification` (store + service: XP global/tema, streak, freeze, meta diaria, overview).
+- [ ] **4.2** `progress.NewService(store, gamificationService)` + retornar `Reward`.
+- [ ] **4.3** `sessions.Answer`/`Finish`: incluir `reward` en la respuesta.
+- [ ] **4.4** Rutas `gamification` en `server.go` + wiring.
+- [ ] **4.5** Tests `service_test.go` (store mockeado) + `handler_test.go`.
 
-### Fase 5 — Gamificación
-- [ ] **5.1** Módulo `gamification` (store + service: XP global/tema, streak, freeze, meta diaria, overview).
-- [ ] **5.2** `progress.NewService(store, gamificationService)` + retornar `Reward`.
-- [ ] **5.3** `sessions.Answer`/`Finish`: incluir `reward` en la respuesta.
-- [ ] **5.4** Rutas `gamification` en `server.go` + wiring.
-- [ ] **5.5** Tests `service_test.go` (store mockeado) + `handler_test.go`.
+### Fase 5 — Sesión diaria
+- [ ] **5.1** `sessions`: `CreateDaily` + `POST /sessions/daily`.
+- [ ] **5.2** Store: `FindNextDailyQuestion`, `FindTipOfTheDay` (temas con errores recientes), `FindWarmupCandidates`.
+- [ ] **5.3** Helper de concurrencia (goroutines + `sync.WaitGroup`) para el ensamblado.
+- [ ] **5.4** `NextQuestion` manejo de modo `daily`.
 
-### Fase 6 — Sesión diaria
-- [ ] **6.1** `sessions`: `CreateDaily` + `POST /sessions/daily`.
-- [ ] **6.2** Store: `FindNextDailyQuestion`, `FindTipOfTheDay` (temas con errores recientes), `FindWarmupCandidates`.
-- [ ] **6.3** Helper de concurrencia (goroutines + `sync.WaitGroup`) para el ensamblado.
-- [ ] **6.4** `NextQuestion` manejo de modo `daily`.
+### Fase 6 — Sync web/shared + docs
+- [ ] **6.1** Shared: `true_false` en `question.types.ts`, `tip.types.ts`, `moderation.types.ts`, `gamification.types.ts`, `SessionMode`+`daily`, `Reward`, constants de import unificado.
+- [ ] **6.2** Web: servicios `tips/gamification/moderation`, queries, páginas (tips admin, selector de tipo en import unificado, overview en Progress/Dashboard, review de reportes admin).
+- [ ] **6.3** `make swagger` + actualizar `.agents/backend/data-model.md` y `architecture.md` (fuentes de verdad).
 
-### Fase 7 — Sync web/shared + docs
-- [ ] **7.1** Shared: `tip.types.ts`, `moderation.types.ts`, `gamification.types.ts`, `SessionMode`+`daily`, `Reward`, constants de import unificado.
-- [ ] **7.2** Web: servicios `tips/gamification/moderation`, queries, páginas (tips list, selector de tipo en import unificado, overview en Progress/Dashboard, review de reportes admin).
-- [ ] **7.3** `make swagger` + actualizar `.agents/backend/data-model.md` y `architecture.md` (fuentes de verdad).
-
-### Fase 8 — Verificación
-- [ ] **8.1** `make fmt` + `make vet`.
-- [ ] **8.2** Tests unitarios por módulo nuevo (`make test`).
-- [ ] **8.3** `make fe-check` + `make fe-lint`.
+### Fase 7 — Verificación
+- [ ] **7.1** `make fmt` + `make vet`.
+- [ ] **7.2** Tests unitarios por módulo nuevo (`make test`).
+- [ ] **7.3** `make fe-check` + `make fe-lint`.
 
 ---
 
@@ -330,10 +322,11 @@ Rutas: `tips`, `gamification` bajo `protected`; `moderation` bajo `protected` (a
 ---
 
 ## Notas
-- **Consolidación con `TASKS.md`**: ese archivo cubre gamificación con otro diseño (tabla única `UserStats`, badges, catálogo `const`). Reconciliar antes de ejecutar la Fase 5:
+- **Consolidación con `TASKS.md`**: ese archivo cubre gamificación con otro diseño (tabla única `UserStats`, badges, catálogo `const`). Reconciliar antes de ejecutar la Fase 4:
   - `TASKS.md` Fase 1 propone `UserStats` (una tabla) + `UserBadge`; este plan propone `UserStreak` + `UserXp` + `UserTopicXp` (XP global y por tema) sin badges.
   - `TASKS.md` Fase 2 (temas débiles) y Fase 4 (reportes) son complementarias a este plan.
   - Decidir si mantener ambos archivos o fusionar; este archivo es temporal hasta decidir.
 - Logros/gamificación: si se adoptan badges, hacer catálogo en código (`const`), no tabla.
+- "Des-publicar" por reporte solo aplica a contenido admin (`is_public=true`). Contenido `ai_generated` requiere mecanismo futuro (fuera de alcance).
 - Dependencias nuevas → pasar por `.agents/backend/dependencies.md` antes de `go get` / `pnpm add`.
 - Docs/`tmp/` son auto-generados y gitignored — nunca editarlos a mano.

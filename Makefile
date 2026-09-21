@@ -1,5 +1,6 @@
 .PHONY: install dev build swagger clean run fmt fmt-check vet check setup test test-cover db-seed \
-        fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover
+        fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover \
+        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint
 
 # ── Backend ──────────────────────────────────────────────
 
@@ -112,3 +113,31 @@ fe-test-cover:
 	@echo "🧪 Running frontend tests with coverage..."
 	cd apps/web && pnpm test:cover
 	@echo "✅ Frontend coverage report"
+
+# ── Mobile (apps/mobile/) ──────────────────────────────
+
+mobile-start:
+	@echo "🔥 Starting Expo dev server..."
+	pnpm --filter mobile start
+
+mobile-android:
+	@echo "🤖 Starting Expo on Android..."
+	pnpm --filter mobile android
+
+mobile-ios:
+	@echo "🍎 Starting Expo on iOS..."
+	pnpm --filter mobile ios
+
+mobile-web:
+	@echo "🌐 Starting Expo on web..."
+	pnpm --filter mobile web
+
+mobile-typecheck:
+	@echo "🔍 Type-checking mobile..."
+	pnpm --filter mobile typecheck
+	@echo "✅ Mobile type-check OK"
+
+mobile-lint:
+	@echo "🔍 Linting mobile..."
+	pnpm --filter mobile lint
+	@echo "✅ Mobile lint OK"
