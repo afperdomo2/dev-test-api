@@ -549,6 +549,62 @@ definitions:
       status:
         type: string
     type: object
+  tips.CreateTipRequest:
+    properties:
+      content:
+        type: string
+      topicId:
+        type: string
+    required:
+    - content
+    - topicId
+    type: object
+  tips.ImportResult:
+    properties:
+      errors:
+        items:
+          $ref: '#/definitions/tips.ImportRowError'
+        type: array
+      failed:
+        type: integer
+      imported:
+        type: integer
+      total:
+        type: integer
+    type: object
+  tips.ImportRowError:
+    properties:
+      reason:
+        type: string
+      row:
+        type: integer
+    type: object
+  tips.TipResponse:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      source:
+        type: string
+      topic:
+        type: string
+      topicId:
+        type: string
+      updatedAt:
+        type: string
+      userId:
+        type: string
+    type: object
+  tips.UpdateTipRequest:
+    properties:
+      content:
+        type: string
+      topicId:
+        type: string
+    type: object
   topics.CreateTopicRequest:
     properties:
       category:
@@ -1548,6 +1604,242 @@ paths:
       summary: Resumen de sesión
       tags:
       - sessions
+  /api/v1/tips:
+    get:
+      description: Lista todos los tips públicos con paginación y filtro opcional
+        por tema
+      parameters:
+      - description: 'Número de página (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Elementos por página (default: 20, max: 100)'
+        in: query
+        name: perPage
+        type: integer
+      - description: Filtrar por tema (UUID)
+        in: query
+        name: topicId
+        type: string
+      - description: 'Campo de ordenación: created_at, updated_at'
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Dirección: asc o desc (default: desc)'
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de tips (con paginación)
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Listar tips (con paginación)
+      tags:
+      - tips
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo tip (solo administradores). Los tips son siempre
+        públicos.
+      parameters:
+      - description: Datos del tip
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/tips.CreateTipRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/tips.TipResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Crear tip manual
+      tags:
+      - tips
+  /api/v1/tips/{id}:
+    delete:
+      description: Elimina un tip (solo administradores)
+      parameters:
+      - description: Tip ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Eliminar tip
+      tags:
+      - tips
+    get:
+      description: Obtiene un tip por ID con los detalles del tema asociado
+      parameters:
+      - description: Tip ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tips.TipResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Obtener tip
+      tags:
+      - tips
+    put:
+      consumes:
+      - application/json
+      description: Actualiza el contenido o el tema de un tip (solo administradores)
+      parameters:
+      - description: Tip ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/tips.UpdateTipRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tips.TipResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Actualizar tip
+      tags:
+      - tips
+  /api/v1/tips/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 'Importa tips masivos desde CSV (solo administradores, sin cupo
+        diario). Columnas requeridas: content, topic (slug del tema del sistema).
+        Los slugs desconocidos generan error por fila.'
+      parameters:
+      - description: Archivo CSV
+        in: formData
+        name: file
+        type: file
+      - description: Texto CSV pegado (alternativa a file)
+        in: formData
+        name: content
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tips.ImportResult'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Importar tips por CSV
+      tags:
+      - tips
   /api/v1/topics:
     get:
       description: Lista los temas según el rol del usuario. Admin ve solo temas del

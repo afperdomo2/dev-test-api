@@ -16,6 +16,7 @@ import (
 	"github.com/felipe/dev-test-api/internal/modules/progress"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
 	"github.com/felipe/dev-test-api/internal/modules/sessions"
+	"github.com/felipe/dev-test-api/internal/modules/tips"
 	"github.com/felipe/dev-test-api/internal/modules/topics"
 	"github.com/felipe/dev-test-api/internal/modules/users"
 	"github.com/felipe/dev-test-api/internal/services/ai"
@@ -39,6 +40,10 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	questionStore := questions.NewStore(db)
 	questionService := questions.NewService(questionStore, topicStore, userStore)
 	questionHandler := questions.NewHandler(questionService)
+
+	tipStore := tips.NewStore(db)
+	tipService := tips.NewService(tipStore, topicStore)
+	tipHandler := tips.NewHandler(tipService)
 
 	progressStore := progress.NewStore(db)
 	progressService := progress.NewService(progressStore)
@@ -71,6 +76,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	protected.Use(middleware.Auth(cfg.JWT.SecretBytes()))
 	{
 		questions.RegisterRoutes(protected, questionHandler)
+		tips.RegisterRoutes(protected, tipHandler)
 		topics.RegisterRoutes(protected, topicHandler)
 		users.RegisterRoutes(protected, userHandler)
 		progress.RegisterRoutes(protected, progressHandler)
@@ -80,6 +86,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		admin.Use(middleware.AdminOnly())
 		{
 			users.RegisterAdminRoutes(admin, userHandler)
+			tips.RegisterAdminRoutes(admin, tipHandler)
 			opencodeModule.RegisterAdminRoutes(admin, opencodeHandler)
 		}
 	}
