@@ -135,6 +135,131 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/gamification/daily-goal": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fija la meta diaria de XP del usuario autenticado (entre 10 y 200). Devuelve el reward con la meta actualizada.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gamification"
+                ],
+                "summary": "Cambiar meta diaria de XP",
+                "parameters": [
+                    {
+                        "description": "Meta diaria",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gamification.DailyGoalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gamification.Reward"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/gamification/overview": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve XP total, nivel, racha, meta diaria y XP por tema del usuario autenticado.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gamification"
+                ],
+                "summary": "Ver resumen de gamificación",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gamification.OverviewResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/gamification/streak/freeze": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Consume un freeze disponible para cubrir el día de hoy sin actividad y mantener la racha.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gamification"
+                ],
+                "summary": "Congelar racha",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gamification.Reward"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/opencode/usage": {
             "get": {
                 "security": [
@@ -2662,6 +2787,113 @@ const docTemplate = `{
                 }
             }
         },
+        "gamification.DailyGoalInfo": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "type": "integer"
+                },
+                "progress": {
+                    "type": "integer"
+                },
+                "reached": {
+                    "type": "boolean"
+                },
+                "target": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gamification.DailyGoalRequest": {
+            "type": "object",
+            "required": [
+                "dailyGoalXp"
+            ],
+            "properties": {
+                "dailyGoalXp": {
+                    "type": "integer",
+                    "maximum": 200,
+                    "minimum": 10
+                }
+            }
+        },
+        "gamification.OverviewResponse": {
+            "type": "object",
+            "properties": {
+                "dailyGoal": {
+                    "$ref": "#/definitions/gamification.DailyGoalInfo"
+                },
+                "level": {
+                    "type": "integer"
+                },
+                "streak": {
+                    "$ref": "#/definitions/gamification.StreakInfo"
+                },
+                "topicXp": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gamification.TopicXpItem"
+                    }
+                },
+                "totalXp": {
+                    "type": "integer"
+                },
+                "xpToLevel": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gamification.Reward": {
+            "type": "object",
+            "properties": {
+                "dailyGoal": {
+                    "$ref": "#/definitions/gamification.DailyGoalInfo"
+                },
+                "level": {
+                    "type": "integer"
+                },
+                "streak": {
+                    "$ref": "#/definitions/gamification.StreakInfo"
+                },
+                "totalXp": {
+                    "type": "integer"
+                },
+                "xpGained": {
+                    "type": "integer"
+                },
+                "xpToLevel": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gamification.StreakInfo": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "type": "integer"
+                },
+                "freezesAvailable": {
+                    "type": "integer"
+                },
+                "longest": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gamification.TopicXpItem": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "topicId": {
+                    "type": "string"
+                },
+                "xp": {
+                    "type": "integer"
+                }
+            }
+        },
         "moderation.CreateReportRequest": {
             "type": "object",
             "required": [
@@ -2788,6 +3020,9 @@ const docTemplate = `{
                 },
                 "repetitions": {
                     "type": "integer"
+                },
+                "reward": {
+                    "$ref": "#/definitions/gamification.Reward"
                 }
             }
         },
@@ -3386,6 +3621,9 @@ const docTemplate = `{
                 "responseTimeMs": {
                     "type": "integer"
                 },
+                "reward": {
+                    "$ref": "#/definitions/gamification.Reward"
+                },
                 "selectedOptions": {
                     "type": "array",
                     "items": {
@@ -3437,6 +3675,9 @@ const docTemplate = `{
                 },
                 "questionsGenerated": {
                     "type": "integer"
+                },
+                "reward": {
+                    "$ref": "#/definitions/gamification.Reward"
                 },
                 "score": {
                     "type": "number"

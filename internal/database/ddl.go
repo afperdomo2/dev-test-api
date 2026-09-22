@@ -123,6 +123,8 @@ func runDDL(db *gorm.DB) error {
 		`COMMENT ON COLUMN user_streak.last_activity_at IS 'Timestamp de la última actividad';`,
 		`COMMENT ON COLUMN user_streak.last_activity_date IS 'Fecha (YYYY-MM-DD, UTC) de la última actividad para comparar días consecutivos';`,
 		`COMMENT ON COLUMN user_streak.freezes_available IS 'Freezes disponibles (congelan un día sin actividad, tope 3)';`,
+		`COMMENT ON COLUMN user_streak.daily_xp_today IS 'XP acumulado en el día actual para la meta diaria';`,
+		`COMMENT ON COLUMN user_streak.daily_xp_date IS 'Fecha (YYYY-MM-DD, UTC) a la que corresponde daily_xp_today';`,
 		`COMMENT ON COLUMN user_streak.created_at IS 'Fecha de creación del registro';`,
 		`COMMENT ON COLUMN user_streak.updated_at IS 'Fecha de última actualización del registro';`,
 

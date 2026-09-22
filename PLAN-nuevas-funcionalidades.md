@@ -10,7 +10,7 @@
 - [x] Fase 1 — Preguntas Verdadero/Falso
 - [x] Fase 2 — Tarjetas de tip (solo admin, públicas)
 - [x] Fase 3 — Moderación (reportes)
-- [ ] Fase 4 — Gamificación (XP, racha, meta diaria, feedback inmediato)
+- [x] Fase 4 — Gamificación (XP, racha, meta diaria, feedback inmediato)
 - [ ] Fase 5 — Sesión diaria inteligente ("Repasar hoy")
 - [ ] Fase 6 — Sync web/shared + docs
 - [ ] Fase 7 — Verificación final
@@ -289,11 +289,11 @@ Rutas:
 - [x] **3.3** Tests.
 
 ### Fase 4 — Gamificación
-- [ ] **4.1** Módulo `gamification` (store + service: XP global/tema, streak, freeze, meta diaria, overview).
-- [ ] **4.2** `progress.NewService(store, gamificationService)` + retornar `Reward`.
-- [ ] **4.3** `sessions.Answer`/`Finish`: incluir `reward` en la respuesta.
-- [ ] **4.4** Rutas `gamification` en `server.go` + wiring.
-- [ ] **4.5** Tests `service_test.go` (store mockeado) + `handler_test.go`.
+- [x] **4.1** Módulo `gamification` (store + service: XP global/tema, streak, freeze, meta diaria, overview).
+- [x] **4.2** `progress.NewService(store, gamificationService)` + retornar `Reward`.
+- [x] **4.3** `sessions.Answer`/`Finish`: incluir `reward` en la respuesta.
+- [x] **4.4** Rutas `gamification` en `server.go` + wiring.
+- [x] **4.5** Tests `service_test.go` (store mockeado) + `handler_test.go`.
 
 ### Fase 5 — Sesión diaria
 - [ ] **5.1** `sessions`: `CreateDaily` + `POST /sessions/daily`.

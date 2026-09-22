@@ -85,7 +85,7 @@ func newSessionStore() *mockSessionStore {
 type fakeProgressAdapter struct{}
 
 func (f *fakeProgressAdapter) Answer(a, b uuid.UUID, c bool) (*progress.ProgressResponse, error) {
-	return nil, nil
+	return &progress.ProgressResponse{}, nil
 }
 func (f *fakeProgressAdapter) Get(a, b uuid.UUID) (*progress.ProgressResponse, error) {
 	return nil, nil

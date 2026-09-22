@@ -6,6 +6,7 @@ import (
 
 	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
+	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,6 +29,30 @@ func (m *mockProgressStore) FindUpcoming(uID uuid.UUID, p common.PaginationParam
 }
 func (m *mockProgressStore) FindSaved(uID uuid.UUID, p common.PaginationParams) ([]models.UserQuestionProgress, int64, error) {
 	return m.findSavedFn(uID, p)
+}
+
+type fakeGamificationService struct {
+	registerAnswerFn func(userID, questionID uuid.UUID, isCorrect bool) (*gamification.Reward, error)
+}
+
+func (f *fakeGamificationService) RegisterAnswer(userID, questionID uuid.UUID, isCorrect bool) (*gamification.Reward, error) {
+	if f.registerAnswerFn != nil {
+		return f.registerAnswerFn(userID, questionID, isCorrect)
+	}
+	return &gamification.Reward{XpGained: 5}, nil
+}
+func (f *fakeGamificationService) CompleteSession(userID uuid.UUID) (*gamification.Reward, error) {
+	return nil, nil
+}
+func (f *fakeGamificationService) GetOverview(userID uuid.UUID) (*gamification.OverviewResponse, error) {
+	return &gamification.OverviewResponse{}, nil
+}
+func (f *fakeGamificationService) GetDailyGoal(userID uuid.UUID) (int, error) { return 0, nil }
+func (f *fakeGamificationService) SetDailyGoal(userID uuid.UUID, goal int) (*gamification.Reward, error) {
+	return nil, nil
+}
+func (f *fakeGamificationService) Freeze(userID uuid.UUID) (*gamification.Reward, error) {
+	return nil, nil
 }
 
 func newProgressMock() *mockProgressStore {
@@ -53,7 +78,7 @@ func TestProgressAnswer(t *testing.T) {
 		store := newProgressMock()
 		var saved *models.UserQuestionProgress
 		store.upsertFn = func(p *models.UserQuestionProgress) error { saved = p; return nil }
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		resp, err := svc.Answer(uid, qid, true)
 		require.NoError(t, err)
 		assert.Equal(t, qid, resp.QuestionID)
@@ -70,7 +95,7 @@ func TestProgressAnswer(t *testing.T) {
 		}
 		var saved *models.UserQuestionProgress
 		store.upsertFn = func(p *models.UserQuestionProgress) error { saved = p; return nil }
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		_, err := svc.Answer(uid, qid, true)
 		require.NoError(t, err)
 		assert.Equal(t, 2, saved.Repetitions)
@@ -86,7 +111,7 @@ func TestProgressAnswer(t *testing.T) {
 			assert.True(t, p.IsMastered)
 			return nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		_, err := svc.Answer(uid, qid, true)
 		require.NoError(t, err)
 	})
@@ -102,7 +127,7 @@ func TestProgressAnswer(t *testing.T) {
 			assert.False(t, p.IsMastered)
 			return nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		_, err := svc.Answer(uid, qid, false)
 		require.NoError(t, err)
 	})
@@ -112,7 +137,7 @@ func TestProgressAnswer(t *testing.T) {
 		store.findByUserAndQuestionFn = func(uuid.UUID, uuid.UUID) (*models.UserQuestionProgress, error) {
 			return nil, errors.New("db fail")
 		}
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		_, err := svc.Answer(uid, qid, true)
 		require.Error(t, err)
 	})
@@ -120,7 +145,7 @@ func TestProgressAnswer(t *testing.T) {
 	t.Run("upsert error", func(t *testing.T) {
 		store := newProgressMock()
 		store.upsertFn = func(*models.UserQuestionProgress) error { return errors.New("fail") }
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		_, err := svc.Answer(uid, qid, true)
 		require.Error(t, err)
 	})
@@ -132,7 +157,7 @@ func TestProgressToggleSave(t *testing.T) {
 
 	t.Run("creates and saves", func(t *testing.T) {
 		store := newProgressMock()
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		resp, err := svc.ToggleSave(uid, qid)
 		require.NoError(t, err)
 		// new record starts with IsSaved=false then toggled → true
@@ -144,7 +169,7 @@ func TestProgressToggleSave(t *testing.T) {
 		store.findByUserAndQuestionFn = func(uuid.UUID, uuid.UUID) (*models.UserQuestionProgress, error) {
 			return &models.UserQuestionProgress{UserID: uid, QuestionID: qid, IsSaved: true}, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		resp, err := svc.ToggleSave(uid, qid)
 		require.NoError(t, err)
 		assert.False(t, resp.IsSaved)
@@ -155,7 +180,7 @@ func TestProgressToggleSave(t *testing.T) {
 		store.findByUserAndQuestionFn = func(uuid.UUID, uuid.UUID) (*models.UserQuestionProgress, error) {
 			return nil, errors.New("fail")
 		}
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		_, err := svc.ToggleSave(uid, qid)
 		require.Error(t, err)
 	})
@@ -169,7 +194,7 @@ func TestProgressGet(t *testing.T) {
 		store.findByUserAndQuestionFn = func(uuid.UUID, uuid.UUID) (*models.UserQuestionProgress, error) {
 			return &models.UserQuestionProgress{UserID: uid, QuestionID: qid, IsSaved: true, Repetitions: 2, EaseFactor: 2.6}, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		resp, err := svc.Get(uid, qid)
 		require.NoError(t, err)
 		assert.Equal(t, qid, resp.QuestionID)
@@ -179,7 +204,7 @@ func TestProgressGet(t *testing.T) {
 
 	t.Run("not found returns default", func(t *testing.T) {
 		store := newProgressMock()
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		resp, err := svc.Get(uid, qid)
 		require.NoError(t, err)
 		assert.Equal(t, qid, resp.QuestionID)
@@ -194,7 +219,7 @@ func TestProgressGet(t *testing.T) {
 		store.findByUserAndQuestionFn = func(uuid.UUID, uuid.UUID) (*models.UserQuestionProgress, error) {
 			return nil, errors.New("db fail")
 		}
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		_, err := svc.Get(uid, qid)
 		require.Error(t, err)
 	})
@@ -210,7 +235,7 @@ func TestProgressUpcoming_Saved(t *testing.T) {
 				{UserID: uid, QuestionID: uuid.New(), Question: &models.Question{Content: "q1"}},
 			}, 1, nil
 		}
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		items, total, err := svc.Upcoming(uid, common.PaginationParams{Page: 1, PerPage: 10})
 		require.NoError(t, err)
 		assert.Len(t, items, 1)
@@ -222,14 +247,14 @@ func TestProgressUpcoming_Saved(t *testing.T) {
 		store.findUpcomingFn = func(uuid.UUID, common.PaginationParams) ([]models.UserQuestionProgress, int64, error) {
 			return nil, 0, errors.New("fail")
 		}
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		_, _, err := svc.Upcoming(uid, common.PaginationParams{})
 		require.Error(t, err)
 	})
 
 	t.Run("saved success", func(t *testing.T) {
 		store := newProgressMock()
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		_, _, err := svc.Saved(uid, common.PaginationParams{})
 		require.NoError(t, err)
 	})
@@ -239,7 +264,7 @@ func TestProgressUpcoming_Saved(t *testing.T) {
 		store.findSavedFn = func(uuid.UUID, common.PaginationParams) ([]models.UserQuestionProgress, int64, error) {
 			return nil, 0, errors.New("fail")
 		}
-		svc := NewService(store)
+		svc := NewService(store, &fakeGamificationService{})
 		_, _, err := svc.Saved(uid, common.PaginationParams{})
 		require.Error(t, err)
 	})

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/models"
+	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
 	"github.com/felipe/dev-test-api/internal/services/ai"
 	"github.com/felipe/dev-test-api/pkg/apierr"
@@ -29,13 +30,14 @@ type Service interface {
 }
 
 type sessionService struct {
-	store           Store
-	progressService progress.Service
-	aiGenerator     *ai.Generator
+	store               Store
+	progressService     progress.Service
+	gamificationService gamification.Service
+	aiGenerator         *ai.Generator
 }
 
-func NewService(store Store, progressService progress.Service, aiGenerator *ai.Generator) Service {
-	return &sessionService{store: store, progressService: progressService, aiGenerator: aiGenerator}
+func NewService(store Store, progressService progress.Service, gamificationService gamification.Service, aiGenerator *ai.Generator) Service {
+	return &sessionService{store: store, progressService: progressService, gamificationService: gamificationService, aiGenerator: aiGenerator}
 }
 
 func (s *sessionService) List(userID uuid.UUID, params ListSessionsParams) ([]SessionListResponse, int64, error) {
@@ -144,6 +146,13 @@ func (s *sessionService) Finish(sessionID uuid.UUID) (*SessionResponse, error) {
 	}
 
 	resp := ToSessionResponse(*sess)
+	if s.gamificationService != nil {
+		reward, gErr := s.gamificationService.CompleteSession(sess.UserID)
+		if gErr != nil {
+			return nil, gErr
+		}
+		resp.Reward = reward
+	}
 	return &resp, nil
 }
 
@@ -244,7 +253,17 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 		return nil, apierr.ErrInternal("Error al guardar la respuesta", "")
 	}
 
-	s.progressService.Answer(userID, input.QuestionID, isCorrect)
+	var reward *gamification.Reward
+	if s.progressService != nil {
+		progressResp, pErr := s.progressService.Answer(userID, input.QuestionID, isCorrect)
+		if pErr != nil {
+			log.Printf("⚠️ Error al guardar el progreso/recompensa para la respuesta %s: %v", answer.ID, pErr)
+			progressResp = nil
+		}
+		if progressResp != nil {
+			reward = progressResp.Reward
+		}
+	}
 
 	if question != nil {
 		answer.Question = question
@@ -265,6 +284,7 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 	}
 
 	resp := ToAnswerResponse(*answer)
+	resp.Reward = reward
 	return &resp, nil
 }
 

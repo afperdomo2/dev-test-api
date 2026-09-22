@@ -48,6 +48,76 @@ definitions:
       initialized:
         type: boolean
     type: object
+  gamification.DailyGoalInfo:
+    properties:
+      current:
+        type: integer
+      progress:
+        type: integer
+      reached:
+        type: boolean
+      target:
+        type: integer
+    type: object
+  gamification.DailyGoalRequest:
+    properties:
+      dailyGoalXp:
+        maximum: 200
+        minimum: 10
+        type: integer
+    required:
+    - dailyGoalXp
+    type: object
+  gamification.OverviewResponse:
+    properties:
+      dailyGoal:
+        $ref: '#/definitions/gamification.DailyGoalInfo'
+      level:
+        type: integer
+      streak:
+        $ref: '#/definitions/gamification.StreakInfo'
+      topicXp:
+        items:
+          $ref: '#/definitions/gamification.TopicXpItem'
+        type: array
+      totalXp:
+        type: integer
+      xpToLevel:
+        type: integer
+    type: object
+  gamification.Reward:
+    properties:
+      dailyGoal:
+        $ref: '#/definitions/gamification.DailyGoalInfo'
+      level:
+        type: integer
+      streak:
+        $ref: '#/definitions/gamification.StreakInfo'
+      totalXp:
+        type: integer
+      xpGained:
+        type: integer
+      xpToLevel:
+        type: integer
+    type: object
+  gamification.StreakInfo:
+    properties:
+      current:
+        type: integer
+      freezesAvailable:
+        type: integer
+      longest:
+        type: integer
+    type: object
+  gamification.TopicXpItem:
+    properties:
+      name:
+        type: string
+      topicId:
+        type: string
+      xp:
+        type: integer
+    type: object
   moderation.CreateReportRequest:
     properties:
       reason:
@@ -132,6 +202,8 @@ definitions:
         type: string
       repetitions:
         type: integer
+      reward:
+        $ref: '#/definitions/gamification.Reward'
     type: object
   questions.AiQuota:
     properties:
@@ -530,6 +602,8 @@ definitions:
         type: string
       responseTimeMs:
         type: integer
+      reward:
+        $ref: '#/definitions/gamification.Reward'
       selectedOptions:
         items:
           type: string
@@ -564,6 +638,8 @@ definitions:
         type: integer
       questionsGenerated:
         type: integer
+      reward:
+        $ref: '#/definitions/gamification.Reward'
       score:
         type: number
       startedAt:
@@ -838,6 +914,87 @@ paths:
       summary: Estado del sistema
       tags:
       - auth
+  /api/v1/gamification/daily-goal:
+    put:
+      consumes:
+      - application/json
+      description: Fija la meta diaria de XP del usuario autenticado (entre 10 y 200).
+        Devuelve el reward con la meta actualizada.
+      parameters:
+      - description: Meta diaria
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/gamification.DailyGoalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gamification.Reward'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Cambiar meta diaria de XP
+      tags:
+      - gamification
+  /api/v1/gamification/overview:
+    get:
+      description: Devuelve XP total, nivel, racha, meta diaria y XP por tema del
+        usuario autenticado.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gamification.OverviewResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Ver resumen de gamificación
+      tags:
+      - gamification
+  /api/v1/gamification/streak/freeze:
+    post:
+      description: Consume un freeze disponible para cubrir el día de hoy sin actividad
+        y mantener la racha.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gamification.Reward'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Congelar racha
+      tags:
+      - gamification
   /api/v1/opencode/usage:
     get:
       description: Consulta el endpoint oficial de OpenCode Go y devuelve el consumo

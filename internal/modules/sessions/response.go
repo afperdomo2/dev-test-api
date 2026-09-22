@@ -3,26 +3,28 @@ package sessions
 import (
 	"time"
 
+	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
 	"github.com/google/uuid"
 )
 
 type SessionResponse struct {
-	ID                 uuid.UUID  `json:"id"`
-	UserID             uuid.UUID  `json:"userId"`
-	Name               string     `json:"name"`
-	Status             string     `json:"status"`
-	Mode               string     `json:"mode"`
-	Difficulty         string     `json:"difficulty"`
-	QuestionLimit      *int       `json:"questionLimit,omitempty"`
-	QuestionsGenerated int        `json:"questionsGenerated"`
-	Score              *float64   `json:"score,omitempty"`
-	StartedAt          time.Time  `json:"startedAt"`
-	FinishedAt         *time.Time `json:"finishedAt,omitempty"`
-	Topics             []string   `json:"topics"`
-	AnswerCount        int        `json:"answerCount"`
-	CreatedAt          time.Time  `json:"createdAt"`
-	UpdatedAt          time.Time  `json:"updatedAt"`
+	ID                 uuid.UUID            `json:"id"`
+	UserID             uuid.UUID            `json:"userId"`
+	Name               string               `json:"name"`
+	Status             string               `json:"status"`
+	Mode               string               `json:"mode"`
+	Difficulty         string               `json:"difficulty"`
+	QuestionLimit      *int                 `json:"questionLimit,omitempty"`
+	QuestionsGenerated int                  `json:"questionsGenerated"`
+	Score              *float64             `json:"score,omitempty"`
+	StartedAt          time.Time            `json:"startedAt"`
+	FinishedAt         *time.Time           `json:"finishedAt,omitempty"`
+	Topics             []string             `json:"topics"`
+	AnswerCount        int                  `json:"answerCount"`
+	Reward             *gamification.Reward `json:"reward,omitempty"`
+	CreatedAt          time.Time            `json:"createdAt"`
+	UpdatedAt          time.Time            `json:"updatedAt"`
 }
 
 type SessionListResponse struct {
@@ -48,15 +50,16 @@ type SessionDetailResponse struct {
 }
 
 type SessionAnswerResponse struct {
-	ID              uuid.UUID   `json:"id"`
-	QuestionID      uuid.UUID   `json:"questionId"`
-	AnswerText      string      `json:"answerText,omitempty"`
-	SelectedOptions []uuid.UUID `json:"selectedOptions,omitempty"`
-	IsCorrect       bool        `json:"isCorrect"`
-	AiFeedback      string      `json:"aiFeedback,omitempty"`
-	Explanation     string      `json:"explanation,omitempty"`
-	ResponseTimeMs  int         `json:"responseTimeMs"`
-	CreatedAt       time.Time   `json:"createdAt"`
+	ID              uuid.UUID            `json:"id"`
+	QuestionID      uuid.UUID            `json:"questionId"`
+	AnswerText      string               `json:"answerText,omitempty"`
+	SelectedOptions []uuid.UUID          `json:"selectedOptions,omitempty"`
+	IsCorrect       bool                 `json:"isCorrect"`
+	AiFeedback      string               `json:"aiFeedback,omitempty"`
+	Explanation     string               `json:"explanation,omitempty"`
+	ResponseTimeMs  int                  `json:"responseTimeMs"`
+	Reward          *gamification.Reward `json:"reward,omitempty"`
+	CreatedAt       time.Time            `json:"createdAt"`
 }
 
 type QuestionSnapshotOption struct {

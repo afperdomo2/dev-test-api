@@ -14,6 +14,8 @@ type UserStreak struct {
 	LastActivityAt   *time.Time `json:"lastActivityAt,omitempty"`
 	LastActivityDate string     `gorm:"size:10" json:"lastActivityDate,omitempty"`
 	FreezesAvailable int        `gorm:"not null;default:0" json:"freezesAvailable"`
+	DailyXpToday     int        `gorm:"not null;default:0" json:"dailyXpToday"`
+	DailyXpDate      string     `gorm:"size:10" json:"dailyXpDate,omitempty"`
 	CreatedAt        time.Time  `json:"createdAt"`
 	UpdatedAt        time.Time  `json:"updatedAt"`
 }

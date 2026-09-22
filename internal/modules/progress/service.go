@@ -6,6 +6,7 @@ import (
 
 	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
+	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
@@ -21,11 +22,12 @@ type Service interface {
 }
 
 type progressService struct {
-	store Store
+	store        Store
+	gamification gamification.Service
 }
 
-func NewService(store Store) Service {
-	return &progressService{store: store}
+func NewService(store Store, gamification gamification.Service) Service {
+	return &progressService{store: store, gamification: gamification}
 }
 
 func (s *progressService) Answer(userID, questionID uuid.UUID, isCorrect bool) (*ProgressResponse, error) {
@@ -47,7 +49,17 @@ func (s *progressService) Answer(userID, questionID uuid.UUID, isCorrect bool) (
 		return nil, apierr.ErrInternal("Error al guardar el progreso", "")
 	}
 
-	return toProgressResponse(p), nil
+	var reward *gamification.Reward
+	if s.gamification != nil {
+		reward, err = s.gamification.RegisterAnswer(userID, questionID, isCorrect)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	resp := toProgressResponse(p)
+	resp.Reward = reward
+	return resp, nil
 }
 
 func (s *progressService) Get(userID, questionID uuid.UUID) (*ProgressResponse, error) {
