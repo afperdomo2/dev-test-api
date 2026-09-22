@@ -48,6 +48,47 @@ definitions:
       initialized:
         type: boolean
     type: object
+  moderation.CreateReportRequest:
+    properties:
+      reason:
+        minLength: 3
+        type: string
+      targetId:
+        type: string
+      targetType:
+        enum:
+        - question
+        - tip
+        type: string
+    required:
+    - reason
+    - targetId
+    - targetType
+    type: object
+  moderation.ReportResponse:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      reason:
+        type: string
+      reporterUserId:
+        type: string
+      status:
+        type: string
+      targetId:
+        type: string
+      targetType:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  moderation.ReviewReportRequest:
+    properties:
+      unpublish:
+        type: boolean
+    type: object
   opencode.UsageResponse:
     properties:
       monthly:
@@ -1323,6 +1364,145 @@ paths:
       summary: Estadísticas de preguntas
       tags:
       - questions
+  /api/v1/reports:
+    get:
+      description: Lista los reportes con paginación y filtro opcional por estado
+        (solo administradores)
+      parameters:
+      - description: 'Número de página (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Elementos por página (default: 20, max: 100)'
+        in: query
+        name: perPage
+        type: integer
+      - description: 'Filtrar por estado: pending, reviewed'
+        in: query
+        name: status
+        type: string
+      - description: 'Campo de ordenación: created_at, updated_at'
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Dirección: asc o desc (default: desc)'
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de reportes (con paginación)
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Listar reportes
+      tags:
+      - moderation
+    post:
+      consumes:
+      - application/json
+      description: Reporta contenido público (pregunta o tip) por contenido inapropiado.
+        Solo contenido público es reportable.
+      parameters:
+      - description: Datos del reporte
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/moderation.CreateReportRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/moderation.ReportResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Reportar contenido
+      tags:
+      - moderation
+  /api/v1/reports/{id}/review:
+    put:
+      consumes:
+      - application/json
+      description: 'Marca un reporte como revisado. Opcionalmente des-publica el contenido
+        reportado si es pregunta de admin (`unpublish: true`) (solo administradores)'
+      parameters:
+      - description: Reporte ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Acción de revisión
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/moderation.ReviewReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/moderation.ReportResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Revisar reporte
+      tags:
+      - moderation
   /api/v1/sessions:
     get:
       description: Lista las sesiones de estudio del usuario autenticado

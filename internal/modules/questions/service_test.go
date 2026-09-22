@@ -18,6 +18,7 @@ type mockQuestionStore struct {
 	createFn                 func(q *models.Question) error
 	updateFn                 func(q *models.Question) error
 	deleteFn                 func(id uuid.UUID) error
+	unpublishFn              func(id uuid.UUID) error
 	addQuestionTopicsFn      func(questionID uuid.UUID, topicIDs []uuid.UUID) error
 	replaceQuestionTopicsFn  func(questionID uuid.UUID, topicIDs []uuid.UUID) error
 	replaceQuestionOptionsFn func(questionID uuid.UUID, opts []models.QuestionOption) error
@@ -35,6 +36,7 @@ func (m *mockQuestionStore) FindByID(id uuid.UUID) (*models.Question, error) { r
 func (m *mockQuestionStore) Create(q *models.Question) error                 { return m.createFn(q) }
 func (m *mockQuestionStore) Update(q *models.Question) error                 { return m.updateFn(q) }
 func (m *mockQuestionStore) Delete(id uuid.UUID) error                       { return m.deleteFn(id) }
+func (m *mockQuestionStore) Unpublish(id uuid.UUID) error                    { return m.unpublishFn(id) }
 func (m *mockQuestionStore) AddQuestionTopics(qID uuid.UUID, tIDs []uuid.UUID) error {
 	return m.addQuestionTopicsFn(qID, tIDs)
 }

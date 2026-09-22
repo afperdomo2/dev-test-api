@@ -8,8 +8,8 @@
 ## Estado general
 - [x] Fase 0 — Fundaciones (modelos + migraciones)
 - [x] Fase 1 — Preguntas Verdadero/Falso
-- [ ] Fase 2 — Tarjetas de tip (solo admin, públicas)
-- [ ] Fase 3 — Moderación (reportes)
+- [x] Fase 2 — Tarjetas de tip (solo admin, públicas)
+- [x] Fase 3 — Moderación (reportes)
 - [ ] Fase 4 — Gamificación (XP, racha, meta diaria, feedback inmediato)
 - [ ] Fase 5 — Sesión diaria inteligente ("Repasar hoy")
 - [ ] Fase 6 — Sync web/shared + docs
@@ -278,15 +278,15 @@ Rutas:
 - [x] **1.4** Shared TS: `QuestionType` + `'true_false'` + maps/icons.
 
 ### Fase 2 — Tips (solo admin)
-- [ ] **2.1** Módulo `tips` (store/service/handler/routes/request/response/mapper) con CRUD admin + lectura pública.
-- [ ] **2.2** Import CSV/texto (admin, sin quota).
-- [ ] **2.3** `GetTipOfTheDay(userID)` para la sesión diaria.
-- [ ] **2.4** Tests `service_test.go` (store mockeado) + `handler_test.go`.
+- [x] **2.1** Módulo `tips` (store/service/handler/routes/request/response/mapper) con CRUD admin + lectura pública.
+- [x] **2.2** Import CSV/texto (admin, sin quota).
+- [x] **2.3** `GetTipOfTheDay(userID)` para la sesión diaria.
+- [x] **2.4** Tests `service_test.go` (store mockeado) + `handler_test.go`.
 
 ### Fase 3 — Moderación
-- [ ] **3.1** Módulo `moderation` (report + admin review).
-- [ ] **3.2** Rutas (POST `protected`; GET/PUT admin) + wiring en `server.go`.
-- [ ] **3.3** Tests.
+- [x] **3.1** Módulo `moderation` (report + admin review).
+- [x] **3.2** Rutas (POST `protected`; GET/PUT admin) + wiring en `server.go`.
+- [x] **3.3** Tests.
 
 ### Fase 4 — Gamificación
 - [ ] **4.1** Módulo `gamification` (store + service: XP global/tema, streak, freeze, meta diaria, overview).

@@ -15,6 +15,7 @@ type Store interface {
 	Create(question *models.Question) error
 	Update(question *models.Question) error
 	Delete(id uuid.UUID) error
+	Unpublish(id uuid.UUID) error
 	AddQuestionTopics(questionID uuid.UUID, topicIDs []uuid.UUID) error
 	ReplaceQuestionTopics(questionID uuid.UUID, topicIDs []uuid.UUID) error
 	ReplaceQuestionOptions(questionID uuid.UUID, options []models.QuestionOption) error
@@ -86,6 +87,10 @@ func (s *gormStore) Update(question *models.Question) error {
 
 func (s *gormStore) Delete(id uuid.UUID) error {
 	return s.db.Delete(&models.Question{}, "id = ?", id).Error
+}
+
+func (s *gormStore) Unpublish(id uuid.UUID) error {
+	return s.db.Model(&models.Question{}).Where("id = ?", id).Update("is_public", false).Error
 }
 
 func (s *gormStore) AddQuestionTopics(questionID uuid.UUID, topicIDs []uuid.UUID) error {

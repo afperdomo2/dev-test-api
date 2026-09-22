@@ -12,6 +12,7 @@ import (
 	"github.com/felipe/dev-test-api/internal/config"
 	"github.com/felipe/dev-test-api/internal/middleware"
 	"github.com/felipe/dev-test-api/internal/modules/auth"
+	"github.com/felipe/dev-test-api/internal/modules/moderation"
 	opencodeModule "github.com/felipe/dev-test-api/internal/modules/opencode"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
@@ -44,6 +45,10 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	tipStore := tips.NewStore(db)
 	tipService := tips.NewService(tipStore, topicStore)
 	tipHandler := tips.NewHandler(tipService)
+
+	moderationStore := moderation.NewStore(db)
+	moderationService := moderation.NewService(moderationStore, questionStore, tipStore)
+	moderationHandler := moderation.NewHandler(moderationService)
 
 	progressStore := progress.NewStore(db)
 	progressService := progress.NewService(progressStore)
@@ -81,12 +86,14 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		users.RegisterRoutes(protected, userHandler)
 		progress.RegisterRoutes(protected, progressHandler)
 		sessions.RegisterRoutes(protected, sessionHandler)
+		moderation.RegisterRoutes(protected, moderationHandler)
 
 		admin := protected.Group("")
 		admin.Use(middleware.AdminOnly())
 		{
 			users.RegisterAdminRoutes(admin, userHandler)
 			tips.RegisterAdminRoutes(admin, tipHandler)
+			moderation.RegisterAdminRoutes(admin, moderationHandler)
 			opencodeModule.RegisterAdminRoutes(admin, opencodeHandler)
 		}
 	}
