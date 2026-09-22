@@ -19,7 +19,7 @@ type ListQuestionsParams struct {
 }
 
 type CreateQuestionRequest struct {
-	Type           string            `json:"type" binding:"required,oneof=single_choice multiple_choice code_completion"`
+	Type           string            `json:"type" binding:"required,oneof=single_choice multiple_choice code_completion true_false"`
 	Content        string            `json:"content" binding:"required"`
 	Explanation    string            `json:"explanation,omitempty"`
 	Difficulty     string            `json:"difficulty" binding:"required,oneof=beginner intermediate advanced"`

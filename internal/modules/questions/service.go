@@ -74,6 +74,20 @@ func (s *questionService) Create(userID uuid.UUID, input CreateQuestionRequest) 
 			return nil, apierr.ErrValidation("Se requieren opciones para preguntas de tipo choice", "")
 		}
 	}
+	if input.Type == "true_false" {
+		if len(input.Options) != 2 {
+			return nil, apierr.ErrValidation("Las preguntas true_false deben tener exactamente 2 opciones (Verdadero/Falso)", "")
+		}
+		correctCount := 0
+		for _, opt := range input.Options {
+			if opt.IsCorrect {
+				correctCount++
+			}
+		}
+		if correctCount != 1 {
+			return nil, apierr.ErrValidation("Las preguntas true_false deben tener exactamente 1 opción correcta", "")
+		}
+	}
 	if input.Type == "code_completion" && input.Language == "" {
 		return nil, apierr.ErrValidation("Se requiere el lenguaje para preguntas code_completion", "")
 	}

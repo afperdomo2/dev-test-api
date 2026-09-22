@@ -17,6 +17,8 @@ type Session struct {
 	Difficulty         string     `gorm:"not null;default:intermediate;size:20" json:"difficulty"`
 	QuestionLimit      *int       `json:"questionLimit,omitempty"`
 	QuestionsGenerated int        `gorm:"not null;default:0" json:"questionsGenerated"`
+	TipID              *uuid.UUID `gorm:"type:uuid" json:"tipId,omitempty"`
+	Tip                *Tip       `gorm:"foreignKey:TipID" json:"-"`
 	Score              *float64   `json:"score,omitempty"`
 	StartedAt          time.Time  `json:"startedAt"`
 	FinishedAt         *time.Time `json:"finishedAt,omitempty"`

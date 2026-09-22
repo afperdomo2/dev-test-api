@@ -15,6 +15,7 @@ const (
 var validImportTypes = map[string]bool{
 	"single_choice":   true,
 	"multiple_choice": true,
+	"true_false":      true,
 }
 
 var validImportDifficulties = map[string]bool{
@@ -187,7 +188,7 @@ type validatedImportRow struct {
 func validateImportRow(row importRow) (*validatedImportRow, error) {
 	typeNorm := strings.ToLower(strings.TrimSpace(row.Type))
 	if !validImportTypes[typeNorm] {
-		return nil, fmt.Errorf("tipo no válido: %s (usa single_choice o multiple_choice)", row.Type)
+		return nil, fmt.Errorf("tipo no válido: %s (usa single_choice, multiple_choice o true_false)", row.Type)
 	}
 
 	if strings.TrimSpace(row.Content) == "" {
@@ -215,6 +216,14 @@ func validateImportRow(row importRow) (*validatedImportRow, error) {
 	}
 	if typeNorm == "single_choice" && correctCount != 1 {
 		return nil, fmt.Errorf("single_choice debe tener exactamente 1 opción correcta, tiene %d", correctCount)
+	}
+	if typeNorm == "true_false" {
+		if len(opts) != 2 {
+			return nil, fmt.Errorf("true_false debe tener exactamente 2 opciones (Verdadero/Falso), tiene %d", len(opts))
+		}
+		if correctCount != 1 {
+			return nil, fmt.Errorf("true_false debe tener exactamente 1 opción correcta, tiene %d", correctCount)
+		}
 	}
 
 	topicSlugs := parseTopicSlugs(row.TopicsRaw)

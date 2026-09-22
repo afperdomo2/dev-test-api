@@ -11,6 +11,8 @@ const DefaultDailyImportLimit = 200
 
 const DefaultDailyAiLimit = 20
 
+const DefaultDailyGoalXp = 50
+
 type User struct {
 	ID               uuid.UUID      `gorm:"type:uuid;primaryKey" json:"id"`
 	Email            string         `gorm:"uniqueIndex;not null" json:"email"`
@@ -18,6 +20,7 @@ type User struct {
 	IsAdmin          bool           `gorm:"default:false" json:"isAdmin"`
 	DailyImportLimit int            `gorm:"not null;default:200" json:"dailyImportLimit"`
 	DailyAiLimit     int            `gorm:"not null;default:20" json:"dailyAiLimit"`
+	DailyGoalXp      int            `gorm:"not null;default:50" json:"dailyGoalXp"`
 	CreatedAt        time.Time      `json:"createdAt"`
 	UpdatedAt        time.Time      `json:"updatedAt"`
 	DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`

@@ -270,7 +270,7 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 
 func evaluateCorrectness(question *models.Question, selectedOptions []uuid.UUID) bool {
 	switch question.Type {
-	case "single_choice":
+	case "single_choice", "true_false":
 		for _, opt := range question.Options {
 			if opt.IsCorrect {
 				return len(selectedOptions) == 1 && selectedOptions[0] == opt.ID

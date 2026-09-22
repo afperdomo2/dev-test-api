@@ -2275,7 +2275,8 @@ const docTemplate = `{
                     "enum": [
                         "single_choice",
                         "multiple_choice",
-                        "code_completion"
+                        "code_completion",
+                        "true_false"
                     ]
                 }
             }

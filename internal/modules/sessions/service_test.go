@@ -119,6 +119,18 @@ func TestSessionEvaluateCorrectness(t *testing.T) {
 		q := &models.Question{Type: "single_choice", Options: []models.QuestionOption{{ID: optCorrect, IsCorrect: true}}}
 		assert.False(t, evaluateCorrectness(q, nil))
 	})
+	t.Run("true_false correct", func(t *testing.T) {
+		q := &models.Question{Type: "true_false", Options: []models.QuestionOption{{ID: optCorrect, IsCorrect: true}, {ID: optWrong, IsCorrect: false}}}
+		assert.True(t, evaluateCorrectness(q, []uuid.UUID{optCorrect}))
+	})
+	t.Run("true_false wrong", func(t *testing.T) {
+		q := &models.Question{Type: "true_false", Options: []models.QuestionOption{{ID: optCorrect, IsCorrect: true}, {ID: optWrong, IsCorrect: false}}}
+		assert.False(t, evaluateCorrectness(q, []uuid.UUID{optWrong}))
+	})
+	t.Run("true_false empty", func(t *testing.T) {
+		q := &models.Question{Type: "true_false", Options: []models.QuestionOption{{ID: optCorrect, IsCorrect: true}, {ID: optWrong, IsCorrect: false}}}
+		assert.False(t, evaluateCorrectness(q, nil))
+	})
 	t.Run("multiple_choice exact", func(t *testing.T) {
 		q := &models.Question{Type: "multiple_choice", Options: []models.QuestionOption{{ID: optCorrect, IsCorrect: true}, {ID: opt2, IsCorrect: true}, {ID: optWrong, IsCorrect: false}}}
 		assert.True(t, evaluateCorrectness(q, []uuid.UUID{optCorrect, opt2}))

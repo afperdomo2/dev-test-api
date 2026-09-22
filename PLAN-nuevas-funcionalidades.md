@@ -6,8 +6,8 @@
 > `make check` (backend) · `make fe-check` + `make fe-lint` (frontend) · tests con store mockeado.
 
 ## Estado general
-- [ ] Fase 0 — Fundaciones (modelos + migraciones)
-- [ ] Fase 1 — Preguntas Verdadero/Falso
+- [x] Fase 0 — Fundaciones (modelos + migraciones)
+- [x] Fase 1 — Preguntas Verdadero/Falso
 - [ ] Fase 2 — Tarjetas de tip (solo admin, públicas)
 - [ ] Fase 3 — Moderación (reportes)
 - [ ] Fase 4 — Gamificación (XP, racha, meta diaria, feedback inmediato)
@@ -266,16 +266,16 @@ Rutas:
 ## Checklist ordenado por dependencias
 
 ### Fase 0 — Fundaciones (sin dependencias)
-- [ ] **0.1** Añadir modelos: `Tip`, `Report`, `UserStreak`, `UserXp`, `UserTopicXp`; `DailyGoalXp` en `User`; `TipID` + `Mode="daily"` en `Session`.
-- [ ] **0.2** `database.go`: registrar modelos en `AutoMigrate`.
-- [ ] **0.3** `ddl.go`: enums (`true_false`, `daily`, `report_status`), columnas (`daily_goal_xp`, `tip_id`), índices, y **comentarios `COMMENT ON`** de los objetos nuevos (tablas/columnas/enums; y triggers/funciones si se crean).
-- [ ] **0.4** Documentar el esquema existente con `COMMENT ON` en `ddl.go`: tablas actuales (`users`, `topics`, `questions`, `question_options`, `code_challenges`, `question_topics`, `user_question_progress`, `sessions`, `session_topics`, `session_answers`), enums existentes (`question_type`, `question_difficulty`, `question_source`, `session_status`, `session_mode`, `session_difficulty`), función `calc_session_score()` y trigger `trg_sessions_score`.
+- [x] **0.1** Añadir modelos: `Tip`, `Report`, `UserStreak`, `UserXp`, `UserTopicXp`; `DailyGoalXp` en `User`; `TipID` + `Mode="daily"` en `Session`.
+- [x] **0.2** `database.go`: registrar modelos en `AutoMigrate`.
+- [x] **0.3** `ddl.go`: enums (`true_false`, `daily`, `report_status`), columnas (`daily_goal_xp`, `tip_id`), índices, y **comentarios `COMMENT ON`** de los objetos nuevos (tablas/columnas/enums; y triggers/funciones si se crean).
+- [x] **0.4** Documentar el esquema existente con `COMMENT ON` en `ddl.go`: tablas actuales (`users`, `topics`, `questions`, `question_options`, `code_challenges`, `question_topics`, `user_question_progress`, `sessions`, `session_topics`, `session_answers`), enums existentes (`question_type`, `question_difficulty`, `question_source`, `session_status`, `session_mode`, `session_difficulty`), función `calc_session_score()` y trigger `trg_sessions_score`.
 
 ### Fase 1 — Verdadero/Falso
-- [ ] **1.1** `questions/request.go` + `questions/service.go`: aceptar/validar `true_false`.
-- [ ] **1.2** `questions/import.go`: tipo `true_false` (2 opciones, 1 correcta).
-- [ ] **1.3** `sessions/service.go` `evaluateCorrectness`: case `true_false`.
-- [ ] **1.4** Shared TS: `QuestionType` + `'true_false'` + maps/icons.
+- [x] **1.1** `questions/request.go` + `questions/service.go`: aceptar/validar `true_false`.
+- [x] **1.2** `questions/import.go`: tipo `true_false` (2 opciones, 1 correcta).
+- [x] **1.3** `sessions/service.go` `evaluateCorrectness`: case `true_false`.
+- [x] **1.4** Shared TS: `QuestionType` + `'true_false'` + maps/icons.
 
 ### Fase 2 — Tips (solo admin)
 - [ ] **2.1** Módulo `tips` (store/service/handler/routes/request/response/mapper) con CRUD admin + lectura pública.

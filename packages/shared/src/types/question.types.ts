@@ -1,4 +1,4 @@
-export type QuestionType = 'single_choice' | 'multiple_choice' | 'code_completion'
+export type QuestionType = 'single_choice' | 'multiple_choice' | 'code_completion' | 'true_false'
 export type QuestionDifficulty = 'beginner' | 'intermediate' | 'advanced'
 export type QuestionSource = 'ai_generated' | 'manual' | 'imported'
 
@@ -6,6 +6,7 @@ export const QUESTION_TYPES: Array<{ title: string; value: QuestionType }> = [
   { title: 'Selección única', value: 'single_choice' },
   { title: 'Selección múltiple', value: 'multiple_choice' },
   { title: 'Completar código', value: 'code_completion' },
+  { title: 'Verdadero/Falso', value: 'true_false' },
 ]
 
 export const QUESTION_DIFFICULTIES: Array<{ title: string; value: QuestionDifficulty }> = [
@@ -48,6 +49,7 @@ export const TYPE_ICONS: Record<QuestionType, string> = {
   single_choice: 'mdi-radiobox-marked',
   multiple_choice: 'mdi-checkbox-multiple-marked',
   code_completion: 'mdi-code-braces',
+  true_false: 'mdi-toggle-switch',
 }
 
 export interface QuestionOption {

@@ -47,6 +47,11 @@ func Connect(cfg *config.Config) *gorm.DB {
 		&models.Session{},
 		&models.SessionTopic{},
 		&models.SessionAnswer{},
+		&models.Tip{},
+		&models.Report{},
+		&models.UserStreak{},
+		&models.UserXp{},
+		&models.UserTopicXp{},
 	); err != nil {
 		log.Fatalf("❌ failed to run auto-migration: %v", err)
 	}

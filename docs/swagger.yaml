@@ -170,6 +170,7 @@ definitions:
         - single_choice
         - multiple_choice
         - code_completion
+        - true_false
         type: string
     required:
     - content
