@@ -99,6 +99,34 @@ func (h *Handler) Create(c *gin.Context) {
 	response.Success(c, http.StatusCreated, session)
 }
 
+// @Summary      Crear sesión diaria
+// @Description  Crea una sesión diaria inteligente con repasos vencidos, calentamiento true_false y tip del día
+// @Tags         sessions
+// @Security     BearerAuth
+// @Produce      json
+// @Success      201  {object}  DailySessionResponse
+// @Failure      401  {object}  apierr.APIError
+// @Failure      500  {object}  apierr.APIError
+// @Router       /api/v1/sessions/daily [post]
+func (h *Handler) CreateDaily(c *gin.Context) {
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	daily, err := h.service.CreateDaily(userID)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusCreated, daily)
+}
+
 // @Summary      Obtener sesión
 // @Description  Obtiene el detalle de una sesión con sus respuestas
 // @Tags         sessions

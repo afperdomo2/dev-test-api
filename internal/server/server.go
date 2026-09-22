@@ -61,7 +61,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 
 	sessionStore := sessions.NewStore(db)
 	aiGenerator := ai.NewGenerator(db, cfg.AI)
-	sessionService := sessions.NewService(sessionStore, progressService, gamificationService, aiGenerator)
+	sessionService := sessions.NewService(sessionStore, progressService, gamificationService, aiGenerator, tipService)
 	sessionHandler := sessions.NewHandler(sessionService)
 
 	authService := auth.NewService(userStore, cfg.JWT.SecretBytes(), cfg.JWT.ExpiryHrs)

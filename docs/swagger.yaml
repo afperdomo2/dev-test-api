@@ -498,6 +498,17 @@ definitions:
     - name
     - topicIds
     type: object
+  sessions.DailySessionResponse:
+    properties:
+      dueCount:
+        type: integer
+      session:
+        $ref: '#/definitions/sessions.SessionResponse'
+      tip:
+        $ref: '#/definitions/tips.TipResponse'
+      warmupCount:
+        type: integer
+    type: object
   sessions.NextQuestionItem:
     properties:
       codeChallenge:
@@ -1939,6 +1950,30 @@ paths:
       security:
       - BearerAuth: []
       summary: Resumen de sesión
+      tags:
+      - sessions
+  /api/v1/sessions/daily:
+    post:
+      description: Crea una sesión diaria inteligente con repasos vencidos, calentamiento
+        true_false y tip del día
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/sessions.DailySessionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Crear sesión diaria
       tags:
       - sessions
   /api/v1/tips:

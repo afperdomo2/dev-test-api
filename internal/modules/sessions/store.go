@@ -17,6 +17,9 @@ type Store interface {
 	FindNextQuestion(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty string, mode string, userID uuid.UUID) (*models.Question, error)
 	CountAvailableQuestions(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty string, mode string, userID uuid.UUID) (int64, error)
 	FindQuestionByID(id uuid.UUID) (*models.Question, error)
+	FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error)
+	CountDueReviews(userID uuid.UUID) (int64, error)
+	CountWarmupCandidates(userID uuid.UUID) (int64, error)
 	FindSummary(id uuid.UUID) (*SessionSummaryData, error)
 	Delete(id uuid.UUID) error
 }
@@ -146,6 +149,80 @@ func (s *gormStore) FindQuestionByID(id uuid.UUID) (*models.Question, error) {
 		return nil, err
 	}
 	return &question, nil
+}
+
+func (s *gormStore) FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error) {
+	due, err := s.findNextDueReview(userID, answeredIDs)
+	if err == nil {
+		return due, nil
+	}
+	if err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	return s.findNextWarmup(userID, answeredIDs)
+}
+
+func (s *gormStore) findNextDueReview(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error) {
+	query := s.db.Model(&models.UserQuestionProgress{}).
+		Joins("JOIN questions ON questions.id = user_question_progress.question_id AND questions.deleted_at IS NULL").
+		Where("user_question_progress.user_id = ?", userID).
+		Where("user_question_progress.next_review_at IS NOT NULL").
+		Where("user_question_progress.next_review_at <= now()").
+		Where("user_question_progress.is_mastered = false").
+		Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true)
+	if len(answeredIDs) > 0 {
+		query = query.Where("user_question_progress.question_id NOT IN ?", answeredIDs)
+	}
+
+	var due models.UserQuestionProgress
+	err := query.Order("user_question_progress.next_review_at ASC").
+		Preload("Question.Options").
+		Preload("Question.CodeChallenge").
+		Preload("Question.Topics").
+		First(&due).Error
+	if err != nil {
+		return nil, err
+	}
+	return due.Question, nil
+}
+
+func (s *gormStore) findNextWarmup(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error) {
+	query := s.db.Model(&models.Question{}).
+		Where("deleted_at IS NULL").
+		Where("type = ?", "true_false").
+		Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true)
+	if len(answeredIDs) > 0 {
+		query = query.Where("questions.id NOT IN ?", answeredIDs)
+	}
+
+	var question models.Question
+	err := query.Order("RANDOM()").
+		Preload("Options").
+		Preload("CodeChallenge").
+		Preload("Topics").
+		First(&question).Error
+	if err != nil {
+		return nil, err
+	}
+	return &question, nil
+}
+
+func (s *gormStore) CountDueReviews(userID uuid.UUID) (int64, error) {
+	var count int64
+	err := s.db.Model(&models.UserQuestionProgress{}).
+		Where("user_id = ? AND next_review_at IS NOT NULL AND next_review_at <= now() AND is_mastered = false", userID).
+		Count(&count).Error
+	return count, err
+}
+
+func (s *gormStore) CountWarmupCandidates(userID uuid.UUID) (int64, error) {
+	var count int64
+	err := s.db.Model(&models.Question{}).
+		Where("deleted_at IS NULL").
+		Where("type = ?", "true_false").
+		Where("(source = ? OR user_id = ? OR is_public = ?)", "ai_generated", userID, true).
+		Count(&count).Error
+	return count, err
 }
 
 type SessionSummaryData struct {

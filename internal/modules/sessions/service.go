@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"sync"
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
+	"github.com/felipe/dev-test-api/internal/modules/tips"
 	"github.com/felipe/dev-test-api/internal/services/ai"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
@@ -22,6 +25,7 @@ type Service interface {
 	List(userID uuid.UUID, params ListSessionsParams) ([]SessionListResponse, int64, error)
 	GetByID(sessionID uuid.UUID) (*SessionDetailResponse, error)
 	Create(userID uuid.UUID, input CreateSessionRequest) (*SessionResponse, error)
+	CreateDaily(userID uuid.UUID) (*DailySessionResponse, error)
 	Finish(sessionID uuid.UUID) (*SessionResponse, error)
 	NextQuestion(sessionID uuid.UUID) (*NextQuestionResponse, error)
 	Answer(sessionID, userID uuid.UUID, input AnswerRequest) (*SessionAnswerResponse, error)
@@ -34,10 +38,11 @@ type sessionService struct {
 	progressService     progress.Service
 	gamificationService gamification.Service
 	aiGenerator         *ai.Generator
+	tipService          tips.Service
 }
 
-func NewService(store Store, progressService progress.Service, gamificationService gamification.Service, aiGenerator *ai.Generator) Service {
-	return &sessionService{store: store, progressService: progressService, gamificationService: gamificationService, aiGenerator: aiGenerator}
+func NewService(store Store, progressService progress.Service, gamificationService gamification.Service, aiGenerator *ai.Generator, tipService tips.Service) Service {
+	return &sessionService{store: store, progressService: progressService, gamificationService: gamificationService, aiGenerator: aiGenerator, tipService: tipService}
 }
 
 func (s *sessionService) List(userID uuid.UUID, params ListSessionsParams) ([]SessionListResponse, int64, error) {
@@ -119,6 +124,98 @@ func (s *sessionService) Create(userID uuid.UUID, input CreateSessionRequest) (*
 	return &resp, nil
 }
 
+type dailySessionData struct {
+	dueCount    int64
+	warmupCount int64
+	tip         *tips.TipResponse
+	errs        []error
+}
+
+func (s *sessionService) gatherDailyData(userID uuid.UUID) dailySessionData {
+	var (
+		wg  sync.WaitGroup
+		mu  sync.Mutex
+		res dailySessionData
+	)
+
+	collect := func(fn func() error) {
+		defer wg.Done()
+		if err := fn(); err != nil {
+			mu.Lock()
+			res.errs = append(res.errs, err)
+			mu.Unlock()
+		}
+	}
+
+	wg.Add(3)
+	go collect(func() error {
+		n, err := s.store.CountDueReviews(userID)
+		mu.Lock()
+		res.dueCount = n
+		mu.Unlock()
+		return err
+	})
+	go collect(func() error {
+		n, err := s.store.CountWarmupCandidates(userID)
+		mu.Lock()
+		res.warmupCount = n
+		mu.Unlock()
+		return err
+	})
+	go collect(func() error {
+		tip, err := s.tipService.GetTipOfTheDay(userID)
+		if err != nil {
+			var apiErr *apierr.APIError
+			if errors.As(err, &apiErr) && apiErr.Status == http.StatusNotFound {
+				return nil
+			}
+			return err
+		}
+		mu.Lock()
+		res.tip = tip
+		mu.Unlock()
+		return nil
+	})
+	wg.Wait()
+
+	return res
+}
+
+func (s *sessionService) CreateDaily(userID uuid.UUID) (*DailySessionResponse, error) {
+	data := s.gatherDailyData(userID)
+	if len(data.errs) > 0 {
+		return nil, apierr.ErrInternal("Error al preparar la sesion diaria", "")
+	}
+
+	session := &models.Session{
+		UserID:     userID,
+		Name:       "Repaso diario",
+		Status:     "in_progress",
+		Mode:       "daily",
+		Difficulty: "intermediate",
+	}
+	if data.tip != nil {
+		session.TipID = &data.tip.ID
+	}
+
+	if err := s.store.Create(session); err != nil {
+		return nil, apierr.ErrInternal("Error al crear la sesion diaria", "")
+	}
+
+	session, err := s.store.FindByID(session.ID)
+	if err != nil {
+		return nil, apierr.ErrInternal("Error al obtener la sesion diaria", "")
+	}
+
+	sessResp := ToSessionResponse(*session)
+	return &DailySessionResponse{
+		Session:     sessResp,
+		Tip:         data.tip,
+		DueCount:    data.dueCount,
+		WarmupCount: data.warmupCount,
+	}, nil
+}
+
 func (s *sessionService) Finish(sessionID uuid.UUID) (*SessionResponse, error) {
 	sess, err := s.store.FindByID(sessionID)
 	if err != nil {
@@ -176,6 +273,21 @@ func (s *sessionService) NextQuestion(sessionID uuid.UUID) (*NextQuestionRespons
 
 	if sess.QuestionLimit != nil && len(answeredIDs) >= *sess.QuestionLimit {
 		return nil, apierr.ErrNotFound("Pregunta", "Has alcanzado el limite de preguntas de esta sesion")
+	}
+
+	if sess.Mode == "daily" {
+		question, err := s.store.FindNextDailyQuestion(sess.UserID, answeredIDs)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return nil, apierr.ErrNotFound("Pregunta", "No hay mas preguntas disponibles para esta sesion")
+			}
+			return nil, apierr.ErrInternal("Error al obtener la siguiente pregunta", "")
+		}
+
+		resp := NextQuestionResponse{
+			Question: toNextQuestionItem(*question),
+		}
+		return &resp, nil
 	}
 
 	topicIDs := make([]uuid.UUID, len(sess.Topics))

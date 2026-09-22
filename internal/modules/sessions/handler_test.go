@@ -20,6 +20,7 @@ type mockSessionService struct {
 	listFn         func(userID uuid.UUID, params ListSessionsParams) ([]SessionListResponse, int64, error)
 	getByIDFn      func(id uuid.UUID) (*SessionDetailResponse, error)
 	createFn       func(userID uuid.UUID, req CreateSessionRequest) (*SessionResponse, error)
+	createDailyFn  func(userID uuid.UUID) (*DailySessionResponse, error)
 	deleteFn       func(id, userID uuid.UUID) error
 	finishFn       func(id uuid.UUID) (*SessionResponse, error)
 	nextQuestionFn func(id uuid.UUID) (*NextQuestionResponse, error)
@@ -35,6 +36,9 @@ func (m *mockSessionService) GetByID(id uuid.UUID) (*SessionDetailResponse, erro
 }
 func (m *mockSessionService) Create(u uuid.UUID, r CreateSessionRequest) (*SessionResponse, error) {
 	return m.createFn(u, r)
+}
+func (m *mockSessionService) CreateDaily(u uuid.UUID) (*DailySessionResponse, error) {
+	return m.createDailyFn(u)
 }
 func (m *mockSessionService) Delete(id, u uuid.UUID) error                  { return m.deleteFn(id, u) }
 func (m *mockSessionService) Finish(id uuid.UUID) (*SessionResponse, error) { return m.finishFn(id) }
@@ -250,5 +254,37 @@ func TestSessionsHandler_GetDeleteFinishNextAnswerSummary(t *testing.T) {
 		c.Params = gin.Params{{Key: "id", Value: "bad"}}
 		h.Summary(c)
 		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+	t.Run("create daily success 201", func(t *testing.T) {
+		svc := &mockSessionService{createDailyFn: func(uuid.UUID) (*DailySessionResponse, error) {
+			return &DailySessionResponse{DueCount: 3, WarmupCount: 5}, nil
+		}}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/sessions/daily", nil)
+		c.Set("user_claims", sClaims(uid))
+		h.CreateDaily(c)
+		assert.Equal(t, http.StatusCreated, w.Code)
+	})
+	t.Run("create daily unauthenticated 401", func(t *testing.T) {
+		h := NewHandler(&mockSessionService{})
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/sessions/daily", nil)
+		h.CreateDaily(c)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+	t.Run("create daily internal error 500", func(t *testing.T) {
+		svc := &mockSessionService{createDailyFn: func(uuid.UUID) (*DailySessionResponse, error) {
+			return nil, apierr.ErrInternal("Error al preparar la sesion diaria", "")
+		}}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/sessions/daily", nil)
+		c.Set("user_claims", sClaims(uid))
+		h.CreateDaily(c)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 }

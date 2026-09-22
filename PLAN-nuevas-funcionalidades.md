@@ -11,7 +11,7 @@
 - [x] Fase 2 — Tarjetas de tip (solo admin, públicas)
 - [x] Fase 3 — Moderación (reportes)
 - [x] Fase 4 — Gamificación (XP, racha, meta diaria, feedback inmediato)
-- [ ] Fase 5 — Sesión diaria inteligente ("Repasar hoy")
+- [x] Fase 5 — Sesión diaria inteligente ("Repasar hoy")
 - [ ] Fase 6 — Sync web/shared + docs
 - [ ] Fase 7 — Verificación final
 
@@ -296,10 +296,10 @@ Rutas:
 - [x] **4.5** Tests `service_test.go` (store mockeado) + `handler_test.go`.
 
 ### Fase 5 — Sesión diaria
-- [ ] **5.1** `sessions`: `CreateDaily` + `POST /sessions/daily`.
-- [ ] **5.2** Store: `FindNextDailyQuestion`, `FindTipOfTheDay` (temas con errores recientes), `FindWarmupCandidates`.
-- [ ] **5.3** Helper de concurrencia (goroutines + `sync.WaitGroup`) para el ensamblado.
-- [ ] **5.4** `NextQuestion` manejo de modo `daily`.
+- [x] **5.1** `sessions`: `CreateDaily` + `POST /sessions/daily`.
+- [x] **5.2** Store: `FindNextDailyQuestion`, `CountDueReviews`, `CountWarmupCandidates` (el tip del día viene de `tipService.GetTipOfTheDay`, no del store).
+- [x] **5.3** Helper de concurrencia (goroutines + `sync.WaitGroup`) para el ensamblado.
+- [x] **5.4** `NextQuestion` manejo de modo `daily`.
 
 ### Fase 6 — Sync web/shared + docs
 - [ ] **6.1** Shared: `true_false` en `question.types.ts`, `tip.types.ts`, `moderation.types.ts`, `gamification.types.ts`, `SessionMode`+`daily`, `Reward`, constants de import unificado.

@@ -1402,6 +1402,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/sessions/daily": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea una sesión diaria inteligente con repasos vencidos, calentamiento true_false y tip del día",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Crear sesión diaria",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/sessions.DailySessionResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/sessions/{id}": {
             "get": {
                 "security": [
@@ -3459,6 +3496,23 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "sessions.DailySessionResponse": {
+            "type": "object",
+            "properties": {
+                "dueCount": {
+                    "type": "integer"
+                },
+                "session": {
+                    "$ref": "#/definitions/sessions.SessionResponse"
+                },
+                "tip": {
+                    "$ref": "#/definitions/tips.TipResponse"
+                },
+                "warmupCount": {
+                    "type": "integer"
                 }
             }
         },
