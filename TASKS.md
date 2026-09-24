@@ -2,10 +2,11 @@
 
 > Backend: Go + Gin + GORM (Postgres). Frontend: Vue 3 + Vite + Vuetify + TanStack Query + Pinia.
 > Decisiones: notificaciones **solo in-app** · gamificación **solo individual** · 4 fases.
-> Convención: modelos → AutoMigrate en `internal/database/database.go` · `make swagger` tras cada endpoint ·
+> Convención: modelos + migración en `internal/database/migrations/` · `make swagger` tras cada endpoint ·
 > `make check` (backend) · `make fe-check` + `make fe-lint` (frontend).
 
 ## Estado general
+- [ ] Fase 0 — Migraciones versionadas (goose)
 - [ ] Fase 1 — Gamificación individual
 - [ ] Fase 2 — Repaso inteligente (temas débiles)
 - [ ] Fase 3 — Notificaciones in-app
@@ -16,11 +17,31 @@
 
 ---
 
+### Fase 0 — Migraciones versionadas (goose)
+> Infraestructura transversal: reemplaza `AutoMigrate` + `ddl.go`. Ejecutar antes de Fases 1-4 (que hoy asumen AutoMigrate).
+
+#### Backend
+- [ ] **0.1** `go get github.com/pressly/goose/v3` (previo: `.agents/backend/dependencies.md`) + `tool github.com/pressly/goose/v3/cmd/goose` en `go.mod`.
+- [ ] **0.2** Baseline `internal/database/migrations/00001_init.sql`: snapshot del esquema actual (tablas + enums + índices + trigger + `COMMENT ON`) vía `pg_dump --schema-only --no-owner --no-privileges`, limpiado; secciones `-- +goose Up` / `-- +goose Down` (Down a mano, orden por FKs).
+- [ ] **0.3** `internal/database/migrate.go`: `//go:embed migrations/*.sql` + `goose.NewProvider(goose.DialectPostgres, sqlDB, embedFS)` + `WithSessionLocker(lock.NewPostgresSessionLocker())` + `provider.Up(ctx)`.
+- [ ] **0.4** `database.go`: sustituir `db.AutoMigrate(...)` por `runMigrations(db)`; eliminar `runDDL(db)`; mantener `seedDefaultTopics(db)`. Borrar `internal/database/ddl.go`.
+- [ ] **0.5** Makefile: targets `migrate-up` / `migrate-down` / `migrate-status` / `migrate-create name=<n>` (DSN construido desde `.env`).
+- [ ] **0.6** Basar DB dev: drop + reconstruir desde migraciones (o `INSERT INTO goose_db_version (version_id, is_applied, tstamp) VALUES (1, true, now())` para DBs ya pobladas).
+- [ ] **0.7** Docs: `.agents/backend/architecture.md` + `data-model.md` + `AGENTS.md` (comandos `migrate-*`; regla "cambio de esquema = migración nueva").
+- [ ] **0.8** Verificación: `make check` + `make build` + `make test` + prueba contra DB limpia y DB existente.
+
+#### Reglas de oro
+1. Cambio de esquema (tabla/columna/enum/índice/trigger/comentario) = migración nueva `NNNNN_descripcion.sql`; nunca editar una ya aplicada.
+2. Añadir un struct en `internal/models/` **ya no cambia la DB**: hay que escribir la migración.
+3. `Up` idempotente cuando sea seguro; `Down` reversible (o documentado si es destructivo).
+
+---
+
 ### Fase 1 — Gamificación individual
 #### Backend
 - [ ] **1.1** Modelo `internal/models/user_stats.go` → `UserStats` (PK `UserID`, `Xp`, `Level`, `CurrentStreak`, `BestStreak`, `LastActivityDate *time.Time`, `TotalAnswers`, `TotalCorrect`, `DailyGoal int` default 10)
 - [ ] **1.2** Modelo `internal/models/user_badge.go` → `UserBadge` (ID, `UserID`, `BadgeKey`, `EarnedAt`, unique `(user_id,badge_key)`)
-- [ ] **1.3** Registrar ambos modelos en `database.go` AutoMigrate
+- [ ] **1.3** Crear migración `NNNNN_user_stats_badge.sql` para `UserStats` y `UserBadge`
 - [ ] **1.4** Módulo `internal/modules/gamification/` (store/service/handler/routes, plantilla: `progress`)
 - [ ] **1.5** `catalog.go` — catálogo de logros como `const` (no tabla): `first_session`, `streak_3`, `streak_7`, `streak_30`, `perfect_session`, `answers_100`, `topics_mastered_5`, `fast_solver`
 - [ ] **1.6** Reglas XP/racha/nivel: acierto +10 XP (`hard` ×1.5, `easy` ×0.5); sesión completada +25; `level = 1 + floor(sqrt(xp/100))`; racha = días consecutivos con ≥1 sesión completada
@@ -54,7 +75,7 @@
 
 ### Fase 3 — Notificaciones in-app
 #### Backend
-- [ ] **3.1** Modelo `internal/models/notification.go` → `Notification` (ID, `UserID`, `Type`, `Title`, `Body`, `IsRead`, `CreatedAt`); registrar en AutoMigrate
+- [ ] **3.1** Modelo `internal/models/notification.go` → `Notification` (ID, `UserID`, `Type`, `Title`, `Body`, `IsRead`, `CreatedAt`); crear migración `NNNNN_notification.sql`
 - [ ] **3.2** Módulo `internal/modules/notifications/` (store/service/handler/routes)
 - [ ] **3.3** Endpoints: `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`, `GET /notifications/unread-count`
 - [ ] **3.4** Generador: job diario crea "Hoy tienes N preguntas para repasar" (desde `next_review_at <= now`)
@@ -94,3 +115,4 @@
 - Notificaciones in-app: sin secretos ni env vars nuevas; scheduler sin estado compartido.
 - Reportes: dependen de datos de Fase 1 (XP) y Fase 2 (temas débiles), por eso van al final.
 - Dependencias nuevas (Fase 3: `robfig/cron/v3`) → pasar por `.agents/backend/dependencies.md` antes de instalar.
+- Esquema: desde la Fase 0, la fuente de verdad son las migraciones en `internal/database/migrations/`; nunca editar una migración ya aplicada.
