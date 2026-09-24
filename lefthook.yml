@@ -3,35 +3,43 @@ glob_matcher: doublestar
 pre-commit:
   parallel: true
   jobs:
-    - name: go-fmt
+    - name: go-format
       glob: "**/*.go"
-      run: bash scripts/check-fmt.sh
+      run: bash scripts/fmt-staged.sh {staged_files}
+      stage_fixed: true
 
     - name: go-vet
-      glob: ["**/*.go", "go.mod", "go.sum"]
-      run: go vet ./...
+      glob: "**/*.go"
+      run: bash scripts/go-vet-affected.sh {staged_files}
+      fail_text: "❌ go vet failed"
 
     - name: go-test
-      glob: ["**/*.go", "go.mod", "go.sum"]
-      run: go test -short -count=1 -timeout 60s ./...
+      glob: "**/*.go"
+      run: bash scripts/go-test-affected.sh {staged_files}
       fail_text: "❌ unit tests failed"
 
-    - name: fe-format-check
+    - name: fe-format
       glob: "apps/web/**/*.{ts,vue,tsx,js,scss,css,json}"
-      run: cd apps/web && pnpm prettier --check src/
-      fail_text: "❌ frontend format failed — ejecuta pnpm format"
+      root: apps/web/
+      run: pnpm prettier --write {staged_files}
+      stage_fixed: true
 
     - name: fe-lint
-      glob: ["apps/web/**/*.{ts,vue,tsx}", "apps/web/.eslintrc.json", "apps/web/package.json"]
-      run: cd apps/web && pnpm eslint . --ext .vue,.ts,.tsx
+      glob: "apps/web/**/*.{ts,vue,tsx}"
+      root: apps/web/
+      run: pnpm eslint {staged_files}
+      fail_text: "❌ frontend lint failed"
 
     - name: fe-type-check
       glob: ["apps/web/**/*.{ts,vue,tsx}", "apps/web/tsconfig*.json", "apps/web/package.json", "apps/web/vite.config.ts"]
-      run: cd apps/web && pnpm type-check
+      root: apps/web/
+      run: pnpm type-check
+      fail_text: "❌ frontend type-check failed"
 
     - name: fe-test
-      glob: ["apps/web/**/*.{ts,vue,tsx}", "apps/web/package.json", "apps/web/vite.config.ts"]
-      run: cd apps/web && pnpm test:run
+      glob: "apps/web/**/*.{ts,vue,tsx}"
+      root: apps/web/
+      run: pnpm vitest related {staged_files}
       fail_text: "❌ frontend unit tests failed"
 
 pre-push:

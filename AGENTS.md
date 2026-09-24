@@ -55,7 +55,7 @@ Always run `make fmt` after any backend change to format Go code, then `make vet
 | `pnpm web` | Start web dev server |
 | `pnpm mobile` | Start Expo dev server |
 
-Always run `make fe-check` and `make fe-lint` after any web change. `make fe-build` is only required in CI and before deploy — it's too slow for the dev loop (~8s) and adds no signal that type-check + lint don't already catch.
+Always run `make fe-format`, `make fe-check` and `make fe-lint` after any web change (format first, so the prettier check never fails). `make fe-build` is only required in CI and before deploy — it's too slow for the dev loop (~8s) and adds no signal that type-check + lint don't already catch. Pre-commit auto-formats staged files with `stage_fixed`; the explicit `make fe-format` is a safety net.
 
 ## Key facts
 
