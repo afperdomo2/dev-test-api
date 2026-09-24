@@ -18,9 +18,9 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 | `session_answers` | Respuestas de la sesión (isCorrect, aiFeedback, responseTimeMs) |
 | `tips` | Tips del día (content, source, topicId) |
 | `reports` | Reportes de moderación (targetType, targetId, reason, status) |
-| `user_xp` | XP total por usuario (xp, level) |
-| `user_streak` | Racha (current, longest, freezesAvailable, lastActiveDay) |
-| `user_topic_xp` | XP por usuario+tema (xp) |
+| `user_xps` | XP total por usuario (xp, level) |
+| `user_streaks` | Racha (current, longest, freezesAvailable, lastActiveDay) |
+| `user_topic_xps` | XP por usuario+tema (xp) |
 
 ## Enums
 

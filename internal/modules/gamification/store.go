@@ -95,11 +95,11 @@ func (s *gormStore) GetQuestionMeta(questionID uuid.UUID) (string, []uuid.UUID, 
 
 func (s *gormStore) GetTopicXpOverview(userID uuid.UUID) ([]TopicXpItem, error) {
 	var rows []TopicXpItem
-	err := s.db.Table("user_topic_xp").
-		Select("user_topic_xp.topic_id AS topic_id, COALESCE(topics.name, '') AS name, user_topic_xp.xp AS xp").
-		Joins("LEFT JOIN topics ON topics.id = user_topic_xp.topic_id").
-		Where("user_topic_xp.user_id = ?", userID).
-		Order("user_topic_xp.xp DESC").
+	err := s.db.Table("user_topic_xps").
+		Select("user_topic_xps.topic_id AS topic_id, COALESCE(topics.name, '') AS name, user_topic_xps.xp AS xp").
+		Joins("LEFT JOIN topics ON topics.id = user_topic_xps.topic_id").
+		Where("user_topic_xps.user_id = ?", userID).
+		Order("user_topic_xps.xp DESC").
 		Scan(&rows).Error
 	if err != nil {
 		return nil, err

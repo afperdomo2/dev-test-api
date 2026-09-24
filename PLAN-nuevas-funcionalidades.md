@@ -259,8 +259,8 @@ Rutas:
 - enum `session_mode` + `'daily'`.
 - enum nuevo (decorativo): `report_status` (`pending,reviewed`).
 - Columnas: `users.daily_goal_xp`, `sessions.tip_id`.
-- Índices: `tips(topic_id)`, `reports(target_type,target_id)`, `reports(status)`, `questions(type)`, PKs compuestos `user_xp`/`user_topic_xp`/`user_streak`.
-- **Comentarios de documentación** (`COMMENT ON`) para los objetos nuevos: tablas `tips`/`reports`/`user_streak`/`user_xp`/`user_topic_xp`, columnas `users.daily_goal_xp` y `sessions.tip_id`, y enums `true_false`/`daily`/`report_status`. Si en fases posteriores se crean triggers/funciones, documentarlos igual.
+- Índices: `tips(topic_id)`, `reports(target_type,target_id)`, `reports(status)`, `questions(type)`, PKs compuestos `user_xps`/`user_topic_xps`/`user_streaks`.
+- **Comentarios de documentación** (`COMMENT ON`) para los objetos nuevos: tablas `tips`/`reports`/`user_streaks`/`user_xps`/`user_topic_xps`, columnas `users.daily_goal_xp` y `sessions.tip_id`, y enums `true_false`/`daily`/`report_status`. Si en fases posteriores se crean triggers/funciones, documentarlos igual.
 - **No**: `questions.visibility`, `tips.visibility`, enum `content_visibility`, backfill de visibilidad.
 
 ---
