@@ -23,8 +23,11 @@
 | `users` | CRUD usuarios (admin) |
 | `topics` | CRUD temas |
 | `questions` | CRUD preguntas + importación + generación IA |
-| `sessions` | Sesiones de práctica (quiz) |
+| `sessions` | Sesiones de práctica (quiz) + sesión diaria `POST /sessions/daily` |
 | `progress` | Progreso SRS del usuario |
+| `tips` | Tips del día (admin CRUD + import CSV) + `GetTipOfTheDay` consumido por la sesión diaria |
+| `moderation` | Reportes de contenido: `POST /reports` (usuario), listado/revisión (admin) |
+| `gamification` | Gamificación: `GET /overview`, `PUT /daily-goal`, `POST /streak/freeze` |
 | `opencode` | Admin: `GET /opencode/usage` |
 
 Servicios compartidos: `internal/services/ai` (generación IA), `internal/services/opencode` (client).
@@ -180,6 +183,7 @@ func (s *someService) DoWork(id uuid.UUID) (*Result, error) {
 
 **Where this already applies:**
 - `sessions/service.go` → `NextQuestion()` — `FindByID` and `FindAnsweredQuestionIDs` run in parallel.
+- `sessions/service.go` → `CreateDaily()` — 3 reads run in parallel: `CountDueReviews`, `CountWarmupCandidates`, and `tipService.GetTipOfTheDay` (el tip devuelve nil si no existe, sin error).
 
 ### Fire-and-forget (for non-critical side effects)
 

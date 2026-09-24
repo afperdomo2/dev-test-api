@@ -1,7 +1,9 @@
 import type { CodeChallenge } from './question.types'
+import type { Reward } from './gamification.types'
+import type { Tip } from './tip.types'
 
 export type SessionStatus = 'in_progress' | 'completed' | 'cancelled'
-export type SessionMode = 'generate' | 'review'
+export type SessionMode = 'generate' | 'review' | 'daily'
 export type SessionDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'random'
 
 export const SESSION_DIFFICULTY_LABELS: Record<SessionDifficulty, string> = {
@@ -40,6 +42,7 @@ export const SESSION_STATUS_COLORS: Record<SessionStatus, string> = {
 export const SESSION_MODE_LABELS: Record<SessionMode, string> = {
   generate: 'Generar',
   review: 'Repasar',
+  daily: 'Diaria',
 }
 
 export const SESSION_MODES: Array<{ title: string; value: SessionMode }> = [
@@ -50,11 +53,13 @@ export const SESSION_MODES: Array<{ title: string; value: SessionMode }> = [
 export const SESSION_MODE_ICONS: Record<SessionMode, string> = {
   generate: 'mdi-robot',
   review: 'mdi-book-refresh',
+  daily: 'mdi-calendar-star',
 }
 
 export const SESSION_MODE_DESCRIPTIONS: Record<SessionMode, string> = {
   generate: 'Crea preguntas nuevas con IA sobre los temas elegidos',
   review: 'Repasa las preguntas existentes de los temas elegidos',
+  daily: 'Repaso diario con preguntas vencidas, warmup y un tip del día',
 }
 
 export const SESSION_DIFFICULTIES: Array<{
@@ -89,8 +94,16 @@ export interface Session {
   finishedAt: string | null
   topics: Array<string>
   answerCount: number
+  reward?: Reward
   createdAt: string
   updatedAt: string
+}
+
+export interface DailySessionResponse {
+  session: Session
+  tip?: Tip
+  dueCount: number
+  warmupCount: number
 }
 
 export interface CreateSessionRequest {

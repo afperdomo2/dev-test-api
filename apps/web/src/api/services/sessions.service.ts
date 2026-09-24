@@ -7,6 +7,7 @@ import type {
   SessionAnswer,
   SessionSummary,
   NextQuestionItem,
+  DailySessionResponse,
 } from '@/types/session.types'
 import type { PaginatedResponse } from '@/types/api.types'
 
@@ -35,6 +36,11 @@ export async function getSessionDetail(id: string): Promise<SessionDetail> {
 
 export async function createSession(data: CreateSessionRequest): Promise<Session> {
   const res = await apiClient.post<Session>('/api/v1/sessions', data)
+  return res.data
+}
+
+export async function createDailySession(): Promise<DailySessionResponse> {
+  const res = await apiClient.post<DailySessionResponse>('/api/v1/sessions/daily')
   return res.data
 }
 

@@ -12,8 +12,10 @@
 - [x] Fase 3 — Moderación (reportes)
 - [x] Fase 4 — Gamificación (XP, racha, meta diaria, feedback inmediato)
 - [x] Fase 5 — Sesión diaria inteligente ("Repasar hoy")
-- [ ] Fase 6 — Sync web/shared + docs
-- [ ] Fase 7 — Verificación final
+- [x] Fase 6a — Sync web/shared: capa de datos (tipos/servicios/queries)
+- [ ] Fase 6b — Sync web/shared: UI web (tips admin, import unificado, gamificación, reportes)
+- [ ] Fase 7 — Mobile foundation (auth + API client + sesión) + prompt sesión diaria
+- [ ] Fase 8 — Verificación final
 
 ---
 
@@ -301,15 +303,31 @@ Rutas:
 - [x] **5.3** Helper de concurrencia (goroutines + `sync.WaitGroup`) para el ensamblado.
 - [x] **5.4** `NextQuestion` manejo de modo `daily`.
 
-### Fase 6 — Sync web/shared + docs
-- [ ] **6.1** Shared: `true_false` en `question.types.ts`, `tip.types.ts`, `moderation.types.ts`, `gamification.types.ts`, `SessionMode`+`daily`, `Reward`, constants de import unificado.
-- [ ] **6.2** Web: servicios `tips/gamification/moderation`, queries, páginas (tips admin, selector de tipo en import unificado, overview en Progress/Dashboard, review de reportes admin).
-- [ ] **6.3** `make swagger` + actualizar `.agents/backend/data-model.md` y `architecture.md` (fuentes de verdad).
+### Fase 6a — Sync web/shared: capa de datos (tipos/servicios/queries)
+- [x] **6.1** Shared: `tip.types.ts`, `moderation.types.ts`, `gamification.types.ts` (nuevos), `SessionMode` + `daily` + `Reward` + `DailySessionResponse` en `session.types.ts`, barrel `index.ts`. `ImportResult`/`ImportRowError` re-exportados desde `question.types.ts` (evita colisión). Fix: `'daily'` quitado de `SESSION_MODES` (no va en el form de crear sesión; `CreateSessionRequest.Mode` solo acepta `generate|review`).
+- [x] **6.2** Web: re-exports finos `tip/moderation/gamification` + `session.types`; servicios `tips/gamification/moderation` y `createDailySession()` en `sessions.service.ts`; queries `tips/gamification/moderation` + `createDailySessionMutation`.
+- [x] **6.3** `make swagger` + actualizar `.agents/backend/data-model.md` y `architecture.md` (fuentes de verdad).
 
-### Fase 7 — Verificación
-- [ ] **7.1** `make fmt` + `make vet`.
-- [ ] **7.2** Tests unitarios por módulo nuevo (`make test`).
-- [ ] **7.3** `make fe-check` + `make fe-lint`.
+### Fase 6b — Sync web/shared: UI web (pendiente)
+- [ ] **6.4** Página admin de **tips** (`features/tips/`): listado + CRUD + import CSV. Ruta `/tips` (admin) + nav item.
+- [ ] **6.5** **Import unificado**: selector "preguntas / V-F / tips" en la página de importación. Tips solo visible para admin. Reusa `importTips`/`importTipsFromText`. Encabezado CSV distinto para tips (`content,topic`).
+- [ ] **6.6** **Overview de gamificación** en Progress/Dashboard: XP total, nivel, racha, meta diaria, XP por tema. Controles: `setDailyGoalMutation`, `freezeStreakMutation`.
+- [ ] **6.7** **Moderación admin**: listado de reportes con filtro por status, revisión (unpublish). Ruta `/reports` (admin) + nav item.
+
+### Fase 7 — Mobile foundation + sesión diaria (pendiente)
+> La sesión diaria es mobile-first (prompt al entrar), pero la app mobile no tiene infraestructura aún. Dependencias previas obligatorias.
+
+- [ ] **7.1** **Auth mobile**: pantalla de login/setup + `expo-secure-store` para JWT.
+- [ ] **7.2** **API client mobile** (`src/core/api/client.ts`): fetch + Bearer token + unwrap envelope + RFC 9457 errors.
+- [ ] **7.3** **Servicios mobile** (`src/core/api/services/`): sessions, questions, progress, gamification (usando `@devtest/shared`).
+- [ ] **7.4** **Flujo de sesión** en mobile: crear sesión → `NextQuestion` → responder → feedback con `Reward`.
+- [ ] **7.5** **Sesión diaria (prompt al entrar)**: al abrir la app, preguntar si desea hacer el repaso diario. `POST /sessions/daily` → tip del día + contadores → flujo de estudio. Mostrar racha y meta diaria en Home/Progreso.
+
+### Fase 8 — Verificación final
+- [ ] **8.1** `make fmt` + `make vet`.
+- [ ] **8.2** Tests unitarios por módulo nuevo (`make test`).
+- [ ] **8.3** `make fe-check` + `make fe-lint`.
+- [ ] **8.4** `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck`.
 
 ---
 

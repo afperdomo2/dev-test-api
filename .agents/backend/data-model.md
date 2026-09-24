@@ -13,17 +13,25 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 | `code_challenges` | Retos de código (starterCode, language, testCases) |
 | `question_topics` | Join N:M Question ↔ Topic |
 | `user_question_progress` | Progreso SRS por usuario+pregunta (repetitions, easeFactor, intervalDays, isMastered) |
-| `sessions` | Sesión de práctica (status, mode, difficulty, score) |
+| `sessions` | Sesión de práctica (status, mode, difficulty, score, tipId) |
 | `session_topics` | Join N:M Session ↔ Topic |
 | `session_answers` | Respuestas de la sesión (isCorrect, aiFeedback, responseTimeMs) |
+| `tips` | Tips del día (content, source, topicId) |
+| `reports` | Reportes de moderación (targetType, targetId, reason, status) |
+| `user_xp` | XP total por usuario (xp, level) |
+| `user_streak` | Racha (current, longest, freezesAvailable, lastActiveDay) |
+| `user_topic_xp` | XP por usuario+tema (xp) |
 
 ## Enums
 
-- `question_type`: single_choice, multiple_choice, code_completion
+- `question_type`: single_choice, multiple_choice, code_completion, true_false
 - `question_difficulty` / `session_difficulty`: beginner, intermediate, advanced
 - `question_source`: ai_generated, manual, imported
 - `session_status`: in_progress, completed, cancelled
-- `session_mode`: generate, review
+- `session_mode`: generate, review, daily
+- `report_status`: pending, reviewed
+- `tips.source` (columna sin enum): manual, imported
+- `reports.target_type` (columna sin enum): question, tip
 
 ## Índices / trigger (`ddl.go`)
 

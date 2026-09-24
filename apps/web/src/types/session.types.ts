@@ -25,4 +25,5 @@ export type {
   SessionAnswerDetail,
   SessionDetail,
   NextQuestionItem,
+  DailySessionResponse,
 } from '@devtest/shared'

@@ -67,6 +67,13 @@ export function createSessionMutation() {
   }
 }
 
+export function createDailySessionMutation() {
+  return {
+    mutationKey: ['sessions', 'daily'],
+    mutationFn: sessionsService.createDailySession,
+  }
+}
+
 export function finishSessionMutation() {
   return {
     mutationKey: ['sessions', 'finish'],
