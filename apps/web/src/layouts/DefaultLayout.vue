@@ -41,7 +41,11 @@ const navSections: Array<NavSection> = [
   },
   {
     title: 'Administración',
-    items: [{ title: 'Usuarios', to: '/users', icon: 'mdi-account-group', adminOnly: true }],
+    items: [
+      { title: 'Usuarios', to: '/users', icon: 'mdi-account-group', adminOnly: true },
+      { title: 'Tips', to: '/tips', icon: 'mdi-lightbulb-on-outline', adminOnly: true },
+      { title: 'Moderación', to: '/reports', icon: 'mdi-flag-outline', adminOnly: true },
+    ],
   },
 ]
 

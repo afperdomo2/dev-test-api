@@ -16,10 +16,10 @@
 - [x] Fase 4 — Gamificación (XP, racha, meta diaria, feedback inmediato)
 - [x] Fase 5 — Sesión diaria inteligente ("Repasar hoy")
 - [x] Fase 6a — Sync web/shared: capa de datos (tipos/servicios/queries)
-- [ ] Fase 6b — Sync web/shared: UI web (tips admin, import unificado, gamificación, moderación admin)
+- [x] Fase 6b — Sync web/shared: UI web (tips admin, import unificado, gamificación, moderación admin)
 - [ ] Fase 7 — Mobile foundation (auth + API client + sesión) + prompt sesión diaria
-- [ ] Fase 8 — Verificación final
-- [ ] Backlog — Repaso inteligente (temas débiles), Notificaciones in-app, Informes, Logros, E2E
+- [x] Fase 8 — Verificación final
+- [ ] Backlog — Repaso inteligente (temas débiles), Notificaciones in-app, Insights, Logros, E2E
 
 ---
 
@@ -102,17 +102,24 @@
 - [x] **6.2** Web: re-exports finos `tip/moderation/gamification` + `session.types`; servicios `tips/gamification/moderation` y `createDailySession()` en `sessions.service.ts`; queries `tips/gamification/moderation` + `createDailySessionMutation`.
 - [x] **6.3** `make swagger` + actualizar `.agents/backend/data-model.md` y `architecture.md` (fuentes de verdad).
 
+### Fase 6b — Sync web/shared: UI web
+> Orden de ejecución: **6.6 → 6.4 → 6.7 → 6.5**.
+
+- [x] **6.4** Página admin de **tips** (`features/tips/`): `TipsListPage` (filtro por tema, `v-data-table`, delete con confirmación) + `TipFormDialog` + `TipImportPanel` reutilizable. Ruta `/tips` (`requiresAdmin`) + nav item *Tips* en sección Administración. Componente compartido `components/TopicSelect.vue` (autocomplete de un solo tema).
+- [x] **6.5** **Import unificado**: selector "Preguntas / Verdadero-Falso / Tips" en `QuestionImportPage` (tips solo para admin). Para tips se reusa `TipImportPanel` (encabezado `content,topic`); para V-F, hint y placeholder propios (`type=true_false`, 2 opciones, 1 correcta). Sin cambios backend.
+- [x] **6.6** **Overview de gamificación**: `features/gamification/components/GamificationPanel.vue` (XP total, nivel con barra, racha + freeze, meta diaria, XP por tema) + `DailyGoalDialog` (meta 10–200 XP) + `TopicXpList`. Integrado como **pestaña "Gamificación"** en `ProgressPage` y como **card** en `Dashboard` (solo no-admin). Controles: `setDailyGoalMutation`, `freezeStreakMutation`.
+- [x] **6.7** **Moderación admin**: `features/moderation/pages/ReportsListPage.vue` (filtro por status, paginación) + `ReportReviewDialog` (opción de des-publicar solo para `question`; en tips el backend la ignora y se informa en la UI). Ruta `/reports` (`requiresAdmin`) + nav item *Moderación*.
+- [x] **6.8** Tests: `tips/gamification/moderation` service + queries, `TipFormDialog`, y nav de `DefaultLayout`. `make fe-format` + `make fe-check` + `make fe-lint` + `make fe-test` (272 tests) + `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck` en verde.
+
+### Fase 8 — Verificación final
+- [x] **8.1** `make fmt` + `make vet`.
+- [x] **8.2** Tests unitarios por módulo nuevo (`make test`).
+- [x] **8.3** `make fe-check` + `make fe-lint` (+ `make fe-test`: 272 tests).
+- [x] **8.4** `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck`.
+
 ---
 
 ## Fases pendientes
-
-### Fase 6b — Sync web/shared: UI web
-> Orden sugerido de ejecución: **6.6 → 6.4 → 6.7 → 6.5**.
-
-- [ ] **6.4** Página admin de **tips** (`features/tips/`): listado + CRUD + import CSV. Ruta `/tips` (admin) + nav item.
-- [ ] **6.5** **Import unificado**: selector "preguntas / V-F / tips" en la página de importación. Tips solo visible para admin. Reusa `importTips`/`importTipsFromText`. Encabezado CSV distinto para tips (`content,topic`).
-- [ ] **6.6** **Overview de gamificación** en Progress/Dashboard: XP total, nivel, racha, meta diaria, XP por tema. Controles: `setDailyGoalMutation`, `freezeStreakMutation`.
-- [ ] **6.7** **Moderación admin**: listado de reportes con filtro por status, revisión (unpublish). Ruta `/reports` (admin) + nav item.
 
 ### Fase 7 — Mobile foundation + sesión diaria
 > La sesión diaria es mobile-first (prompt al entrar), pero la app mobile no tiene infraestructura aún. Dependencias previas obligatorias.
@@ -123,11 +130,7 @@
 - [ ] **7.4** **Flujo de sesión** en mobile: crear sesión → `NextQuestion` → responder → feedback con `Reward`.
 - [ ] **7.5** **Sesión diaria (prompt al entrar)**: al abrir la app, preguntar si desea hacer el repaso diario. `POST /sessions/daily` → tip del día + contadores → flujo de estudio. Mostrar racha y meta diaria en Home/Progreso.
 
-### Fase 8 — Verificación final
-- [ ] **8.1** `make fmt` + `make vet`.
-- [ ] **8.2** Tests unitarios por módulo nuevo (`make test`).
-- [ ] **8.3** `make fe-check` + `make fe-lint`.
-- [ ] **8.4** `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck`.
+> Nota: la **Fase 8** se ejecutó al cerrar la 6b (6b era la última fase de implementación abierta). Volver a correrla al final de la Fase 7, cuando haya código nuevo de backend/mobile.
 
 ---
 

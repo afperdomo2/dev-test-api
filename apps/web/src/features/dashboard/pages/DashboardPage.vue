@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { getAiQuota, getImportQuota } from '@/api/services/questions.service'
 import { getOpenCodeUsage } from '@/api/services/opencode.service'
 import { formatShortDateTime, formatTimeUntil } from '@/utils/format'
+import GamificationPanel from '@/features/gamification/components/GamificationPanel.vue'
 import type { ApiError } from '@/types/api.types'
 
 const authStore = useAuthStore()
@@ -190,6 +191,10 @@ function openCodeErrorMessage(err: unknown): string {
             <v-skeleton-loader type="text" />
           </v-card-text>
         </v-card>
+      </v-col>
+
+      <v-col v-if="isNotAdmin" cols="12">
+        <GamificationPanel />
       </v-col>
 
       <v-col v-if="isAdmin" cols="12" md="6" lg="6">

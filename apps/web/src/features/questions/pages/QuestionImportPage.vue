@@ -5,8 +5,10 @@ import { importQuestions, getImportQuota } from '@/api/services/questions.servic
 import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
+import TipImportPanel from '@/features/tips/components/TipImportPanel.vue'
 import { MAX_QUESTIONS_PER_FILE, type ImportResult } from '@/types/question.types'
 import {
+  IMPORT_CSV_HEADER,
   IMPORT_CSV_TEMPLATE,
   buildImportPrompt,
   PROMPT_DIFFICULTIES,
@@ -17,9 +19,36 @@ import {
 import { requiredRule, validateRules } from '@/utils/validators'
 import type { Topic } from '@/types/topic.types'
 
+type ContentType = 'questions' | 'true_false' | 'tips'
+
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const queryClient = useQueryClient()
+
+const contentType = ref<ContentType>('questions')
+
+const contentTypeOptions = computed<Array<{ title: string; value: ContentType; icon: string }>>(
+  () => {
+    const options = [
+      { title: 'Preguntas', value: 'questions' as ContentType, icon: 'mdi-help-circle' },
+      { title: 'Verdadero/Falso', value: 'true_false' as ContentType, icon: 'mdi-toggle-switch' },
+    ]
+    if (authStore.isAdmin) {
+      options.push({ title: 'Tips', value: 'tips' as ContentType, icon: 'mdi-lightbulb-outline' })
+    }
+    return options
+  },
+)
+
+/** El prompt de IA y la importación CSV solo aplican a preguntas (V-F incluido). */
+const isQuestionsType = computed(() => contentType.value !== 'tips')
+
+const csvPlaceholder = computed(() => {
+  if (contentType.value === 'true_false') {
+    return 'type,content,difficulty,topics,explanation,options&#10;true_false,"¿...?",beginner,go,"...","[v] Verdadero | [ ] Falso"'
+  }
+  return 'type,content,difficulty,topics,explanation,options&#10;single_choice,"¿...?",beginner,go,"...","[v] a | [ ] b"'
+})
 
 const selectedTopicIds = ref<Array<string>>([])
 const questionCount = ref<number>(10)
@@ -85,6 +114,13 @@ watch(questionCount, rebuildPrompt)
 watch(selectedDifficulty, rebuildPrompt)
 watch(selectedObjective, rebuildPrompt)
 watch(customContext, rebuildPrompt)
+
+watch(contentType, () => {
+  importResult.value = null
+  csvText.value = ''
+  selectedFile.value = null
+  fileInputKey.value++
+})
 
 async function copyPrompt() {
   promptValidated.value = true
@@ -163,10 +199,28 @@ async function doImport() {
   <v-container>
     <div class="d-flex align-center mb-4">
       <v-btn icon="mdi-arrow-left" variant="text" to="/questions" class="mr-2" />
-      <h1 class="text-h4">Importar preguntas</h1>
+      <h1 class="text-h4">Importar contenido</h1>
     </div>
 
-    <v-card v-if="quota && !authStore.isAdmin" class="mb-4">
+    <v-btn-toggle
+      v-model="contentType"
+      mandatory
+      color="primary"
+      density="comfortable"
+      class="mb-4"
+      variant="outlined"
+    >
+      <v-btn
+        v-for="option in contentTypeOptions"
+        :key="option.value"
+        :value="option.value"
+        :prepend-icon="option.icon"
+      >
+        {{ option.title }}
+      </v-btn>
+    </v-btn-toggle>
+
+    <v-card v-if="isQuestionsType && quota && !authStore.isAdmin" class="mb-4">
       <v-card-text>
         <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
           <span class="text-body-2 font-weight-medium">
@@ -188,7 +242,7 @@ async function doImport() {
         </div>
       </v-card-text>
     </v-card>
-    <v-card v-else-if="authStore.isAdmin" class="mb-4">
+    <v-card v-else-if="isQuestionsType && authStore.isAdmin" class="mb-4">
       <v-card-text>
         <div class="d-flex align-center justify-space-between flex-wrap ga-2">
           <span class="text-body-2 font-weight-medium"
@@ -205,9 +259,14 @@ async function doImport() {
       </v-card-text>
     </v-card>
 
+    <v-alert v-else type="info" variant="tonal" density="compact" class="mb-4">
+      Los tips son públicos y se muestran como consejo del día. No tienen cupo diario ni generación
+      con IA: se cargan manualmente o por CSV.
+    </v-alert>
+
     <v-row>
       <!-- Columna: Generar con IA -->
-      <v-col cols="12" md="6">
+      <v-col v-if="isQuestionsType" cols="12" md="6">
         <v-card>
           <v-card-title class="d-flex align-center ga-2">
             <v-icon icon="mdi-robot" color="primary" />
@@ -333,8 +392,22 @@ async function doImport() {
         </v-card>
       </v-col>
 
+      <!-- Columna: Importar tips -->
+      <v-col v-if="!isQuestionsType" cols="12">
+        <v-card>
+          <v-card-title class="d-flex align-center ga-2">
+            <v-icon icon="mdi-lightbulb-outline" color="primary" />
+            Importar tips
+          </v-card-title>
+          <v-card-subtitle> Sube un archivo o pega el contenido </v-card-subtitle>
+          <v-card-text>
+            <TipImportPanel />
+          </v-card-text>
+        </v-card>
+      </v-col>
+
       <!-- Columna: Importar -->
-      <v-col cols="12" md="6">
+      <v-col v-else cols="12" md="6">
         <v-card>
           <v-card-title class="d-flex align-center ga-2">
             <v-icon icon="mdi-file-upload" color="primary" />
@@ -365,9 +438,14 @@ async function doImport() {
                 @change="onFileChange"
               />
               <div class="text-caption text-medium-emphasis mt-1">
-                Encabezado requerido: type,content,difficulty,topics,explanation,options — el
-                contenido admite <code>`código`</code>, bloques <code>```</code> y
-                <strong>**negrita**</strong>.
+                <template v-if="contentType === 'true_false'">
+                  Encabezado requerido: {{ IMPORT_CSV_HEADER }} — usa <code>type=true_false</code> y
+                  exactamente 2 opciones (Verdadero/Falso) con 1 marcada como correcta.
+                </template>
+                <template v-else>
+                  Encabezado requerido: {{ IMPORT_CSV_HEADER }} — el contenido admite
+                  <code>`código`</code>, bloques <code>```</code> y <strong>**negrita**</strong>.
+                </template>
               </div>
             </div>
             <div v-else class="mb-3">
@@ -380,7 +458,7 @@ async function doImport() {
                 density="compact"
                 variant="outlined"
                 class="fixed-textarea"
-                placeholder='type,content,difficulty,topics,explanation,options&#10;single_choice,"¿...?",beginner,go,"...","[v] a | [ ] b"'
+                :placeholder="csvPlaceholder"
               />
             </div>
 

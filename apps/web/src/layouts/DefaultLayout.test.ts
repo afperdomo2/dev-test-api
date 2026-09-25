@@ -51,6 +51,8 @@ describe('DefaultLayout', () => {
     expect(titles).toContain('Preguntas')
     expect(titles).toContain('Sesiones')
     expect(titles).not.toContain('Usuarios')
+    expect(titles).not.toContain('Tips')
+    expect(titles).not.toContain('Moderación')
   })
 
   it('filters nav for admin (shows Usuarios, Preguntas e Importar)', () => {
@@ -65,6 +67,20 @@ describe('DefaultLayout', () => {
     expect(titles).toContain('Temas')
     expect(titles).not.toContain('Sesiones')
     expect(titles).not.toContain('Progreso')
+  })
+
+  it('exposes Tips and Moderación as admin-only items in Administración', () => {
+    const { wrapper } = mountLayout(true)
+    const vm = wrapper.vm as unknown as {
+      filteredSections: Array<{ title?: string; items: Array<{ title: string; to: string }> }>
+    }
+    const adminSection = vm.filteredSections.find((s) => s.title === 'Administración')
+    const adminItems = adminSection?.items ?? []
+    expect(adminItems.map((i) => i.title)).toEqual(
+      expect.arrayContaining(['Usuarios', 'Tips', 'Moderación']),
+    )
+    expect(adminItems.find((i) => i.title === 'Tips')?.to).toBe('/tips')
+    expect(adminItems.find((i) => i.title === 'Moderación')?.to).toBe('/reports')
   })
 
   it('groups nav into sections with correct titles', () => {

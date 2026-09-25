@@ -11,6 +11,7 @@ import { usePagination } from '@/composables/usePagination'
 import ListPageHeader from '@/components/ListPageHeader.vue'
 import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import ProgressCard from '../components/ProgressCard.vue'
+import GamificationPanel from '@/features/gamification/components/GamificationPanel.vue'
 import QuestionDetailDialog from '@/features/questions/components/QuestionDetailDialog.vue'
 import type { ProgressItem } from '@/types/progress.types'
 
@@ -18,7 +19,7 @@ const appStore = useAppStore()
 const queryClient = useQueryClient()
 const { page, perPage, reset: resetPagination } = usePagination()
 
-const activeTab = ref<'upcoming' | 'saved'>('upcoming')
+const activeTab = ref<'upcoming' | 'saved' | 'gamification'>('upcoming')
 
 const { data: upcomingData, isLoading: upcomingLoading } = useQuery(
   upcomingQuestionsOptions(
@@ -58,7 +59,7 @@ const currentTotal = computed(() => {
   return d?.meta?.total ?? 0
 })
 
-function switchTab(tab: 'upcoming' | 'saved') {
+function switchTab(tab: 'upcoming' | 'saved' | 'gamification') {
   activeTab.value = tab
   resetPagination()
 }
@@ -112,9 +113,12 @@ function handleSelect(item: ProgressItem) {
     <v-tabs v-model="activeTab" color="primary" class="mb-4" @update:model-value="switchTab">
       <v-tab value="upcoming"> Pendientes de repaso </v-tab>
       <v-tab value="saved"> Guardadas </v-tab>
+      <v-tab value="gamification"> Gamificación </v-tab>
     </v-tabs>
 
-    <v-card variant="flat" border>
+    <GamificationPanel v-if="activeTab === 'gamification'" />
+
+    <v-card v-else variant="flat" border>
       <v-row v-if="isLoading" class="ma-0">
         <v-col v-for="n in 4" :key="n" cols="12" sm="6">
           <v-skeleton-loader type="card" />
