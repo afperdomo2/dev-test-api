@@ -18,6 +18,12 @@ Fullstack monorepo: **Go + Gin** REST API + **Vue 3 + Vite + Vuetify** web SPA +
 | `make test-cover` | Tests with coverage (`-coverprofile`) |
 | `make setup` | Install lefthook git hooks (run once after clone) |
 | `make clean` | Remove `tmp/` and `docs/` |
+| `make migrate-up` | Apply pending goose migrations (loads `.env`) |
+| `make migrate-down` | Revert the last migration (`down`) |
+| `make migrate-status` | Show applied/pending migrations |
+| `make migrate-create name=<desc>` | Create `NNNNN_<desc>.sql` (sequential) |
+
+Migration runner is OS-aware: `scripts/migrate.sh` (Unix / Git Bash / WSL) or `scripts/migrate.ps1` (Windows PowerShell). DSN is built from `DB_*` in `.env` (or pre-set env vars win).
 
 Always run `make fmt` after any backend change to format Go code, then `make vet` to catch static issues. `make check` does both.
 
@@ -62,6 +68,7 @@ Always run `make fe-format`, `make fe-check` and `make fe-lint` after any web ch
 - **NEVER create commits** — commits are manual. Only stage, diff, suggest.
 - **Secrets** — never hardcode keys, passwords, or tokens. Use `.env` for Go, `VITE_*` env vars for web. Never commit `.env`.
 - **`internal/` is Go-private** — the compiler blocks external imports.
+- **DB schema is goose-migrated** — `internal/database/migrations/*.sql` is the source of truth (base `00001_init.sql`); migrations run on server start (embedded) and via `make migrate-*`. **Any schema/DDL change = new migration file**, never AutoMigrate. `goose` is a Go tool (`go tool goose`).
 - **`docs/` and `tmp/` are auto-generated and gitignored** — never edit them manually.
 - **Air** and **Lefthook** are Go project tools in `go.mod` — invoke via `go tool air`, `go tool lefthook`, or their `make` targets.
 - **Pre-commit hooks** (lefthook): `gofmt -l` check + `go vet ./...` + `go test -short` (unit, no DB). Run `make setup` after clone.
@@ -147,10 +154,10 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 
 | File | Purpose |
 |------|---------|
-| `architecture.md` | Modules list, module anatomy (request → response → mapper → store → service → handler → routes), wiring, GORM, Swagger |
+| `architecture.md` | Modules list, module anatomy (request → response → mapper → store → service → handler → routes), wiring, goose migrations, Swagger |
 | `responses.md` | **SOURCE OF TRUTH**: envelope format, RFC 9457 errors, error language (title: EN, detail: ES), camelCase, DTO conventions, JWT context |
 | `dependencies.md` | Safety checks before `go get` — security, maintenance, licensing |
-| `data-model.md` | Contexto de tablas DB: 10 tablas + enums + índices (fuente canónica: `internal/models/*.go`, `database.go`, `ddl.go`) |
+| `data-model.md` | Contexto de tablas DB: 10 tablas + enums + índices (fuente canónica: `internal/models/*.go` + `internal/database/migrations/*.sql`) |
 
 ### Web: `.agents/web/`
 

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/config"
-	"github.com/felipe/dev-test-api/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -36,30 +35,8 @@ func Connect(cfg *config.Config) *gorm.DB {
 
 	log.Println("🛢️ Connected to PostgreSQL")
 
-	if err := db.AutoMigrate(
-		&models.User{},
-		&models.Topic{},
-		&models.Question{},
-		&models.QuestionOption{},
-		&models.CodeChallenge{},
-		&models.QuestionTopic{},
-		&models.UserQuestionProgress{},
-		&models.Session{},
-		&models.SessionTopic{},
-		&models.SessionAnswer{},
-		&models.Tip{},
-		&models.Report{},
-		&models.UserStreak{},
-		&models.UserXp{},
-		&models.UserTopicXp{},
-	); err != nil {
-		log.Fatalf("❌ failed to run auto-migration: %v", err)
-	}
-
-	log.Println("✅ Database migration completed")
-
-	if err := runDDL(db); err != nil {
-		log.Fatalf("❌ failed to run DDL: %v", err)
+	if err := runMigrations(sqlDB); err != nil {
+		log.Fatalf("❌ failed to run database migrations: %v", err)
 	}
 
 	seedDefaultTopics(db)

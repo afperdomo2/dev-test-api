@@ -1,4 +1,5 @@
 .PHONY: install dev build swagger clean run fmt fmt-check vet check setup test test-cover db-seed \
+        migrate-up migrate-down migrate-status migrate-create \
         fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover \
         mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint
 
@@ -67,6 +68,42 @@ db-seed:
 	@echo "🌱 Seeding 50 preguntas..."
 	@bash scripts/seed-db.sh 2>nul || powershell -ExecutionPolicy Bypass -File scripts/seed-db.ps1
 	@echo "✅ Seed completado"
+
+# ── Migrations (goose) ────────────────────────────────
+
+MIGRATE_DIR = internal/database/migrations
+
+# La CLI goose se ejecuta via script por SO (mismo patron que db-seed):
+#   scripts/migrate.sh  → Unix / Git Bash / WSL
+#   scripts/migrate.ps1 → Windows PowerShell
+ifeq ($(OS),Windows_NT)
+MIGRATE_RUN = powershell -ExecutionPolicy Bypass -File scripts/migrate.ps1
+else
+MIGRATE_RUN = bash scripts/migrate.sh
+endif
+
+# Carga .env y ejecuta la CLI goose (scripts/migrate.*). Comandos:
+#   make migrate-up          — aplica migraciones pendientes
+#   make migrate-down        — revierte la última migración (down)
+#   make migrate-status      — estado de las migraciones
+#   make migrate-create name=<desc> — crea NNNNN_<desc>.sql (up+down)
+migrate-up:
+	@echo "🛢️ Aplicando migraciones pendientes..."
+	@$(MIGRATE_RUN) up
+	@echo "✅ Migraciones aplicadas"
+
+migrate-down:
+	@echo "🛢️ Revirtiendo última migración..."
+	@$(MIGRATE_RUN) down
+	@echo "✅ Migración revertida"
+
+migrate-status:
+	@echo "🛢️ Estado de las migraciones:"
+	@$(MIGRATE_RUN) status
+
+migrate-create:
+	@$(MIGRATE_RUN) create "$(name)"
+	@echo "✅ Migración creada en $(MIGRATE_DIR)/"
 
 # ── Frontend ────────────────────────────────────────────
 

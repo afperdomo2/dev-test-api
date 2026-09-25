@@ -2,8 +2,10 @@
 
 > Backend: Go + Gin + GORM (Postgres). Frontend: Vue 3 + Vite + Vuetify + TanStack Query + Pinia.
 > Objetivo: ir ejecutando poco a poco, marcando cada tarea del checklist al completarla.
-> Convención: modelos → AutoMigrate en `internal/database/database.go` · `make swagger` tras cada endpoint ·
+> Convención: modelos + migración en `internal/database/migrations/` · `make swagger` tras cada endpoint ·
 > `make check` (backend) · `make fe-check` + `make fe-lint` (frontend) · tests con store mockeado.
+
+> ⚠️ **Esquema de DB**: desde septiembre 2026 se gestiona con migraciones versionadas **goose** (`internal/database/migrations/`), que corren al arranque y son la única fuente de verdad. Ver **`TASKS.md` Fase 0**. Las menciones a `AutoMigrate`/`ddl.go` en este documento son **históricas** (fases ya completadas) y quedan reemplazadas; no implementar cambios de esquema por esa vía.
 
 ## Estado general
 - [x] Fase 0 — Fundaciones (modelos + migraciones)
@@ -41,10 +43,10 @@
   - `Store` interface + `gormStore` + `NewStore(db)`; `Service` interface + struct + `NewService(deps...)`.
 - Errores: `apierr.ErrXxx(title EN, detail ES, instance)`; en el handler fijar `e.Instance = c.Request.URL.Path`.
 - Respuestas: `response.Success` / `response.Paginated` / `response.Problem` (envelope `{ data }`, RFC 9457).
-- `Question.Type` es `string` (los `CREATE TYPE ... AS ENUM` de `ddl.go` son decorativos; la validación real es Go `binding:oneof`).
+- `Question.Type` es `string` (los `CREATE TYPE ... AS ENUM` creados en las migraciones son decorativos; la validación real es Go `binding:oneof`).
 - No existe hoy patrón de consultas paralelas: solo goroutines fire-and-forget (`go s.generateBatch(...)` en `sessions/service.go`).
 - Logs con emoji (❌✅🚀🛢️🌱🤖).
-- Documentación de esquema: toda tabla, columna, enum, función y trigger (nuevo o existente) debe llevar su `COMMENT ON ...` en `ddl.go`. Las tablas actuales se documentan en la tarea **0.4**; los objetos nuevos, en **0.3**.
+- Documentación de esquema: toda tabla, columna, enum, función y trigger (nuevo o existente) debe llevar su `COMMENT ON ...` en las **migraciones** (`internal/database/migrations/`). Las tablas actuales se documentan en el baseline `00001_init.sql`; los objetos nuevos, en su migración correspondiente.
 
 ---
 
@@ -58,7 +60,7 @@ Cambios:
 - `questions/import.go`: `validImportTypes` + `true_false`; en `validateImportRow`, para `true_false` exigir 2 opciones y 1 correcta.
 - `sessions/service.go` (`evaluateCorrectness`): case `true_false` (misma lógica que `single_choice`).
 - `ai/generator.go` (`parseAIResponse`) y `ai/prompts.go`: aceptar/generar `true_false` (opcional, fase posterior).
-- `database/ddl.go`: enum `question_type` + `'true_false'`.
+- Migración `internal/database/migrations/`: enum `question_type` + `'true_false'` (ya incluido en el baseline `00001_init.sql`).
 
 ---
 
@@ -131,7 +133,7 @@ Nota sobre "des-publicar": solo aplica a contenido de admin (`is_public=true` �
 ## 4. Sesión diaria inteligente ("Repasar hoy")
 
 - `Session.Mode` admite `daily`; añadir `TipID *uuid.UUID` (nullable) a `Session`.
-- `database/ddl.go`: enum `session_mode` + `'daily'`.
+- Migración `internal/database/migrations/`: enum `session_mode` + `'daily'` (ya incluido en el baseline `00001_init.sql`).
 
 Endpoint: `POST /api/v1/sessions/daily` → `CreateDaily(userID)`:
 1. En paralelo (goroutines + `sync.WaitGroup`) consultar: (a) repasos vencidos (`progress.FindUpcoming`), (b) tip del día (**solo tips admin**, vía `tipService.GetTipOfTheDay`), (c) candidatos `true_false`.
@@ -252,16 +254,10 @@ Rutas:
 
 ## Migraciones
 
-`database.go` `AutoMigrate` añadir: `models.Tip{}`, `models.Report{}`, `models.UserStreak{}`, `models.UserXp{}`, `models.UserTopicXp{}`.
+> **Nota (2026-09):** esta sección registra **históricamente** cómo se materializó el esquema de estas fases (vía `AutoMigrate` + `ddl.go`). **Sustituida** por el sistema de migraciones versionadas goose — ver **`TASKS.md` Fase 0**. En el nuevo modelo estos cambios viven en el baseline `00001_init.sql` (o en migraciones `NNNNN_*.sql` posteriores), no en `database.go`/`ddl.go`.
 
-`ddl.go` añadir/actualizar:
-- enum `question_type` + `'true_false'`.
-- enum `session_mode` + `'daily'`.
-- enum nuevo (decorativo): `report_status` (`pending,reviewed`).
-- Columnas: `users.daily_goal_xp`, `sessions.tip_id`.
-- Índices: `tips(topic_id)`, `reports(target_type,target_id)`, `reports(status)`, `questions(type)`, PKs compuestos `user_xps`/`user_topic_xps`/`user_streaks`.
-- **Comentarios de documentación** (`COMMENT ON`) para los objetos nuevos: tablas `tips`/`reports`/`user_streaks`/`user_xps`/`user_topic_xps`, columnas `users.daily_goal_xp` y `sessions.tip_id`, y enums `true_false`/`daily`/`report_status`. Si en fases posteriores se crean triggers/funciones, documentarlos igual.
-- **No**: `questions.visibility`, `tips.visibility`, enum `content_visibility`, backfill de visibilidad.
+Registro histórico de los objetos añadidos: `models.Tip{}`, `models.Report{}`, `models.UserStreak{}`, `models.UserXp{}`, `models.UserTopicXp{}`; enums `true_false`/`daily`/`report_status`; columnas `users.daily_goal_xp`, `sessions.tip_id`; índices `tips(topic_id)`, `reports(target_type,target_id)`, `reports(status)`, `questions(type)`, PKs compuestos `user_xps`/`user_topic_xps`/`user_streaks`; `COMMENT ON` de los objetos nuevos.
+- **No** (mantenido): `questions.visibility`, `tips.visibility`, enum `content_visibility`, backfill de visibilidad.
 
 ---
 
@@ -269,9 +265,9 @@ Rutas:
 
 ### Fase 0 — Fundaciones (sin dependencias)
 - [x] **0.1** Añadir modelos: `Tip`, `Report`, `UserStreak`, `UserXp`, `UserTopicXp`; `DailyGoalXp` en `User`; `TipID` + `Mode="daily"` en `Session`.
-- [x] **0.2** `database.go`: registrar modelos en `AutoMigrate`.
-- [x] **0.3** `ddl.go`: enums (`true_false`, `daily`, `report_status`), columnas (`daily_goal_xp`, `tip_id`), índices, y **comentarios `COMMENT ON`** de los objetos nuevos (tablas/columnas/enums; y triggers/funciones si se crean).
-- [x] **0.4** Documentar el esquema existente con `COMMENT ON` en `ddl.go`: tablas actuales (`users`, `topics`, `questions`, `question_options`, `code_challenges`, `question_topics`, `user_question_progress`, `sessions`, `session_topics`, `session_answers`), enums existentes (`question_type`, `question_difficulty`, `question_source`, `session_status`, `session_mode`, `session_difficulty`), función `calc_session_score()` y trigger `trg_sessions_score`.
+- [x] **0.2** (histórico) Registrar los modelos nuevos en `AutoMigrate` — hoy: contenido del baseline `00001_init.sql` de goose.
+- [x] **0.3** (histórico) `ddl.go`: enums (`true_false`, `daily`, `report_status`), columnas (`daily_goal_xp`, `tip_id`), índices, y **comentarios `COMMENT ON`** de los objetos nuevos — hoy: absorbido en las migraciones de `internal/database/migrations/`.
+- [x] **0.4** (histórico) Documentar el esquema existente con `COMMENT ON` en `ddl.go`: tablas actuales, enums existentes, función `calc_session_score()` y trigger `trg_sessions_score` — hoy: `COMMENT ON` incluidos en el baseline `00001_init.sql`.
 
 ### Fase 1 — Verdadero/Falso
 - [x] **1.1** `questions/request.go` + `questions/service.go`: aceptar/validar `true_false`.

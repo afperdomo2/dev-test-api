@@ -113,6 +113,10 @@ cp .env.example .env
 | `make test` | Pruebas unitarias (`go test -short`) |
 | `make test-cover` | Pruebas con cobertura |
 | `make setup` | Instala git hooks (lefthook) |
+| `make migrate-up` | Aplica migraciones pendientes (goose, carga `.env`) |
+| `make migrate-down` | Revierte la última migración (`down`) |
+| `make migrate-status` | Estado de las migraciones |
+| `make migrate-create name=<desc>` | Crea `NNNNN_<desc>.sql` (numeración secuencial) |
 
 ### Web (apps/web/)
 
@@ -259,7 +263,7 @@ curl http://localhost:8080/api/v1/users \
 
 ## 📝 Notas
 
-- Las tablas se crean/actualizan automáticamente al arrancar (AutoMigrate de GORM).
+- El esquema de DB se gestiona con **migraciones versionadas goose** (`internal/database/migrations/*.sql`, baseline `00001_init.sql`). Se aplican al arrancar el servidor (embedded) o con `make migrate-*`. Cualquier cambio de esquema es una migración nueva, nunca `AutoMigrate`.
 - `docs/` y `tmp/` son auto-generados y no se editan manualmente.
 - Air se instaló como project tool (`go get -tool`), no requiere instalación global.
 - `internal/` es privado al módulo Go — no puede ser importado desde fuera del proyecto.

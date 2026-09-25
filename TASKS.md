@@ -21,14 +21,14 @@
 > Infraestructura transversal: reemplaza `AutoMigrate` + `ddl.go`. Ejecutar antes de Fases 1-4 (que hoy asumen AutoMigrate).
 
 #### Backend
-- [ ] **0.1** `go get github.com/pressly/goose/v3` (previo: `.agents/backend/dependencies.md`) + `tool github.com/pressly/goose/v3/cmd/goose` en `go.mod`.
-- [ ] **0.2** Baseline `internal/database/migrations/00001_init.sql`: snapshot del esquema actual (tablas + enums + índices + trigger + `COMMENT ON`) vía `pg_dump --schema-only --no-owner --no-privileges`, limpiado; secciones `-- +goose Up` / `-- +goose Down` (Down a mano, orden por FKs).
-- [ ] **0.3** `internal/database/migrate.go`: `//go:embed migrations/*.sql` + `goose.NewProvider(goose.DialectPostgres, sqlDB, embedFS)` + `WithSessionLocker(lock.NewPostgresSessionLocker())` + `provider.Up(ctx)`.
-- [ ] **0.4** `database.go`: sustituir `db.AutoMigrate(...)` por `runMigrations(db)`; eliminar `runDDL(db)`; mantener `seedDefaultTopics(db)`. Borrar `internal/database/ddl.go`.
-- [ ] **0.5** Makefile: targets `migrate-up` / `migrate-down` / `migrate-status` / `migrate-create name=<n>` (DSN construido desde `.env`).
-- [ ] **0.6** Basar DB dev: drop + reconstruir desde migraciones (o `INSERT INTO goose_db_version (version_id, is_applied, tstamp) VALUES (1, true, now())` para DBs ya pobladas).
-- [ ] **0.7** Docs: `.agents/backend/architecture.md` + `data-model.md` + `AGENTS.md` (comandos `migrate-*`; regla "cambio de esquema = migración nueva").
-- [ ] **0.8** Verificación: `make check` + `make build` + `make test` + prueba contra DB limpia y DB existente.
+- [x] **0.1** `go get github.com/pressly/goose/v3` (previo: `.agents/backend/dependencies.md`) + `tool github.com/pressly/goose/v3/cmd/goose` en `go.mod`.
+- [x] **0.2** Baseline `internal/database/migrations/00001_init.sql`: snapshot del esquema actual (tablas + enums + índices + trigger + `COMMENT ON`) vía `pg_dump --schema-only --no-owner --no-privileges`, limpiado; secciones `-- +goose Up` / `-- +goose Down` (Down a mano, orden por FKs).
+- [x] **0.3** `internal/database/migrate.go`: `//go:embed migrations/*.sql` + `goose.NewProvider(goose.DialectPostgres, sqlDB, embedFS)` + `WithSessionLocker(lock.NewPostgresSessionLocker())` + `provider.Up(ctx)`.
+- [x] **0.4** `database.go`: sustituir `db.AutoMigrate(...)` por `runMigrations(db)`; eliminar `runDDL(db)`; mantener `seedDefaultTopics(db)`. Borrar `internal/database/ddl.go`.
+- [x] **0.5** Makefile: targets `migrate-up` / `migrate-down` / `migrate-status` / `migrate-create name=<n>` (DSN construido desde `.env`; `scripts/migrate.sh` + `scripts/migrate.ps1` por SO).
+- [x] **0.6** Basar DB dev: drop + reconstruir desde migraciones (o `INSERT INTO goose_db_version (version_id, is_applied, tstamp) VALUES (1, true, now())` para DBs ya pobladas).
+- [x] **0.7** Docs: `.agents/backend/architecture.md` + `data-model.md` + `AGENTS.md` + `README.md` + `PLAN-nuevas-funcionalidades.md` (comandos `migrate-*`; regla "cambio de esquema = migración nueva"; quitar referencias muertas a `AutoMigrate`/`ddl.go`).
+- [x] **0.8** Verificación: `make check` + `make build` + `make test` + prueba contra DB limpia y DB existente.
 
 #### Reglas de oro
 1. Cambio de esquema (tabla/columna/enum/índice/trigger/comentario) = migración nueva `NNNNN_descripcion.sql`; nunca editar una ya aplicada.

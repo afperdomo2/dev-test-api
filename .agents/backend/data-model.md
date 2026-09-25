@@ -1,8 +1,8 @@
 # Backend data model — contexto
 
-Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/models/*.go` (esquema), `internal/database/database.go` (AutoMigrate), `internal/database/ddl.go` (enums, índices, trigger). Si este archivo difiere del código, leer los modelos.
+Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/models/*.go` (structs GORM) y **`internal/database/migrations/*.sql`** (esquema real, baseline `00001_init.sql`). Si este archivo difiere del código, leer las migraciones (los `COMMENT ON` viven ahí).
 
-## Tablas (AutoMigrate)
+## Tablas (baseline `00001_init.sql`)
 
 | Tabla | Propósito |
 |-------|-----------|
@@ -33,7 +33,7 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 - `tips.source` (columna sin enum): manual, imported
 - `reports.target_type` (columna sin enum): question, tip
 
-## Índices / trigger (`ddl.go`)
+## Índices / trigger (migraciones, `00001_init.sql`)
 
 - Único `topics (slug, created_by)` (NULLS NOT DISTINCT)
 - `user_question_progress (user_id, next_review_at)` y `(user_id, is_mastered)`

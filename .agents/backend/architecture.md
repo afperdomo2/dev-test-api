@@ -9,7 +9,7 @@
 | `internal/server/server.go` | Gin engine + middleware + DI wiring + Run() | Yes — register new modules here |
 | `main.go` | Server entrypoint (config.Load + db.Connect + server.Run) | Rarely |
 | `internal/config/config.go` | Env var loading | Rarely — add new env vars only |
-| `internal/database/database.go` | GORM connection + AutoMigrate | Rarely — register new models here |
+| `internal/database/database.go` | GORM connection + goose migrations + seed | Rarely |
 | `internal/middleware/` | Cross-cutting: JWT auth, logging | Rarely |
 | `pkg/` | Shared utilities: response, apierr | Rarely |
 | `docs/` | Swagger auto-generated | **NEVER** — use `make swagger` |
@@ -98,9 +98,16 @@ xmod.RegisterRoutes(protected, xHandler)
 
 Always create stores first, then services, then handlers. Modules that depend on other modules pass the interface (e.g., `auth.NewService(userStore, ...)`).
 
-## GORM AutoMigrate
+## Goose migrations
 
-All models must be registered in `internal/database/database.go` → `db.AutoMigrate()`. Tables are created/updated on every server start.
+Schema changes are **versioned migrations**, not AutoMigrate. The database is migrated on every server start and via `make migrate-*`.
+
+- Source of truth for the schema: `internal/database/migrations/*.sql` (base `00001_init.sql`).
+- Migration runner: `internal/database/migrate.go` — embeds `migrations/*.sql`, runs `goose` provider with a Postgres session locker (safe under concurrent startups).
+- Wired in `internal/database/database.go` → `runMigrations(sqlDB)` before `seedDefaultTopics(db)`.
+- **Rule:** DDL/DML de esquema va SIEMPRE como migración nueva (`make migrate-create name=<desc>`), nunca como `db.AutoMigrate()` ni edición del baseline una vez aplicado.
+- CLI: `make migrate-up|down|status|create name=<desc>` (carga `.env`, construye la DSN key-value). Scripts: `scripts/migrate.sh` (Unix/Git Bash/WSL) y `scripts/migrate.ps1` (Windows).
+- Convenciones: funciones SQL embebidas con `-- +goose StatementBegin/End`; `Down` en orden topológico inverso; los `COMMENT ON` del modelo viven en las migraciones.
 
 ## Concurrency
 
