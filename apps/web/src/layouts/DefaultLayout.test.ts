@@ -21,6 +21,8 @@ function mountLayout(isAdmin = false) {
     routes: [
       { path: '/', component: { template: '<div>home</div>' } },
       { path: '/login', component: { template: '<div>login</div>' } },
+      { path: '/generation', component: { template: '<div>generation</div>' } },
+      { path: '/generation/settings', component: { template: '<div>settings</div>' } },
     ],
   })
 
@@ -97,6 +99,29 @@ describe('DefaultLayout', () => {
     expect(preguntasSection?.items.map((i) => i.title)).toEqual(
       expect.arrayContaining(['Preguntas', 'Importar', 'Temas', 'Estadísticas']),
     )
+  })
+
+  it('exposes the generation entries as admin-only', () => {
+    const { wrapper } = mountLayout(true)
+    const vm = wrapper.vm as unknown as {
+      filteredSections: Array<{ title?: string; items: Array<{ title: string; to: string }> }>
+    }
+    const adminItems = vm.filteredSections.find((s) => s.title === 'Administración')?.items ?? []
+    const titles = adminItems.map((i) => i.title)
+
+    expect(titles).toEqual(expect.arrayContaining(['Generar con IA', 'Ajustes de IA']))
+    expect(adminItems.find((i) => i.title === 'Generar con IA')?.to).toBe('/generation')
+    expect(adminItems.find((i) => i.title === 'Ajustes de IA')?.to).toBe('/generation/settings')
+  })
+
+  it('does not expose the generation entries to non-admins', () => {
+    const { wrapper } = mountLayout(false)
+    const vm = wrapper.vm as unknown as {
+      filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
+    }
+    const titles = vm.filteredSections.flatMap((s) => s.items.map((n) => n.title))
+    expect(titles).not.toContain('Generar con IA')
+    expect(titles).not.toContain('Ajustes de IA')
   })
 
   it('hides empty sections for admin', () => {

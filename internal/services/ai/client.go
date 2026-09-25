@@ -2,6 +2,7 @@ package ai
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/felipe/dev-test-api/internal/config"
 )
+
+const defaultTemperature = 0.8
 
 type chatMessage struct {
 	Role    string `json:"role"`
@@ -36,16 +39,23 @@ type aiClient struct {
 	apiURL     string
 	apiKey     string
 	model      string
+	timeout    time.Duration
 	httpClient *http.Client
 }
 
 func newAIClient(cfg config.AIConfig) *aiClient {
+	timeout := time.Duration(cfg.RequestTimeout) * time.Second
+	if timeout <= 0 {
+		timeout = 120 * time.Second
+	}
 	return &aiClient{
-		apiURL: cfg.APIURL,
-		apiKey: cfg.APIKey,
-		model:  cfg.Model,
+		apiURL:  cfg.APIURL,
+		apiKey:  cfg.APIKey,
+		model:   cfg.Model,
+		timeout: timeout,
 		httpClient: &http.Client{
-			Timeout: time.Duration(cfg.RequestTimeout) * time.Second,
+			// Tope duro del entorno; el timeout efectivo se aplica por request.
+			Timeout: timeout + 30*time.Second,
 		},
 	}
 }
@@ -54,14 +64,46 @@ func (c *aiClient) IsConfigured() bool {
 	return c.apiURL != "" && c.apiKey != ""
 }
 
-func (c *aiClient) Chat(systemPrompt, userPrompt string) (string, error) {
+// envSettings son los ajustes por defecto tomados de .env.
+func (c *aiClient) envSettings() Settings {
+	temperature := defaultTemperature
+	return Settings{
+		Model:          c.model,
+		Temperature:    &temperature,
+		RequestTimeout: c.timeout,
+	}
+}
+
+// resolve combina los ajustes de runtime sobre los del entorno.
+func (c *aiClient) resolve(s Settings) (string, float64, time.Duration) {
+	model, timeout := c.model, c.timeout
+	temperature := defaultTemperature
+
+	if s.Model != "" {
+		model = s.Model
+	}
+	if s.Temperature != nil {
+		temperature = *s.Temperature
+	}
+	if s.RequestTimeout > 0 {
+		timeout = s.RequestTimeout
+	}
+	return model, temperature, timeout
+}
+
+func (c *aiClient) Chat(ctx context.Context, systemPrompt, userPrompt string, s Settings) (string, error) {
+	model, temperature, timeout := c.resolve(s)
+
+	reqCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
 	reqBody := chatRequest{
-		Model: c.model,
+		Model: model,
 		Messages: []chatMessage{
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
 		},
-		Temperature: 0.8,
+		Temperature: temperature,
 	}
 
 	jsonBody, err := json.Marshal(reqBody)
@@ -70,7 +112,7 @@ func (c *aiClient) Chat(systemPrompt, userPrompt string) (string, error) {
 	}
 
 	url := buildChatURL(c.apiURL)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, url, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return "", fmt.Errorf("error al crear request: %w", err)
 	}

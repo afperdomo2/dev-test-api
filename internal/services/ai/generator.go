@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,31 +14,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type aiGeneratedQuestion struct {
-	Type           string              `json:"type"`
-	Content        string              `json:"content"`
-	Explanation    string              `json:"explanation"`
-	Difficulty     string              `json:"difficulty"`
-	Options        []aiGeneratedOption `json:"options,omitempty"`
-	StarterCode    string              `json:"starterCode,omitempty"`
-	ExpectedOutput string              `json:"expectedOutput,omitempty"`
-	Language       string              `json:"language,omitempty"`
-}
-
-type aiGeneratedOption struct {
-	Content   string `json:"content"`
-	IsCorrect bool   `json:"isCorrect"`
-}
-
 type Generator struct {
-	db     *gorm.DB
-	client *aiClient
+	db       *gorm.DB
+	client   *aiClient
+	settings SettingsProvider
 }
 
-func NewGenerator(db *gorm.DB, cfg config.AIConfig) *Generator {
+func NewGenerator(db *gorm.DB, cfg config.AIConfig, settings SettingsProvider) *Generator {
 	return &Generator{
-		db:     db,
-		client: newAIClient(cfg),
+		db:       db,
+		client:   newAIClient(cfg),
+		settings: settings,
 	}
 }
 
@@ -51,6 +38,20 @@ func (e *DailyLimitError) Error() string {
 
 func (g *Generator) IsConfigured() bool {
 	return g.client.IsConfigured()
+}
+
+// runtimeSettings resuelve los ajustes de IA en cada llamada. Si el módulo de
+// settings no está disponible o falla, se usan los defaults del entorno.
+func (g *Generator) runtimeSettings() Settings {
+	if g.settings == nil {
+		return g.client.envSettings()
+	}
+	resolved, err := g.settings.AISettings()
+	if err != nil {
+		log.Printf("⚠️ No se pudieron leer los ajustes de IA, se usan los de .env: %v", err)
+		return g.client.envSettings()
+	}
+	return resolved
 }
 
 // evaluateAiQuota decide si una generación con IA está permitida. Los administradores
@@ -115,7 +116,7 @@ func (g *Generator) GenerateQuestion(session *models.Session) error {
 	userPrompt := buildUserPrompt(session, existingContent)
 	log.Printf("🤖 Generando pregunta para sesión %s (tema: %s, dificultad: %s)", session.ID, safeTopicName(session.Topics), session.Difficulty)
 
-	responseText, err := g.client.Chat(systemPrompt, userPrompt)
+	responseText, err := g.client.Chat(context.Background(), systemPrompt, userPrompt, g.runtimeSettings())
 	if err != nil {
 		return err
 	}
@@ -170,7 +171,7 @@ func (g *Generator) existingContent(session *models.Session) ([]string, error) {
 	return contents, nil
 }
 
-func (g *Generator) saveQuestion(session *models.Session, gen *aiGeneratedQuestion) (*models.Question, error) {
+func (g *Generator) saveQuestion(session *models.Session, gen *GeneratedQuestion) (*models.Question, error) {
 	source := "ai_generated"
 	difficulty := gen.Difficulty
 	if difficulty == "" || difficulty == "random" {
@@ -226,7 +227,19 @@ func (g *Generator) saveQuestion(session *models.Session, gen *aiGeneratedQuesti
 	return question, nil
 }
 
-func parseAIResponse(text string) (*aiGeneratedQuestion, error) {
+func parseAIResponse(text string) (*GeneratedQuestion, error) {
+	var q GeneratedQuestion
+	if err := json.Unmarshal([]byte(stripCodeFence(text)), &q); err != nil {
+		return nil, fmt.Errorf("JSON inválido: %w\nRespuesta: %s", err, truncate(text, 300))
+	}
+	if err := validateGeneratedQuestion(&q); err != nil {
+		return nil, err
+	}
+	return &q, nil
+}
+
+// stripCodeFence quita la envoltura ```json ... ``` que añaden algunos modelos.
+func stripCodeFence(text string) string {
 	text = strings.TrimSpace(text)
 	if strings.HasPrefix(text, "```") {
 		text = strings.TrimPrefix(text, "```json")
@@ -234,33 +247,52 @@ func parseAIResponse(text string) (*aiGeneratedQuestion, error) {
 		text = strings.TrimSuffix(text, "```")
 		text = strings.TrimSpace(text)
 	}
+	return text
+}
 
-	var q aiGeneratedQuestion
-	if err := json.Unmarshal([]byte(text), &q); err != nil {
-		return nil, fmt.Errorf("JSON inválido: %w\nRespuesta: %s", err, truncate(text, 300))
-	}
+var validGeneratedTypes = map[string]bool{
+	"single_choice":   true,
+	"multiple_choice": true,
+	"code_completion": true,
+}
 
+// validateGeneratedQuestion normaliza y valida una pregunta devuelta por la IA.
+func validateGeneratedQuestion(q *GeneratedQuestion) error {
 	if q.Type == "" {
-		return nil, fmt.Errorf("tipo de pregunta vacío")
+		return fmt.Errorf("tipo de pregunta vacío")
 	}
 	if q.Content == "" {
-		return nil, fmt.Errorf("contenido de pregunta vacío")
+		return fmt.Errorf("contenido de pregunta vacío")
+	}
+	if !validGeneratedTypes[q.Type] {
+		return fmt.Errorf("tipo de pregunta no válido: %s", q.Type)
 	}
 
-	validTypes := map[string]bool{"single_choice": true, "multiple_choice": true, "code_completion": true}
-	if !validTypes[q.Type] {
-		return nil, fmt.Errorf("tipo de pregunta no válido: %s", q.Type)
+	if q.Type == "code_completion" {
+		if q.Language == "" {
+			q.Language = "plaintext"
+		}
+		return nil
 	}
 
-	if q.Type == "code_completion" && q.Language == "" {
-		q.Language = "plaintext"
+	if len(q.Options) < 2 {
+		return fmt.Errorf("se requieren al menos 2 opciones para preguntas de tipo choice")
 	}
 
-	if (q.Type == "single_choice" || q.Type == "multiple_choice") && len(q.Options) < 2 {
-		return nil, fmt.Errorf("se requieren al menos 2 opciones para preguntas de tipo choice")
+	correct := 0
+	for i := range q.Options {
+		if q.Options[i].Content == "" {
+			return fmt.Errorf("opción %d sin contenido", i+1)
+		}
+		if q.Options[i].IsCorrect {
+			correct++
+		}
+	}
+	if correct != 1 {
+		return fmt.Errorf("se requiere exactamente 1 opción correcta (se encontraron %d)", correct)
 	}
 
-	return &q, nil
+	return nil
 }
 
 func safeTopicName(topics []models.Topic) string {

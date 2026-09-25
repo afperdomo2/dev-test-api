@@ -97,6 +97,18 @@ export const routes: Array<RouteRecordRaw> = [
         component: () => import('@/features/moderation/pages/ReportsListPage.vue'),
         meta: { requiresAuth: true, requiresAdmin: true },
       },
+      {
+        path: 'generation',
+        name: 'Generation',
+        component: () => import('@/features/generation/pages/GenerationPage.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true },
+      },
+      {
+        path: 'generation/settings',
+        name: 'GenerationSettings',
+        component: () => import('@/features/generation/pages/GenerationSettingsPage.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true },
+      },
     ],
   },
 ]

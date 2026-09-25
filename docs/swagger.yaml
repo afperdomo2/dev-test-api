@@ -118,6 +118,28 @@ definitions:
       xp:
         type: integer
     type: object
+  generation.CreateJobRequest:
+    properties:
+      difficulty:
+        enum:
+        - beginner
+        - intermediate
+        - advanced
+        - random
+        type: string
+      quantity:
+        description: 'Quantity es opcional: si se omite se usa el ajuste ai.default_quantity.'
+        minimum: 1
+        type: integer
+      topicIds:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - difficulty
+    - topicIds
+    type: object
   moderation.CreateReportRequest:
     properties:
       reason:
@@ -681,6 +703,26 @@ definitions:
       status:
         type: string
     type: object
+  settings.UpdateSettingRequest:
+    properties:
+      key:
+        type: string
+      value:
+        type: string
+    required:
+    - key
+    - value
+    type: object
+  settings.UpdateSettingsRequest:
+    properties:
+      settings:
+        items:
+          $ref: '#/definitions/settings.UpdateSettingRequest'
+        minItems: 1
+        type: array
+    required:
+    - settings
+    type: object
   tips.CreateTipRequest:
     properties:
       content:
@@ -1010,6 +1052,154 @@ paths:
       summary: Congelar racha
       tags:
       - gamification
+  /api/v1/generation:
+    get:
+      description: Lista paginada de los trabajos de generación con IA (solo administradores),
+        filtrable por estado.
+      parameters:
+      - description: 'Filtrar por estado: pending, running, completed o failed'
+        in: query
+        name: status
+        type: string
+      - description: Página (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Elementos por página (default 20, max 100)
+        in: query
+        name: perPage
+        type: integer
+      - description: 'Campo de orden: created_at, started_at o finished_at'
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Orden: asc o desc'
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de trabajos
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Listar trabajos de generación
+      tags:
+      - generation
+    post:
+      consumes:
+      - application/json
+      description: Encola un trabajo de generación por lotes (solo administradores).
+        Resuelve N preguntas en una única llamada a la IA. La cantidad es opcional
+        y por defecto usa el ajuste ai.default_quantity. Rechaza si se supera el tope
+        diario.
+      parameters:
+      - description: Trabajo a encolar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/generation.CreateJobRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Trabajo encolado
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Encolar generación de preguntas con IA
+      tags:
+      - generation
+  /api/v1/generation/{id}:
+    get:
+      description: Devuelve el detalle de un trabajo de generación con IA (solo administradores).
+      parameters:
+      - description: ID del trabajo (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Detalle del trabajo
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Ver un trabajo de generación
+      tags:
+      - generation
+  /api/v1/generation/stats:
+    get:
+      description: Consumo del día (reservado y generado), topes vigentes y colas
+        por estado (solo administradores).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Estadísticas
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Estadísticas de generación con IA
+      tags:
+      - generation
   /api/v1/opencode/usage:
     get:
       description: Consulta el endpoint oficial de OpenCode Go y devuelve el consumo
@@ -1981,6 +2171,67 @@ paths:
       summary: Crear sesión diaria
       tags:
       - sessions
+  /api/v1/settings:
+    get:
+      description: Devuelve los ajustes tunables con su valor efectivo (el de la base
+        de datos o el default), su tipo y rango. Solo administradores. No incluye
+        secretos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de ajustes
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Listar configuración
+      tags:
+      - settings
+    put:
+      consumes:
+      - application/json
+      description: Actualiza uno o más ajustes tunables (solo administradores). Valida
+        tipo y rango, y que ai.default_quantity no supere ai.max_per_job.
+      parameters:
+      - description: Ajustes a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/settings.UpdateSettingsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Configuración actualizada
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Actualizar configuración
+      tags:
+      - settings
   /api/v1/tips:
     get:
       description: Lista todos los tips públicos con paginación y filtro opcional

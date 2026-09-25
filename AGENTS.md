@@ -81,7 +81,7 @@ Always run `make fe-format`, `make fe-check` and `make fe-lint` after any web ch
   - New/removed endpoints → update `packages/shared/src/types/` + re-exports in `apps/web/src/types/` + `apps/web/src/api/services/`
   - If unsure about endpoint shapes, read `docs/swagger.yaml`
   - **Naming convention**: both sides use camelCase for JSON keys. Go struct tags (`json:"camelCase")` and TypeScript interfaces use the same casing — no conversion needed.
-- **Envelope / RFC 9457 / error language** — the canonical contract is in `.agents/backend/resues.md`. The web and mobile clients implement the consuming side; shared defines the TypeScript mirror (`ApiError`, `PaginatedResponse`).
+- **Envelope / RFC 9457 / error language** — the canonical contract is in `.agents/backend/responses.md`. The web and mobile clients implement the consuming side; shared defines the TypeScript mirror (`ApiError`, `PaginatedResponse`).
 - **Context7 MCP** — available for Gin, GORM, jwt, swag docs. Always `resolve-library-id` first, then `query-docs`.
 - **Vuetify MCP** — available via `opencode.json`. Query component APIs with `vuetify_get_component_api_by_version` or `vuetify_get_feature_guide`.
 - **Bash defensive patterns** — any `.sh` script must follow strict mode (`set -Eeuo pipefail`). See skill `bash-defensive-patterns` in the Skills section below.
@@ -154,10 +154,10 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 
 | File | Purpose |
 |------|---------|
-| `architecture.md` | Modules list, module anatomy (request → response → mapper → store → service → handler → routes), wiring, goose migrations, Swagger |
+| `architecture.md` | Modules list, module anatomy (request → response → mapper → store → service → handler → routes), wiring, goose migrations, worker pool, Swagger |
 | `responses.md` | **SOURCE OF TRUTH**: envelope format, RFC 9457 errors, error language (title: EN, detail: ES), camelCase, DTO conventions, JWT context |
 | `dependencies.md` | Safety checks before `go get` — security, maintenance, licensing |
-| `data-model.md` | Contexto de tablas DB: 10 tablas + enums + índices (fuente canónica: `internal/models/*.go` + `internal/database/migrations/*.sql`) |
+| `data-model.md` | Contexto de tablas DB: 13 tablas + enums + índices (fuente canónica: `internal/models/*.go` + `internal/database/migrations/*.sql`) |
 
 ### Web: `.agents/web/`
 

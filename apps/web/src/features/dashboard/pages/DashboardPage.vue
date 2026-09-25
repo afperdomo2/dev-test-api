@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { getAiQuota, getImportQuota } from '@/api/services/questions.service'
 import { getOpenCodeUsage } from '@/api/services/opencode.service'
+import { generationStatsOptions } from '@/queries/generation.queries'
 import { formatShortDateTime, formatTimeUntil } from '@/utils/format'
 import GamificationPanel from '@/features/gamification/components/GamificationPanel.vue'
 import type { ApiError } from '@/types/api.types'
@@ -43,6 +44,13 @@ const {
   queryKey: ['opencode', 'usage'],
   queryFn: () => getOpenCodeUsage(),
   staleTime: 60 * 1000,
+  enabled: isAdmin,
+})
+
+// Consumo global de generación por lotes (solo admins). El cupo por usuario
+// sigue existiendo hasta la Fase 3.
+const { data: generationStats } = useQuery({
+  ...generationStatsOptions(),
   enabled: isAdmin,
 })
 
@@ -233,6 +241,75 @@ function openCodeErrorMessage(err: unknown): string {
 
       <v-col v-if="isNotAdmin" cols="12">
         <GamificationPanel />
+      </v-col>
+
+      <v-col v-if="isAdmin" cols="12" md="6" lg="6">
+        <v-card>
+          <v-card-item>
+            <template #prepend>
+              <v-icon color="primary" size="40">mdi-auto-fix</v-icon>
+            </template>
+            <v-card-title>Generación por lotes</v-card-title>
+            <v-card-subtitle>Consumo global de hoy</v-card-subtitle>
+          </v-card-item>
+
+          <v-card-text v-if="generationStats">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <span class="text-body-2 font-weight-medium">
+                {{ generationStats.reservedToday }} / {{ generationStats.dailyCap }}
+                <span class="text-medium-emphasis">reservadas</span>
+              </span>
+              <v-btn
+                size="small"
+                variant="tonal"
+                color="primary"
+                prepend-icon="mdi-open-in-new"
+                to="/generation"
+              >
+                Gestionar
+              </v-btn>
+            </div>
+            <v-progress-linear
+              :model-value="quotaPercent(generationStats.reservedToday, generationStats.dailyCap)"
+              :color="
+                quotaColor(quotaPercent(generationStats.reservedToday, generationStats.dailyCap))
+              "
+              height="20"
+              rounded
+            >
+              <template #default>
+                <span class="text-caption font-weight-medium">
+                  {{ quotaPercent(generationStats.reservedToday, generationStats.dailyCap) }}%
+                </span>
+              </template>
+            </v-progress-linear>
+            <div class="d-flex flex-wrap ga-2 mt-3">
+              <v-chip size="small" variant="tonal" color="warning">
+                {{ generationStats.pending }} en cola
+              </v-chip>
+              <v-chip size="small" variant="tonal" color="info">
+                {{ generationStats.running }} generando
+              </v-chip>
+              <v-chip size="small" variant="tonal" color="success">
+                {{ generationStats.generatedToday }} generadas
+              </v-chip>
+              <v-chip v-if="generationStats.failed" size="small" variant="tonal" color="error">
+                {{ generationStats.failed }} fallidas
+              </v-chip>
+            </div>
+            <v-alert
+              v-if="!generationStats.aiConfigured"
+              type="warning"
+              variant="tonal"
+              density="compact"
+              class="mt-3"
+              text="La IA no está configurada en el servidor."
+            />
+          </v-card-text>
+          <v-card-text v-else>
+            <v-skeleton-loader type="text" />
+          </v-card-text>
+        </v-card>
       </v-col>
 
       <v-col v-if="isAdmin" cols="12" md="6" lg="6">

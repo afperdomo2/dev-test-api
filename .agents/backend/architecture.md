@@ -29,8 +29,10 @@
 | `moderation` | Reportes de contenido: `POST /reports` (usuario), listado/revisión (admin) |
 | `gamification` | Gamificación: `GET /overview`, `PUT /daily-goal`, `POST /streak/freeze` |
 | `opencode` | Admin: `GET /opencode/usage` |
+| `settings` | Configuración tunable en runtime: `GET/PUT /settings` (admin) |
+| `generation` | Jobs de generación IA por lotes (admin): `POST/GET /generation`, `GET /generation/stats`, `GET /generation/{id}` + worker pool en `worker.go` |
 
-Servicios compartidos: `internal/services/ai` (generación IA), `internal/services/opencode` (client).
+Servicios compartidos: `internal/services/ai` (generación IA: cliente + batch), `internal/services/opencode` (client).
 
 Data model (tablas DB): ver `data-model.md`.
 
@@ -203,6 +205,17 @@ go func() {
 ```
 
 Do **not** use this for operations where the caller needs the result or error. Prefer `errgroup` when you need to wait for completion.
+
+### Background worker pool (`internal/modules/generation/worker.go`)
+
+Patrón canónico para trabajo en segundo plano. **No** usa `errgroup`: son goroutines de larga vida, no un lote acotado.
+
+- `Pool` con `N` goroutines `run()` + `sync.WaitGroup`; cada una hace su propio bucle `claim → process → sleep`.
+- Cancelación por `context`: cada iteración comprueba `ctx.Err()` y encola cualquier job que ya estaba reclamado para que el shutdown no lo deje huérfano en `running`.
+- **Concurrencia ajustable en caliente** desde `settings` (`ai.worker_concurrency`): cada iteración llama a `reconcile(ctx)`, que compara el objetivo con la actual y hace `spawn` o cierra el canal `quit` del worker sobrante.
+- Al arrancar, `recoverRunning` devuelve a `pending` los jobs que quedaron en `running` de un proceso anterior.
+- El pool se detiene **antes** que el HTTP server en `Run()` (`stopPool` + espera), para no perder trabajo a mitad de una llamada a la IA.
+- Cuando se implemente el scheduler del backlog B2.5, reutilizar este patrón (o extraerlo a un worker genérico) en lugar de inventar otro.
 
 ## Swagger
 

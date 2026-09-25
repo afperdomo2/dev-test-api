@@ -13,11 +13,13 @@ import (
 	"github.com/felipe/dev-test-api/internal/middleware"
 	"github.com/felipe/dev-test-api/internal/modules/auth"
 	"github.com/felipe/dev-test-api/internal/modules/gamification"
+	"github.com/felipe/dev-test-api/internal/modules/generation"
 	"github.com/felipe/dev-test-api/internal/modules/moderation"
 	opencodeModule "github.com/felipe/dev-test-api/internal/modules/opencode"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
 	"github.com/felipe/dev-test-api/internal/modules/sessions"
+	"github.com/felipe/dev-test-api/internal/modules/settings"
 	"github.com/felipe/dev-test-api/internal/modules/tips"
 	"github.com/felipe/dev-test-api/internal/modules/topics"
 	"github.com/felipe/dev-test-api/internal/modules/users"
@@ -60,7 +62,32 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	progressHandler := progress.NewHandler(progressService)
 
 	sessionStore := sessions.NewStore(db)
-	aiGenerator := ai.NewGenerator(db, cfg.AI)
+
+	// settings es la fuente de verdad de los ajustes tunables de IA. Se crea
+	// antes que el generador porque implementa ai.SettingsProvider.
+	settingsStore := settings.NewStore(db)
+	settingsService := settings.NewService(settingsStore, cfg.AI)
+	settingsHandler := settings.NewHandler(settingsService)
+
+	aiGenerator := ai.NewGenerator(db, cfg.AI, settingsService)
+
+	generationStore := generation.NewStore(db)
+	generationService := generation.NewService(generationStore, aiGenerator, settingsService)
+	generationHandler := generation.NewHandler(generationService)
+
+	concurrency, err := settingsService.WorkerConcurrency()
+	if err != nil {
+		log.Printf("❌ No se pudo leer la concurrencia inicial del pool: %v", err)
+		concurrency = 1
+	}
+	generationWorker := generation.NewWorker(generationService, concurrency, func() int {
+		n, cErr := settingsService.WorkerConcurrency()
+		if cErr != nil {
+			return concurrency
+		}
+		return n
+	})
+
 	sessionService := sessions.NewService(sessionStore, progressService, gamificationService, aiGenerator, tipService)
 	sessionHandler := sessions.NewHandler(sessionService)
 
@@ -101,6 +128,8 @@ func Run(cfg *config.Config, db *gorm.DB) {
 			tips.RegisterAdminRoutes(admin, tipHandler)
 			moderation.RegisterAdminRoutes(admin, moderationHandler)
 			opencodeModule.RegisterAdminRoutes(admin, opencodeHandler)
+			settings.RegisterAdminRoutes(admin, settingsHandler)
+			generation.RegisterAdminRoutes(admin, generationHandler)
 		}
 	}
 
@@ -112,6 +141,13 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
+	poolCtx, stopPool := context.WithCancel(context.Background())
+	poolDone := make(chan struct{})
+	go func() {
+		defer close(poolDone)
+		generationWorker.Start(poolCtx)
+	}()
+
 	go func() {
 		log.Println("🚀 Server starting on :" + cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -121,6 +157,15 @@ func Run(cfg *config.Config, db *gorm.DB) {
 
 	<-quit
 	log.Println("🛑 Shutting down server...")
+
+	// Primero se corta el pool: así ningún trabajo nuevo se reclama mientras el
+	// servidor cierra sus listeners.
+	stopPool()
+	select {
+	case <-poolDone:
+	case <-time.After(15 * time.Second):
+		log.Println("⚠️ El pool de generación no terminó a tiempo")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

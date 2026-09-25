@@ -111,11 +111,24 @@
 - [x] **6.7** **Moderación admin**: `features/moderation/pages/ReportsListPage.vue` (filtro por status, paginación) + `ReportReviewDialog` (opción de des-publicar solo para `question`; en tips el backend la ignora y se informa en la UI). Ruta `/reports` (`requiresAdmin`) + nav item *Moderación*.
 - [x] **6.8** Tests: `tips/gamification/moderation` service + queries, `TipFormDialog`, y nav de `DefaultLayout`. `make fe-format` + `make fe-check` + `make fe-lint` + `make fe-test` (272 tests) + `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck` en verde.
 
+### Fase 9 — Generación de preguntas con IA (solo admin)
+> Suplanta a la Fase 9 original de "importación masiva con IA". Decisiones: **un job = una llamada a la IA** con máximo **10** preguntas (no lotes de 20, no `AI_MAX_PER_JOB=50`); el presupuesto es **global** por día, no por usuario; el worker pool es **reutilizable** para futuros schedulers (ver nota en B2.5).
+
+- [x] **9.1** goose `00002_settings.sql` (tabla `settings` + seeds `ai.*`) y `00003_generation_jobs.sql` (`generation_jobs` + `generation_job_topics`, CHECKs e índices); modelos `Setting`, `GenerationJob`, `GenerationJobTopic`.
+- [x] **9.2** Módulo `internal/modules/settings/`: registry tipado de 7 claves (`ai.max_per_job`, `ai.max_per_day`, `ai.default_quantity`, `ai.model`, `ai.temperature`, `ai.request_timeout`, `ai.worker_concurrency`), defaults, validación cruzada, auditoría `updated_by`; `GET/PUT /settings` (admin). `ai.model` y `ai.request_timeout` **no** se siembran: caen a `config.AIConfig` (`.env`).
+- [x] **9.3** `internal/services/ai/`: `Settings` + `SettingsProvider` (releído por llamada), timeout por request vía `context`, `GenerateQuestions` con prompt batch en español y parser de array (limpia code fences, valida cada elemento, devuelve los válidos — respuesta parcial permitida). `Temperature *float64` para aceptar el valor válido `0`.
+- [x] **9.4** Módulo `internal/modules/generation/`: store con reserva diaria y claim FIFO `FOR UPDATE SKIP LOCKED` en la misma transacción, `recoverRunning` al arranque, persistencia transaccional de preguntas (`source=ai_generated`, `is_public=true`, dueño = admin solicitante); service con validación de topics/dificultad/cantidad y estadísticas; handler + rutas `POST/GET /generation`, `GET /generation/stats`, `GET /generation/{id}` (todas admin).
+- [x] **9.5** `internal/modules/generation/worker.go`: pool con concurrencia configurable en caliente desde `ai.worker_concurrency` (reconciliación periódica), apagado ordenado y recuperación de jobs `running` huérfanos.
+- [x] **9.6** Wiring en `server.go` (settings → generator → generation) + shutdown del pool antes de cerrar el HTTP server.
+- [x] **9.7** Tests unitarios: `settings/service_test.go`, `generation/service_test.go`, `ai/batch_test.go`. `ai.NewGenerator` acepta `SettingsProvider` (nil = config estática) y `internal/modules/sessions/service_test.go` se adaptó.
+- [x] **9.8** Migraciones aplicadas y verificadas contra la DB real: seeds, claim FIFO, carga de topics, reserva diaria, `recoverRunning` y CHECKs (todas las pruebas en transacciones con rollback).
+- [x] **9.9** `make swagger` (`docs/swagger.yaml` incluye los 4 paths nuevos) + shared/web: `generation.types.ts` (barrel + re-export fino), `generation.service.ts`, `generation.queries.ts` (polling adaptativo 3 s con jobs en vuelo / 30 s en reposo), `GenerationPage` (encolar + stats + historial), `GenerationSettingsPage`, rutas `/generation` y `/generation/settings`, nav *Generar con IA* / *Ajustes de IA* y card de consumo global en el dashboard.
+- [x] **9.10** Tests frontend: `generation.service.test.ts`, `generation.queries.test.ts` y cobertura de las entradas de nav en `DefaultLayout.test.ts` → 287 tests en verde.
+
 ### Fase 8 — Verificación final
 - [x] **8.1** `make fmt` + `make vet`.
 - [x] **8.2** Tests unitarios por módulo nuevo (`make test`).
-- [x] **8.3** `make fe-check` + `make fe-lint` (+ `make fe-test`: 272 tests).
-- [x] **8.4** `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck`.
+- [x] **8.3** `make fe-check` + `make fe-lint` (+ `make fe-test`: 272 tests).- [x] **8.4** `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck`.
 
 ---
 
@@ -156,7 +169,7 @@
 - [ ] **B2.2** Módulo `internal/modules/notifications/` (store/service/handler/routes).
 - [ ] **B2.3** Endpoints: `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`, `GET /notifications/unread-count`.
 - [ ] **B2.4** Generador: job diario crea "Hoy tienes N preguntas para repasar" (desde `next_review_at <= now`).
-- [ ] **B2.5** Scheduler en `server.go` (goroutine + `github.com/robfig/cron/v3` — validar con `dependencies.md` antes de `go get`).
+- [ ] **B2.5** Scheduler en `server.go` (goroutine + `github.com/robfig/cron/v3` — validar con `dependencies.md` antes de `go get`). **Reutilizar el patrón de pool de `internal/modules/generation/worker.go`** (goroutines + `sync.WaitGroup` + `context` cancelable + reconciliación de concurrencia), no `errgroup`. Revisar si se extrae a un worker genérico compartido.
 - [ ] **B2.6** Tests.
 #### Frontend
 - [ ] **B2.7** `types/notification.types.ts` + service + queries.

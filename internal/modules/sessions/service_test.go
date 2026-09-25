@@ -197,7 +197,7 @@ func TestSessionEvaluateCorrectness(t *testing.T) {
 
 func TestSessionList(t *testing.T) {
 	uid := uuid.New()
-	gen := ai.NewGenerator(nil, config.AIConfig{})
+	gen := ai.NewGenerator(nil, config.AIConfig{}, nil)
 	t.Run("success", func(t *testing.T) {
 		store := newSessionStore()
 		store.findPageFn = func(uuid.UUID, ListSessionsParams) ([]models.Session, int64, error) {
@@ -250,7 +250,7 @@ func TestSessionCreate(t *testing.T) {
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
 			return &models.Session{ID: uuid.New(), Mode: "generate", QuestionsGenerated: 0}, nil
 		}
-		gen := ai.NewGenerator(nil, config.AIConfig{})
+		gen := ai.NewGenerator(nil, config.AIConfig{}, nil)
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, aiGenerator: gen}
 		got, err := svc.Create(uid, CreateSessionRequest{Name: "s", Mode: "generate", Difficulty: "beginner", TopicIDs: []uuid.UUID{topicID}, QuestionLimit: &limit})
 		require.NoError(t, err)
