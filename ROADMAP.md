@@ -19,6 +19,9 @@
 - [x] Fase 6b — Sync web/shared: UI web (tips admin, import unificado, gamificación, moderación admin)
 - [ ] Fase 7 — Mobile foundation (auth + API client + sesión) + prompt sesión diaria
 - [x] Fase 8 — Verificación final
+- [x] Fase 9 — Generación de preguntas con IA (solo admin, por lotes + worker pool)
+- [ ] Fase 10 — Retirada de la IA en sesiones (modo `generate`)
+- [ ] Fase 11 — Retirada de la cuota de IA por usuario
 - [ ] Backlog — Repaso inteligente (temas débiles), Notificaciones in-app, Insights, Logros, E2E
 
 ---
@@ -38,6 +41,8 @@
 | Sesión diaria | Modo `daily` nuevo en `Session` + selección on-the-fly (sin tabla de cola persistente). |
 | Informes | **Renombrado a "Insights"** (`/insights/summary`) para no chocar con moderación `/reports` (reportes de contenido). |
 | Concurrencia | goroutines + `sync.WaitGroup`; **sin `errgroup`** (evitar dependencia nueva). |
+| IA (alcance) | La IA se genera **solo por lotes y solo por admins** (Fase 9). El modo `generate` de las sesiones y la cuota de IA por usuario se retiran en las **Fases 10 y 11**. La IA **nunca** genera tips. |
+| Cuotas | `ImportQuota` (import CSV, con exención de admin) se conserva; la **cuota de IA por usuario se elimina** (el tope pasa a ser global `ai.max_per_day`). |
 
 ---
 
@@ -111,8 +116,15 @@
 - [x] **6.7** **Moderación admin**: `features/moderation/pages/ReportsListPage.vue` (filtro por status, paginación) + `ReportReviewDialog` (opción de des-publicar solo para `question`; en tips el backend la ignora y se informa en la UI). Ruta `/reports` (`requiresAdmin`) + nav item *Moderación*.
 - [x] **6.8** Tests: `tips/gamification/moderation` service + queries, `TipFormDialog`, y nav de `DefaultLayout`. `make fe-format` + `make fe-check` + `make fe-lint` + `make fe-test` (272 tests) + `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck` en verde.
 
+### Fase 8 — Verificación final
+- [x] **8.1** `make fmt` + `make vet`.
+- [x] **8.2** Tests unitarios por módulo nuevo (`make test`).
+- [x] **8.3** `make fe-check` + `make fe-lint` (+ `make fe-test`: 272 tests).
+- [x] **8.4** `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck`.
+
 ### Fase 9 — Generación de preguntas con IA (solo admin)
 > Suplanta a la Fase 9 original de "importación masiva con IA". Decisiones: **un job = una llamada a la IA** con máximo **10** preguntas (no lotes de 20, no `AI_MAX_PER_JOB=50`); el presupuesto es **global** por día, no por usuario; el worker pool es **reutilizable** para futuros schedulers (ver nota en B2.5).
+> **Alcance**: esta fase **solo añade** el batch admin. No toca la IA legacy de las sesiones ni la cuota por usuario — se retiran en las Fases 10 y 11.
 
 - [x] **9.1** goose `00002_settings.sql` (tabla `settings` + seeds `ai.*`) y `00003_generation_jobs.sql` (`generation_jobs` + `generation_job_topics`, CHECKs e índices); modelos `Setting`, `GenerationJob`, `GenerationJobTopic`.
 - [x] **9.2** Módulo `internal/modules/settings/`: registry tipado de 7 claves (`ai.max_per_job`, `ai.max_per_day`, `ai.default_quantity`, `ai.model`, `ai.temperature`, `ai.request_timeout`, `ai.worker_concurrency`), defaults, validación cruzada, auditoría `updated_by`; `GET/PUT /settings` (admin). `ai.model` y `ai.request_timeout` **no** se siembran: caen a `config.AIConfig` (`.env`).
@@ -124,11 +136,6 @@
 - [x] **9.8** Migraciones aplicadas y verificadas contra la DB real: seeds, claim FIFO, carga de topics, reserva diaria, `recoverRunning` y CHECKs (todas las pruebas en transacciones con rollback).
 - [x] **9.9** `make swagger` (`docs/swagger.yaml` incluye los 4 paths nuevos) + shared/web: `generation.types.ts` (barrel + re-export fino), `generation.service.ts`, `generation.queries.ts` (polling adaptativo 3 s con jobs en vuelo / 30 s en reposo), `GenerationPage` (encolar + stats + historial), `GenerationSettingsPage`, rutas `/generation` y `/generation/settings`, nav *Generar con IA* / *Ajustes de IA* y card de consumo global en el dashboard.
 - [x] **9.10** Tests frontend: `generation.service.test.ts`, `generation.queries.test.ts` y cobertura de las entradas de nav en `DefaultLayout.test.ts` → 287 tests en verde.
-
-### Fase 8 — Verificación final
-- [x] **8.1** `make fmt` + `make vet`.
-- [x] **8.2** Tests unitarios por módulo nuevo (`make test`).
-- [x] **8.3** `make fe-check` + `make fe-lint` (+ `make fe-test`: 272 tests).- [x] **8.4** `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck`.
 
 ---
 
@@ -144,6 +151,62 @@
 - [ ] **7.5** **Sesión diaria (prompt al entrar)**: al abrir la app, preguntar si desea hacer el repaso diario. `POST /sessions/daily` → tip del día + contadores → flujo de estudio. Mostrar racha y meta diaria en Home/Progreso.
 
 > Nota: la **Fase 8** se ejecutó al cerrar la 6b (6b era la última fase de implementación abierta). Volver a correrla al final de la Fase 7, cuando haya código nuevo de backend/mobile.
+
+### Fase 10 — Retirada de la IA en las sesiones (modo `generate`)
+> Cierra el trabajo de la **Fase 9**: hoy conviven dos caminos de IA. El batch admin (`/api/v1/generation`) y el legacy por sesión (modo `generate`). Esta fase elimina el legacy para que la IA se genere **solo** por el batch admin.
+> **Numeración**: se llama Fase 10 (no "Fase 2") para no chocar con la Fase 2 histórica de Tips.
+
+**Estado actual (verificado en código, 2026-09-25)** — todo esto sigue vivo:
+- `internal/modules/sessions/service.go` → campo `aiGenerator` + `generateBatch()` + las 3 llamadas (`Create`, `NextQuestion`, `Answer`).
+- `internal/services/ai/generator.go` → `GenerateQuestion()` (genera 1 pregunta por sesión) + `checkDailyAiLimit()`.
+- `packages/shared/src/types/session.types.ts` → `SessionMode` incluye `'generate'`, `SESSION_MODES` incluye "Generar preguntas".
+- `apps/web` → **no hay UI de creación de sesión** (nada consume `createSessionMutation`/`SESSION_MODES`); el modo `generate` solo es alcanzable por API directa.
+
+#### Backend
+- [ ] **10.1** `sessions/service.go`: quitar `aiGenerator *ai.Generator` del struct y de `NewService`; eliminar `generateBatch()`.
+- [ ] **10.2** `sessions/service.go`: `Create()` ya no lanza la goroutine `go s.generateBatch(session, 2)` para modo `generate`.
+- [ ] **10.3** `sessions/service.go`: `NextQuestion()` ya no cae a `aiGenerator.GenerateQuestion()` cuando no hay pregunta disponible → devuelve 404 directo.
+- [ ] **10.4** `sessions/service.go`: `Answer()` ya no dispara `go s.generateBatch(sess, 1)` al bajar de 2 preguntas disponibles.
+- [ ] **10.5** `ai/generator.go`: borrar `GenerateQuestion()` y `checkDailyAiLimit()` (usados solo por el legacy). **Conservar** `GeneratedQuestion`, `stripCodeFence`, `validateGeneratedQuestion` (los usa el batch).
+- [ ] **10.6** `ai/prompts.go`: borrar el `systemPrompt` legacy y `buildUserPrompt()`; conservar `batchSystemPrompt` + `buildBatchUserPrompt`.
+- [ ] **10.7** `sessions/request.go`: `CreateSessionRequest.Mode` → `binding:"oneof=review daily"` (quitar `generate`).
+- [ ] **10.8** `server.go`: `sessions.NewService(...)` sin el `*ai.Generator` (el generator solo se inyecta en `generation`).
+- [ ] **10.9** `models/session.go`: `Mode` default `generate` → `review`.
+- [ ] **10.10** Migración goose `NNNNN_deprecate_session_mode_generate.sql`. ⚠️ **Postgres NO permite `DROP VALUE` en un enum**, y `ALTER TYPE ... RENAME VALUE` fallaría porque `'review'` ya existe en el tipo. Opciones válidas: (a) **dejar el valor `generate` en el enum sin usarse** (recomendado, cero riesgo) y actualizar solo el `COMMENT ON TYPE` para marcarlo como obsoleto; (b) `ALTER TYPE public.session_mode RENAME VALUE 'generate' TO 'ia_legacy'` y normalizar filas existentes con un `UPDATE` previo. Cambiar el default de `sessions.mode` de `generate` a `review` sí es un `ALTER COLUMN ... SET DEFAULT` normal.
+- [ ] **10.11** Tests: `sessions/service_test.go` (quitar casos de generate), `ai/generator_test.go` (quitar los de `GenerateQuestion`).
+- [ ] **10.12** `make swagger` + `make check` + `make test`.
+
+#### Shared / Frontend
+- [ ] **10.13** `session.types.ts`: `SessionMode` → `'review' | 'daily'`; quitar `generate` de `SESSION_MODE_LABELS` / `ICONS` / `DESCRIPTIONS` / `SESSION_MODES`; quitar `questionsGenerated` de las 3 responses (`SessionResponse`, `SessionDetailResponse`, `SessionSummaryResponse`) y de `Summary`.
+- [ ] **10.14** `apps/web`: no hay vistas de creación de sesión que tocar (verificado). Solo verificar que ningún `.vue` importe `SESSION_MODES`/`questionsGenerated`.
+- [ ] **10.15** Tests web + `make fe-check` + `make fe-lint`.
+
+> ⚠️ **OJO — no romper `daily`**: `mode="daily"` (Fase 5) es independiente de `generate`; la sesión diaria NO usa IA y debe seguir funcionando tras esta fase.
+
+### Fase 11 — Retirada de la cuota de IA por usuario
+> Depende de la **Fase 10** (elimina el último consumidor de la cuota). Cierra el alcance de la Fase 9: la IA es ahora **exclusiva de admins** con presupuesto **global**; la cuota por usuario (`DailyAiLimit`) queda sin uso.
+
+**Estado actual (verificado)** — sigue vivo:
+- `internal/services/ai/generator.go` → `evaluateAiQuota()` + `checkDailyAiLimit()` (cupo por usuario, con exención de admin).
+- `internal/modules/questions/service.go` → `GetAiQuota()`.
+- `internal/modules/questions/routes.go` + `handler.go` → `GET /questions/ai-quota` + handler `AiQuota`.
+- `packages/shared/src/types/question.types.ts` → `AiQuota`; `apps/web/src/queries/questions.queries.ts` → `aiQuotaOptions()` (**nadie lo consume en el frontend**, verificado).
+
+#### Backend
+- [ ] **11.1** `ai/generator.go`: borrar `evaluateAiQuota()` y el check de cuota en `GenerateQuestions` (dejar solo el tope global `ai.max_per_day` del batch).
+- [ ] **11.2** `questions/service.go`: borrar `GetAiQuota()` + el tipo `AiQuota` del response.
+- [ ] **11.3** `questions/handler.go` + `routes.go`: borrar el handler `AiQuota` y la ruta `GET /questions/ai-quota`.
+- [ ] **11.4** `models/user.go`: quitar `DailyAiLimit` (⚠️ **decisión**: ¿eliminar el campo o dejarlo inerte para no romper migraciones futuras? La columna `users.daily_ai_limit` seguiría existiendo salvo migración explícita).
+- [ ] **11.5** Tests: quitar/ajustar los casos de cuota en `questions/service_test.go` y `ai/generator_test.go`.
+- [ ] **11.6** `make swagger` + `make check` + `make test`.
+
+#### Shared / Frontend
+- [ ] **11.7** `question.types.ts`: quitar `AiQuota` + su export en el barrel `index.ts`.
+- [ ] **11.8** `apps/web`: quitar `aiQuotaOptions()` de `questions.queries.ts` y el import de `AiQuota` en `question.types.ts` (⚠️ confirmar que ninguna vista nueva lo usa).
+- [ ] **11.9** Tests web + `make fe-check` + `make fe-lint` + `pnpm typecheck`.
+
+> **Nota de alcance**: `ImportQuota` (import CSV) es **independiente** y se conserva; la exención de cuota para admins en importación también. Esta fase solo toca la **cuota de IA**.
+
 
 ---
 
@@ -213,6 +276,7 @@
 ## Notas
 - **Historia**: este archivo unifica `PLAN-nuevas-funcionalidades.md` y `TASKS.md` (ambos eliminados). El diseño de gamificación de TASKS (tabla única `UserStats` + `UserBadge`) fue descartado por el diseño implementado en PLAN. `TASKS.md` Fase 2 (temas débiles), Fase 3 (notificaciones) y Fase 4 (reportes) pasan al Backlog (informes renombrados a "insights").
 - "Des-publicar" por reporte solo aplica a contenido admin (`is_public=true`). Contenido `ai_generated` requiere mecanismo futuro (fuera de alcance).
+- **Historia de la IA**: la IA en sesiones (modo `generate`, 1 pregunta por llamada) existía desde antes del batch. La **Fase 9** introdujo el batch admin sin tocar el legacy, y se acordó retirarlo después en fases separadas para no hacer un cambio grande de una sola vez. **Fase 10** = quitar el modo `generate`; **Fase 11** = quitar la cuota de IA por usuario (deja de tener consumidor tras la 10). No reintroducir IA por usuario en sesiones.
 - Notificaciones in-app: sin secretos ni env vars nuevas; scheduler sin estado compartido.
 - Dependencias nuevas → pasar por `.agents/backend/dependencies.md` antes de `go get` / `pnpm add`.
 - Docs/`tmp/` son auto-generados y gitignored — nunca editarlos a mano.
