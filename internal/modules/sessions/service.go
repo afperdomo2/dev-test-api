@@ -438,7 +438,10 @@ func (s *sessionService) generateBatch(sess *models.Session, count int) {
 		if sess.QuestionsGenerated >= maxGeneratedPerSession {
 			break
 		}
-		s.aiGenerator.GenerateQuestion(sess)
+		if err := s.aiGenerator.GenerateQuestion(sess); err != nil {
+			log.Printf("⚠️ No se generó pregunta para la sesión %s: %v", sess.ID, err)
+			break
+		}
 	}
 }
 

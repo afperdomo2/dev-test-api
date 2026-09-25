@@ -68,7 +68,6 @@ const { data: quota } = useQuery({
   queryKey: ['questions', 'import-quota'],
   queryFn: () => getImportQuota(),
   staleTime: 30 * 1000,
-  enabled: computed(() => !authStore.isAdmin),
 })
 
 const selectedTopics = ref<Array<Topic>>([])
@@ -79,7 +78,6 @@ const quotaPercent = computed(() => {
   if (!quota.value || quota.value.dailyLimit === 0) return 0
   return Math.min(100, Math.round((quota.value.usedToday / quota.value.dailyLimit) * 100))
 })
-
 const quotaColor = computed(() => {
   const p = quotaPercent.value
   if (p >= 90) return 'error'
@@ -220,44 +218,48 @@ async function doImport() {
       </v-btn>
     </v-btn-toggle>
 
-    <v-card v-if="isQuestionsType && quota && !authStore.isAdmin" class="mb-4">
-      <v-card-text>
-        <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
-          <span class="text-body-2 font-weight-medium">
-            Cupo diario: {{ quota.usedToday }} / {{ quota.dailyLimit }} usadas
-            <span class="text-medium-emphasis">— Restantes: {{ quota.remaining }}</span>
-          </span>
-          <span class="text-caption"
-            >Máximo por archivo: {{ MAX_QUESTIONS_PER_FILE }} preguntas</span
-          >
-        </div>
-        <v-progress-linear :model-value="quotaPercent" :color="quotaColor" height="22" rounded>
-          <template #default>
-            <span class="text-caption font-weight-medium">{{ quotaPercent }}%</span>
-          </template>
-        </v-progress-linear>
-        <div class="text-caption text-medium-emphasis mt-2">
-          Los slugs deben coincidir con temas ya existentes; un slug inexistente o una fila sin
-          temas genera error.
-        </div>
-      </v-card-text>
-    </v-card>
-    <v-card v-else-if="isQuestionsType && authStore.isAdmin" class="mb-4">
-      <v-card-text>
-        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-          <span class="text-body-2 font-weight-medium"
-            >Importación de administrador: sin límite diario</span
-          >
-          <span class="text-caption"
-            >Máximo por archivo: {{ MAX_QUESTIONS_PER_FILE }} preguntas</span
-          >
-        </div>
-        <div class="text-caption text-medium-emphasis mt-2">
-          Las preguntas importadas como admin son públicas (visibles para todos los usuarios). Los
-          slugs deben coincidir con temas ya existentes.
-        </div>
-      </v-card-text>
-    </v-card>
+    <template v-if="isQuestionsType">
+      <v-card v-if="quota && !quota.unlimited" class="mb-4">
+        <v-card-text>
+          <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
+            <span class="text-body-2 font-weight-medium">
+              Cupo diario: {{ quota.usedToday }} / {{ quota.dailyLimit }} usadas
+              <span class="text-medium-emphasis">— Restantes: {{ quota.remaining }}</span>
+            </span>
+            <span class="text-caption"
+              >Máximo por archivo: {{ MAX_QUESTIONS_PER_FILE }} preguntas</span
+            >
+          </div>
+          <v-progress-linear :model-value="quotaPercent" :color="quotaColor" height="22" rounded>
+            <template #default>
+              <span class="text-caption font-weight-medium">{{ quotaPercent }}%</span>
+            </template>
+          </v-progress-linear>
+          <div class="text-caption text-medium-emphasis mt-2">
+            Los slugs deben coincidir con temas ya existentes; un slug inexistente o una fila sin
+            temas genera error.
+          </div>
+        </v-card-text>
+      </v-card>
+      <v-card v-else-if="quota?.unlimited" class="mb-4">
+        <v-card-text>
+          <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+            <span class="text-body-2 font-weight-medium">
+              Importación de administrador: sin límite diario
+              <span class="text-medium-emphasis">({{ quota.usedToday }} importadas hoy)</span>
+            </span>
+            <span class="text-caption"
+              >Máximo por archivo: {{ MAX_QUESTIONS_PER_FILE }} preguntas</span
+            >
+          </div>
+          <div class="text-caption text-medium-emphasis mt-2">
+            Las preguntas importadas como admin son públicas (visibles para todos los usuarios). Los
+            slugs deben coincidir con temas ya existentes.
+          </div>
+        </v-card-text>
+      </v-card>
+      <v-skeleton-loader v-else type="card" class="mb-4" />
+    </template>
 
     <v-alert v-else type="info" variant="tonal" density="compact" class="mb-4">
       Los tips son públicos y se muestran como consejo del día. No tienen cupo diario ni generación

@@ -184,6 +184,88 @@ func TestImport_FileAndDailyCombined(t *testing.T) {
 	assert.Equal(t, 80, result.Failed)
 }
 
+func TestImport_AdminExemptFromDailyLimit(t *testing.T) {
+	store := newQuestionMock()
+	topicStore := newTopicMock()
+	topicID := uuid.New()
+	topicStore.findBySlugAndUserFn = func(string, *uuid.UUID) (*models.Topic, error) {
+		return &models.Topic{ID: topicID}, nil
+	}
+	userStore := &mockUserStore{
+		findByIDFn: func(uuid.UUID) (*models.User, error) {
+			return &models.User{IsAdmin: true, DailyImportLimit: 200}, nil
+		},
+	}
+	// El admin tiene el cupo diario excedido, pero debe poder importar igual.
+	store.countImportedSinceFn = func(uuid.UUID, time.Time) (int64, error) {
+		return 5000, nil
+	}
+	svc := NewService(store, topicStore, userStore)
+	store.bulkCreateFn = func(qs []*models.Question) error {
+		assert.Len(t, qs, 50, "el admin solo está limitado por archivo")
+		return nil
+	}
+
+	csv := buildCSV(60, ",")
+	result, err := svc.Import(uuid.New(), strings.NewReader(csv))
+	require.NoError(t, err)
+	assert.Equal(t, 50, result.Imported)
+	assert.Equal(t, 10, result.Failed)
+	for _, e := range result.Errors {
+		assert.Contains(t, e.Reason, "Supera el límite de 50")
+		assert.NotContains(t, e.Reason, "cupo diario")
+	}
+}
+
+func TestGetImportQuota_AdminUnlimited(t *testing.T) {
+	store := newQuestionMock()
+	store.countImportedSinceFn = func(uuid.UUID, time.Time) (int64, error) { return 37, nil }
+	userStore := &mockUserStore{
+		findByIDFn: func(uuid.UUID) (*models.User, error) {
+			return &models.User{IsAdmin: true, DailyImportLimit: 200}, nil
+		},
+	}
+	svc := NewService(store, newTopicMock(), userStore)
+
+	quota, err := svc.GetImportQuota(uuid.New())
+	require.NoError(t, err)
+	assert.True(t, quota.Unlimited)
+	assert.Equal(t, 0, quota.DailyLimit)
+	assert.Equal(t, 0, quota.Remaining)
+	assert.Equal(t, 37, quota.UsedToday, "el consumo real se sigue reportando")
+}
+
+func TestGetAiQuota_AdminUnlimited(t *testing.T) {
+	store := newQuestionMock()
+	store.countAiGeneratedSinceFn = func(uuid.UUID, time.Time) (int64, error) { return 12, nil }
+	userStore := &mockUserStore{
+		findByIDFn: func(uuid.UUID) (*models.User, error) {
+			return &models.User{IsAdmin: true, DailyAiLimit: 20}, nil
+		},
+	}
+	svc := NewService(store, newTopicMock(), userStore)
+
+	quota, err := svc.GetAiQuota(uuid.New())
+	require.NoError(t, err)
+	assert.True(t, quota.Unlimited)
+	assert.Equal(t, 0, quota.DailyLimit)
+	assert.Equal(t, 0, quota.Remaining)
+	assert.Equal(t, 12, quota.UsedToday)
+}
+
+func TestGetImportQuota_RegularUserNotUnlimited(t *testing.T) {
+	store := newQuestionMock()
+	store.countImportedSinceFn = func(uuid.UUID, time.Time) (int64, error) { return 190, nil }
+	svc := NewService(store, newTopicMock(), newUserMock(200))
+
+	quota, err := svc.GetImportQuota(uuid.New())
+	require.NoError(t, err)
+	assert.False(t, quota.Unlimited)
+	assert.Equal(t, 200, quota.DailyLimit)
+	assert.Equal(t, 10, quota.Remaining)
+	assert.Equal(t, 190, quota.UsedToday)
+}
+
 func TestImport_ValidationErrorsAlongsideOverflow(t *testing.T) {
 	store := newQuestionMock()
 	topicStore := newTopicMock()

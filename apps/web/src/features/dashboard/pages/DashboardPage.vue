@@ -27,14 +27,12 @@ const { data: aiQuota } = useQuery({
   queryKey: ['questions', 'ai-quota'],
   queryFn: () => getAiQuota(),
   staleTime: 30 * 1000,
-  enabled: isNotAdmin,
 })
 
 const { data: importQuota } = useQuery({
   queryKey: ['questions', 'import-quota'],
   queryFn: () => getImportQuota(),
   staleTime: 30 * 1000,
-  enabled: isNotAdmin,
 })
 
 const {
@@ -103,7 +101,7 @@ function openCodeErrorMessage(err: unknown): string {
         </v-card>
       </v-col>
 
-      <v-col v-if="isNotAdmin" cols="12" md="6" lg="4">
+      <v-col cols="12" md="6" lg="4">
         <v-card>
           <v-card-item>
             <template #prepend>
@@ -113,34 +111,54 @@ function openCodeErrorMessage(err: unknown): string {
             <v-card-subtitle>Preguntas generadas con IA</v-card-subtitle>
           </v-card-item>
           <v-card-text v-if="aiQuota">
-            <div class="d-flex align-center justify-space-between mb-2">
-              <span class="text-body-2 font-weight-medium">
-                {{ aiQuota.usedToday }} / {{ aiQuota.dailyLimit }}
-                <span class="text-medium-emphasis">usadas</span>
-              </span>
-              <v-chip
-                :color="quotaColor(quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit))"
-                size="small"
-                variant="tonal"
-              >
-                Restan {{ aiQuota.remaining }}
-              </v-chip>
-            </div>
-            <v-progress-linear
-              :model-value="quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit)"
-              :color="quotaColor(quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit))"
-              height="20"
-              rounded
-            >
-              <template #default>
-                <span class="text-caption font-weight-medium">
-                  {{ quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit) }}%
+            <template v-if="aiQuota.unlimited">
+              <div class="d-flex align-center justify-space-between mb-2">
+                <span class="text-body-2 font-weight-medium">
+                  {{ aiQuota.usedToday }}
+                  <span class="text-medium-emphasis">usadas</span>
                 </span>
-              </template>
-            </v-progress-linear>
-            <div class="text-caption text-medium-emphasis mt-2">
-              Límite diario configurable por el administrador (1–50)
-            </div>
+                <v-chip color="primary" size="small" variant="tonal" prepend-icon="mdi-infinity">
+                  Sin límite
+                </v-chip>
+              </div>
+              <v-alert
+                variant="tonal"
+                color="primary"
+                density="compact"
+                icon="mdi-shield-account"
+                text="Los administradores no tienen cupo diario de IA."
+              />
+            </template>
+            <template v-else>
+              <div class="d-flex align-center justify-space-between mb-2">
+                <span class="text-body-2 font-weight-medium">
+                  {{ aiQuota.usedToday }} / {{ aiQuota.dailyLimit }}
+                  <span class="text-medium-emphasis">usadas</span>
+                </span>
+                <v-chip
+                  :color="quotaColor(quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit))"
+                  size="small"
+                  variant="tonal"
+                >
+                  Restan {{ aiQuota.remaining }}
+                </v-chip>
+              </div>
+              <v-progress-linear
+                :model-value="quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit)"
+                :color="quotaColor(quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit))"
+                height="20"
+                rounded
+              >
+                <template #default>
+                  <span class="text-caption font-weight-medium">
+                    {{ quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit) }}%
+                  </span>
+                </template>
+              </v-progress-linear>
+              <div class="text-caption text-medium-emphasis mt-2">
+                Límite diario configurable por el administrador (1–50)
+              </div>
+            </template>
           </v-card-text>
           <v-card-text v-else>
             <v-skeleton-loader type="text" />
@@ -148,7 +166,7 @@ function openCodeErrorMessage(err: unknown): string {
         </v-card>
       </v-col>
 
-      <v-col v-if="isNotAdmin" cols="12" md="6" lg="4">
+      <v-col cols="12" md="6" lg="4">
         <v-card>
           <v-card-item>
             <template #prepend>
@@ -158,34 +176,54 @@ function openCodeErrorMessage(err: unknown): string {
             <v-card-subtitle>Preguntas subidas por CSV</v-card-subtitle>
           </v-card-item>
           <v-card-text v-if="importQuota">
-            <div class="d-flex align-center justify-space-between mb-2">
-              <span class="text-body-2 font-weight-medium">
-                {{ importQuota.usedToday }} / {{ importQuota.dailyLimit }}
-                <span class="text-medium-emphasis">usadas</span>
-              </span>
-              <v-chip
-                :color="quotaColor(quotaPercent(importQuota.usedToday, importQuota.dailyLimit))"
-                size="small"
-                variant="tonal"
-              >
-                Restan {{ importQuota.remaining }}
-              </v-chip>
-            </div>
-            <v-progress-linear
-              :model-value="quotaPercent(importQuota.usedToday, importQuota.dailyLimit)"
-              :color="quotaColor(quotaPercent(importQuota.usedToday, importQuota.dailyLimit))"
-              height="20"
-              rounded
-            >
-              <template #default>
-                <span class="text-caption font-weight-medium">
-                  {{ quotaPercent(importQuota.usedToday, importQuota.dailyLimit) }}%
+            <template v-if="importQuota.unlimited">
+              <div class="d-flex align-center justify-space-between mb-2">
+                <span class="text-body-2 font-weight-medium">
+                  {{ importQuota.usedToday }}
+                  <span class="text-medium-emphasis">usadas</span>
                 </span>
-              </template>
-            </v-progress-linear>
-            <div class="text-caption text-medium-emphasis mt-2">
-              Máximo por archivo: 50 preguntas
-            </div>
+                <v-chip color="primary" size="small" variant="tonal" prepend-icon="mdi-infinity">
+                  Sin límite
+                </v-chip>
+              </div>
+              <v-alert
+                variant="tonal"
+                color="primary"
+                density="compact"
+                icon="mdi-shield-account"
+                text="Los administradores no tienen cupo diario de importación."
+              />
+            </template>
+            <template v-else>
+              <div class="d-flex align-center justify-space-between mb-2">
+                <span class="text-body-2 font-weight-medium">
+                  {{ importQuota.usedToday }} / {{ importQuota.dailyLimit }}
+                  <span class="text-medium-emphasis">usadas</span>
+                </span>
+                <v-chip
+                  :color="quotaColor(quotaPercent(importQuota.usedToday, importQuota.dailyLimit))"
+                  size="small"
+                  variant="tonal"
+                >
+                  Restan {{ importQuota.remaining }}
+                </v-chip>
+              </div>
+              <v-progress-linear
+                :model-value="quotaPercent(importQuota.usedToday, importQuota.dailyLimit)"
+                :color="quotaColor(quotaPercent(importQuota.usedToday, importQuota.dailyLimit))"
+                height="20"
+                rounded
+              >
+                <template #default>
+                  <span class="text-caption font-weight-medium">
+                    {{ quotaPercent(importQuota.usedToday, importQuota.dailyLimit) }}%
+                  </span>
+                </template>
+              </v-progress-linear>
+              <div class="text-caption text-medium-emphasis mt-2">
+                Máximo por archivo: 50 preguntas
+              </div>
+            </template>
           </v-card-text>
           <v-card-text v-else>
             <v-skeleton-loader type="text" />

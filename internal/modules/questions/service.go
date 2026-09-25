@@ -271,6 +271,10 @@ func (s *questionService) GetImportQuota(userID uuid.UUID) (*ImportQuota, error)
 		return nil, apierr.ErrInternal("Error al calcular el cupo diario", "")
 	}
 
+	if user.IsAdmin {
+		return &ImportQuota{UsedToday: int(used), Unlimited: true}, nil
+	}
+
 	remaining := user.DailyImportLimit - int(used)
 	if remaining < 0 {
 		remaining = 0
@@ -298,6 +302,10 @@ func (s *questionService) GetAiQuota(userID uuid.UUID) (*AiQuota, error) {
 		return nil, apierr.ErrInternal("Error al calcular el cupo diario de IA", "")
 	}
 
+	if user.IsAdmin {
+		return &AiQuota{UsedToday: int(used), Unlimited: true}, nil
+	}
+
 	remaining := user.DailyAiLimit - int(used)
 	if remaining < 0 {
 		remaining = 0
@@ -319,6 +327,7 @@ func (s *questionService) Import(userID uuid.UUID, r io.Reader) (*ImportResult, 
 		return nil, apierr.ErrInternal("Error al obtener el usuario", "")
 	}
 
+	// Los administradores están exentos del cupo diario; solo aplica el tope por archivo.
 	isAdmin := user.IsAdmin
 	remaining := maxQuestionsPerFile
 	if !isAdmin {

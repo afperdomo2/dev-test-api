@@ -45,13 +45,47 @@ const headers = [
 
     <template #[`item.dailyImportLimit`]="{ item }">
       <div class="d-flex justify-center">
-        <v-chip size="small" variant="tonal">{{ item.dailyImportLimit }}</v-chip>
+        <v-tooltip
+          v-if="item.isAdmin"
+          text="Los administradores no tienen cupo diario de importación"
+          location="top"
+        >
+          <template #activator="{ props: tooltipProps }">
+            <v-chip
+              v-bind="tooltipProps"
+              size="small"
+              variant="tonal"
+              color="primary"
+              prepend-icon="mdi-infinity"
+            >
+              Sin límite
+            </v-chip>
+          </template>
+        </v-tooltip>
+        <v-chip v-else size="small" variant="tonal">{{ item.dailyImportLimit }}</v-chip>
       </div>
     </template>
 
     <template #[`item.dailyAiLimit`]="{ item }">
       <div class="d-flex justify-center">
-        <v-chip size="small" variant="tonal" color="purple">{{ item.dailyAiLimit }}</v-chip>
+        <v-tooltip
+          v-if="item.isAdmin"
+          text="Los administradores no tienen cupo diario de IA"
+          location="top"
+        >
+          <template #activator="{ props: tooltipProps }">
+            <v-chip
+              v-bind="tooltipProps"
+              size="small"
+              variant="tonal"
+              color="primary"
+              prepend-icon="mdi-infinity"
+            >
+              Sin límite
+            </v-chip>
+          </template>
+        </v-tooltip>
+        <v-chip v-else size="small" variant="tonal" color="purple">{{ item.dailyAiLimit }}</v-chip>
       </div>
     </template>
 

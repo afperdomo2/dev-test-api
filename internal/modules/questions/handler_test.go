@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() { gin.SetMode(gin.TestMode) }
@@ -176,6 +177,59 @@ func TestQuestionsHandler_Create(t *testing.T) {
 		c.Set("user_claims", qClaims(uid, true))
 		h.Create(c)
 		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+}
+
+func TestQuestionsHandler_QuotaEndpointsAllowAdmin(t *testing.T) {
+	uid := uuid.New()
+	svc := &mockQuestionService{
+		importQuotaFn: func(uuid.UUID) (*ImportQuota, error) {
+			return &ImportQuota{UsedToday: 5, Unlimited: true}, nil
+		},
+		aiQuotaFn: func(uuid.UUID) (*AiQuota, error) {
+			return &AiQuota{UsedToday: 3, Unlimited: true}, nil
+		},
+	}
+	h := NewHandler(svc)
+
+	t.Run("import quota admin 200", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/questions/import-quota", nil)
+		c.Set("user_claims", qClaims(uid, true))
+		h.ImportQuota(c)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var body struct {
+			Data ImportQuota `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+		assert.True(t, body.Data.Unlimited)
+		assert.Equal(t, 5, body.Data.UsedToday)
+	})
+
+	t.Run("ai quota admin 200", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/questions/ai-quota", nil)
+		c.Set("user_claims", qClaims(uid, true))
+		h.AiQuota(c)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var body struct {
+			Data AiQuota `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+		assert.True(t, body.Data.Unlimited)
+		assert.Equal(t, 3, body.Data.UsedToday)
+	})
+
+	t.Run("quota without claims 401", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/questions/ai-quota", nil)
+		h.AiQuota(c)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 }
 

@@ -750,7 +750,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve el límite diario de preguntas con IA, lo usado hoy y lo restante para el usuario autenticado",
+                "description": "Devuelve el límite diario de preguntas con IA, lo usado hoy y lo restante para el usuario autenticado. Los administradores no tienen cupo diario (unlimited=true).",
                 "produces": [
                     "application/json"
                 ],
@@ -847,7 +847,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve el límite diario, lo usado hoy y lo restante para el usuario autenticado",
+                "description": "Devuelve el límite diario, lo usado hoy y lo restante para el usuario autenticado. Los administradores no tienen cupo diario (unlimited=true).",
                 "produces": [
                     "application/json"
                 ],
@@ -3069,6 +3069,9 @@
                 "remaining": {
                     "type": "integer"
                 },
+                "unlimited": {
+                    "type": "boolean"
+                },
                 "usedToday": {
                     "type": "integer"
                 }
@@ -3205,6 +3208,9 @@
                 },
                 "remaining": {
                     "type": "integer"
+                },
+                "unlimited": {
+                    "type": "boolean"
                 },
                 "usedToday": {
                     "type": "integer"

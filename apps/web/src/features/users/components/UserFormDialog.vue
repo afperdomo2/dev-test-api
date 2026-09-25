@@ -217,8 +217,12 @@ function close() {
             type="number"
             :min="1"
             :max="10000"
-            :disabled="saving"
-            hint="Preguntas que el usuario puede importar por día"
+            :disabled="saving || form.isAdmin"
+            :hint="
+              form.isAdmin
+                ? 'No aplica: los administradores no tienen cupo diario'
+                : 'Preguntas que el usuario puede importar por día'
+            "
             persistent-hint
             density="compact"
           />
@@ -229,8 +233,12 @@ function close() {
             type="number"
             :min="1"
             :max="50"
-            :disabled="saving"
-            hint="Preguntas que el usuario puede generar con IA por día"
+            :disabled="saving || form.isAdmin"
+            :hint="
+              form.isAdmin
+                ? 'No aplica: los administradores no tienen cupo diario'
+                : 'Preguntas que el usuario puede generar con IA por día'
+            "
             persistent-hint
             density="compact"
           />

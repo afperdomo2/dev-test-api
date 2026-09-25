@@ -53,9 +53,26 @@ func (g *Generator) IsConfigured() bool {
 	return g.client.IsConfigured()
 }
 
+// evaluateAiQuota decide si una generación con IA está permitida. Los administradores
+// están exentos del cupo diario. Ante cualquier error de base de datos el error se
+// propaga (fail-closed) para no generar IA sin poder verificar el límite.
+func evaluateAiQuota(isAdmin bool, limit int, used int64) error {
+	if isAdmin {
+		return nil
+	}
+	if int(used) >= limit {
+		return &DailyLimitError{Limit: limit}
+	}
+	return nil
+}
+
 func (g *Generator) checkDailyAiLimit(userID uuid.UUID) error {
 	var user models.User
-	if err := g.db.Select("daily_ai_limit").First(&user, "id = ?", userID).Error; err != nil {
+	if err := g.db.Select("is_admin", "daily_ai_limit").First(&user, "id = ?", userID).Error; err != nil {
+		return fmt.Errorf("error al verificar el cupo diario de IA: %w", err)
+	}
+	// Salida temprana: exime al admin del conteo (y por tanto de cualquier error en esa consulta).
+	if user.IsAdmin {
 		return nil
 	}
 	y, m, d := time.Now().UTC().Date()
@@ -66,12 +83,9 @@ func (g *Generator) checkDailyAiLimit(userID uuid.UUID) error {
 		Where("source = ?", "ai_generated").
 		Where("created_at >= ?", since).
 		Count(&used).Error; err != nil {
-		return nil
+		return fmt.Errorf("error al contar el consumo de IA: %w", err)
 	}
-	if int(used) >= user.DailyAiLimit {
-		return &DailyLimitError{Limit: user.DailyAiLimit}
-	}
-	return nil
+	return evaluateAiQuota(user.IsAdmin, user.DailyAiLimit, used)
 }
 
 func (g *Generator) GenerateQuestion(session *models.Session) error {

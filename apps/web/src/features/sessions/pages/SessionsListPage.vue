@@ -4,7 +4,6 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import { sessionsInfiniteOptions, createSessionMutation } from '@/queries/sessions.queries'
 import { getAiQuota } from '@/api/services/questions.service'
 import { useAppStore } from '@/stores/app.store'
-import { useAuthStore } from '@/stores/auth.store'
 import ListPageHeader from '@/components/ListPageHeader.vue'
 import SessionCard from '../components/SessionCard.vue'
 import type { Session, CreateSessionRequest, SessionStatus } from '@/types/session.types'
@@ -19,7 +18,6 @@ import { requiredRule, validateRules } from '@/utils/validators'
 import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
 
 const appStore = useAppStore()
-const authStore = useAuthStore()
 const queryClient = useQueryClient()
 
 const selectedStatus = ref<SessionStatus | undefined>(undefined)
@@ -69,9 +67,7 @@ const { data: aiQuota } = useQuery({
   queryKey: ['questions', 'ai-quota'],
   queryFn: () => getAiQuota(),
   staleTime: 30 * 1000,
-  enabled: computed(
-    () => createDialog.value && !authStore.isAdmin && createForm.value.mode === 'generate',
-  ),
+  enabled: computed(() => createDialog.value && createForm.value.mode === 'generate'),
 })
 
 const aiQuotaPercent = computed(() => {
@@ -90,6 +86,7 @@ const aiQuotaExceeds = computed(() => {
   if (
     createForm.value.mode !== 'generate' ||
     !aiQuota.value ||
+    aiQuota.value.unlimited ||
     createForm.value.questionLimit === undefined
   )
     return false
@@ -99,7 +96,7 @@ const aiQuotaExceeds = computed(() => {
 watch(
   () => createForm.value.mode,
   (mode) => {
-    if (mode === 'generate' && !authStore.isAdmin) {
+    if (mode === 'generate') {
       queryClient.invalidateQueries({ queryKey: ['questions', 'ai-quota'] })
     }
   },
@@ -264,7 +261,26 @@ async function handleCreate() {
             </div>
 
             <v-alert
-              v-if="createForm.mode === 'generate' && aiQuota"
+              v-if="createForm.mode === 'generate' && aiQuota?.unlimited"
+              type="info"
+              variant="tonal"
+              density="compact"
+              class="mb-4"
+            >
+              <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+                <span class="text-body-2">
+                  <v-icon start size="18">mdi-shield-account</v-icon>
+                  Como administrador no tienes cupo diario de IA
+                  <span class="font-weight-bold">— Sin límite</span>
+                </span>
+              </div>
+              <div class="text-caption mt-2">
+                La IA generará tantas preguntas como necesites para esta sesión.
+              </div>
+            </v-alert>
+
+            <v-alert
+              v-else-if="createForm.mode === 'generate' && aiQuota"
               :type="aiQuota.remaining === 0 ? 'error' : aiQuotaExceeds ? 'warning' : 'info'"
               variant="tonal"
               density="compact"

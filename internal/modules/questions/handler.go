@@ -311,7 +311,7 @@ func (h *Handler) Stats(c *gin.Context) {
 }
 
 // @Summary      Consultar cupo de importación
-// @Description  Devuelve el límite diario, lo usado hoy y lo restante para el usuario autenticado
+// @Description  Devuelve el límite diario, lo usado hoy y lo restante para el usuario autenticado. Los administradores no tienen cupo diario (unlimited=true).
 // @Tags         questions
 // @Security     BearerAuth
 // @Produce      json
@@ -319,14 +319,10 @@ func (h *Handler) Stats(c *gin.Context) {
 // @Failure      401  {object}  apierr.APIError
 // @Router       /api/v1/questions/import-quota [get]
 func (h *Handler) ImportQuota(c *gin.Context) {
-	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	_, userID, apiErr := getUserRoleAndID(c)
 	if apiErr != nil {
 		apiErr.Instance = c.Request.URL.Path
 		response.Problem(c, apiErr)
-		return
-	}
-	if isAdmin {
-		response.Problem(c, apierr.ErrForbidden("Los administradores no pueden consultar el cupo de importación", c.Request.URL.Path))
 		return
 	}
 
@@ -342,7 +338,7 @@ func (h *Handler) ImportQuota(c *gin.Context) {
 }
 
 // @Summary      Consultar cupo de IA
-// @Description  Devuelve el límite diario de preguntas con IA, lo usado hoy y lo restante para el usuario autenticado
+// @Description  Devuelve el límite diario de preguntas con IA, lo usado hoy y lo restante para el usuario autenticado. Los administradores no tienen cupo diario (unlimited=true).
 // @Tags         questions
 // @Security     BearerAuth
 // @Produce      json
@@ -350,14 +346,10 @@ func (h *Handler) ImportQuota(c *gin.Context) {
 // @Failure      401  {object}  apierr.APIError
 // @Router       /api/v1/questions/ai-quota [get]
 func (h *Handler) AiQuota(c *gin.Context) {
-	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	_, userID, apiErr := getUserRoleAndID(c)
 	if apiErr != nil {
 		apiErr.Instance = c.Request.URL.Path
 		response.Problem(c, apiErr)
-		return
-	}
-	if isAdmin {
-		response.Problem(c, apierr.ErrForbidden("Los administradores no pueden consultar el cupo de IA", c.Request.URL.Path))
 		return
 	}
 

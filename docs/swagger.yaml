@@ -211,6 +211,8 @@ definitions:
         type: integer
       remaining:
         type: integer
+      unlimited:
+        type: boolean
       usedToday:
         type: integer
     type: object
@@ -304,6 +306,8 @@ definitions:
         type: integer
       remaining:
         type: integer
+      unlimited:
+        type: boolean
       usedToday:
         type: integer
     type: object
@@ -1430,7 +1434,8 @@ paths:
   /api/v1/questions/ai-quota:
     get:
       description: Devuelve el límite diario de preguntas con IA, lo usado hoy y lo
-        restante para el usuario autenticado
+        restante para el usuario autenticado. Los administradores no tienen cupo diario
+        (unlimited=true).
       produces:
       - application/json
       responses:
@@ -1494,7 +1499,7 @@ paths:
   /api/v1/questions/import-quota:
     get:
       description: Devuelve el límite diario, lo usado hoy y lo restante para el usuario
-        autenticado
+        autenticado. Los administradores no tienen cupo diario (unlimited=true).
       produces:
       - application/json
       responses:

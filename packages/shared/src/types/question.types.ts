@@ -129,12 +129,14 @@ export interface ImportQuota {
   dailyLimit: number
   usedToday: number
   remaining: number
+  unlimited: boolean
 }
 
 export interface AiQuota {
   dailyLimit: number
   usedToday: number
   remaining: number
+  unlimited: boolean
 }
 
 export const MAX_QUESTIONS_PER_FILE = 50

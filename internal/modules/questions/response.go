@@ -62,15 +62,17 @@ type ImportResult struct {
 }
 
 type ImportQuota struct {
-	DailyLimit int `json:"dailyLimit"`
-	UsedToday  int `json:"usedToday"`
-	Remaining  int `json:"remaining"`
+	DailyLimit int  `json:"dailyLimit"`
+	UsedToday  int  `json:"usedToday"`
+	Remaining  int  `json:"remaining"`
+	Unlimited  bool `json:"unlimited"`
 }
 
 type AiQuota struct {
-	DailyLimit int `json:"dailyLimit"`
-	UsedToday  int `json:"usedToday"`
-	Remaining  int `json:"remaining"`
+	DailyLimit int  `json:"dailyLimit"`
+	UsedToday  int  `json:"usedToday"`
+	Remaining  int  `json:"remaining"`
+	Unlimited  bool `json:"unlimited"`
 }
 
 type TopicCount struct {

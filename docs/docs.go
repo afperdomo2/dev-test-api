@@ -753,7 +753,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve el límite diario de preguntas con IA, lo usado hoy y lo restante para el usuario autenticado",
+                "description": "Devuelve el límite diario de preguntas con IA, lo usado hoy y lo restante para el usuario autenticado. Los administradores no tienen cupo diario (unlimited=true).",
                 "produces": [
                     "application/json"
                 ],
@@ -850,7 +850,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve el límite diario, lo usado hoy y lo restante para el usuario autenticado",
+                "description": "Devuelve el límite diario, lo usado hoy y lo restante para el usuario autenticado. Los administradores no tienen cupo diario (unlimited=true).",
                 "produces": [
                     "application/json"
                 ],
@@ -3072,6 +3072,9 @@ const docTemplate = `{
                 "remaining": {
                     "type": "integer"
                 },
+                "unlimited": {
+                    "type": "boolean"
+                },
                 "usedToday": {
                     "type": "integer"
                 }
@@ -3208,6 +3211,9 @@ const docTemplate = `{
                 },
                 "remaining": {
                     "type": "integer"
+                },
+                "unlimited": {
+                    "type": "boolean"
                 },
                 "usedToday": {
                     "type": "integer"
