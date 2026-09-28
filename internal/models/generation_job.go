@@ -30,7 +30,7 @@ type GenerationJob struct {
 	CreatedAt   time.Time  `gorm:"index" json:"createdAt"`
 	UpdatedAt   time.Time  `json:"updatedAt"`
 
-	Topics    []Topic              `gorm:"many2many:generation_job_topics;" json:"-"`
+	Topics    []Topic              `gorm:"many2many:generation_job_topics;joinForeignKey:JobID;joinReferences:TopicID" json:"-"`
 	JobTopics []GenerationJobTopic `gorm:"foreignKey:JobID" json:"-"`
 }
 
