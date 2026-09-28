@@ -28,7 +28,6 @@ type Service interface {
 	Delete(id uuid.UUID, userID uuid.UUID) error
 	Import(userID uuid.UUID, r io.Reader) (*ImportResult, error)
 	GetImportQuota(userID uuid.UUID) (*ImportQuota, error)
-	GetAiQuota(userID uuid.UUID) (*AiQuota, error)
 	Stats(isAdmin bool, userID uuid.UUID) (*QuestionStats, error)
 }
 
@@ -282,37 +281,6 @@ func (s *questionService) GetImportQuota(userID uuid.UUID) (*ImportQuota, error)
 
 	return &ImportQuota{
 		DailyLimit: user.DailyImportLimit,
-		UsedToday:  int(used),
-		Remaining:  remaining,
-	}, nil
-}
-
-func (s *questionService) GetAiQuota(userID uuid.UUID) (*AiQuota, error) {
-	user, err := s.userStore.FindByID(userID)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, apierr.ErrNotFound("Usuario", "")
-		}
-		return nil, apierr.ErrInternal("Error al obtener el usuario", "")
-	}
-
-	since := startOfDayUTC(time.Now())
-	used, err := s.store.CountAiGeneratedSince(userID, since)
-	if err != nil {
-		return nil, apierr.ErrInternal("Error al calcular el cupo diario de IA", "")
-	}
-
-	if user.IsAdmin {
-		return &AiQuota{UsedToday: int(used), Unlimited: true}, nil
-	}
-
-	remaining := user.DailyAiLimit - int(used)
-	if remaining < 0 {
-		remaining = 0
-	}
-
-	return &AiQuota{
-		DailyLimit: user.DailyAiLimit,
 		UsedToday:  int(used),
 		Remaining:  remaining,
 	}, nil

@@ -9,8 +9,6 @@ import (
 
 const DefaultDailyImportLimit = 200
 
-const DefaultDailyAiLimit = 20
-
 const DefaultDailyGoalXp = 50
 
 type User struct {
@@ -19,7 +17,6 @@ type User struct {
 	PasswordHash     string         `gorm:"not null" json:"-"`
 	IsAdmin          bool           `gorm:"default:false" json:"isAdmin"`
 	DailyImportLimit int            `gorm:"not null;default:200" json:"dailyImportLimit"`
-	DailyAiLimit     int            `gorm:"not null;default:20" json:"dailyAiLimit"`
 	DailyGoalXp      int            `gorm:"not null;default:50" json:"dailyGoalXp"`
 	CreatedAt        time.Time      `json:"createdAt"`
 	UpdatedAt        time.Time      `json:"updatedAt"`

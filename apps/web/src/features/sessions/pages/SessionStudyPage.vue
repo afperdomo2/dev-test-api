@@ -26,25 +26,11 @@ const { data: session, isLoading: sessionLoading } = useQuery(
   sessionDetailOptions(() => sessionId.value),
 )
 
-const isGenerating = computed(
-  () =>
-    session.value?.mode === 'generate' &&
-    session.value?.status === 'in_progress' &&
-    (session.value?.questionsGenerated ?? 0) < 2,
-)
-
 watch(session, (sess) => {
   if (!sess) return
   if (sess.status === 'completed') {
     router.push(`/sessions/${sess.id}/review`)
     return
-  }
-  if (sess.mode === 'generate' && sess.status === 'in_progress' && sess.questionsGenerated < 2) {
-    appStore.showSnackbar(
-      'Las preguntas aún se están generando. Intenta de nuevo en unos segundos.',
-      'info',
-    )
-    router.push('/sessions')
   }
 })
 
@@ -70,7 +56,7 @@ const {
   staleTime: 0,
   enabled: computed(() => {
     if (!session.value) return false
-    return !isGenerating.value && session.value.status !== 'completed'
+    return session.value.status !== 'completed'
   }),
 })
 
@@ -201,16 +187,7 @@ function finishSession() {
     <template v-else-if="session">
       <!-- Question area -->
       <template v-if="questionLoading || questionFetching">
-        <v-skeleton-loader v-if="session?.mode !== 'generate'" type="card" class="mb-4" />
-        <v-card v-else class="mb-4">
-          <v-card-text class="text-center py-8">
-            <v-progress-circular indeterminate color="primary" size="48" class="mb-4" />
-            <h2 class="text-h5 mb-2">Generando preguntas...</h2>
-            <p class="text-body-1 text-medium-emphasis mb-4">
-              La IA está creando más preguntas para esta sesión. Esto toma unos segundos.
-            </p>
-          </v-card-text>
-        </v-card>
+        <v-skeleton-loader type="card" class="mb-4" />
       </template>
 
       <template v-else-if="currentQuestion">
@@ -379,34 +356,12 @@ function finishSession() {
       <!-- No more questions -->
       <v-card v-else>
         <v-card-text class="text-center py-8">
-          <template
-            v-if="
-              session.mode === 'generate' &&
-              (summary?.questionsGenerated ?? 0) < (summary?.questionLimit ?? Infinity)
-            "
-          >
-            <v-progress-circular indeterminate color="primary" size="48" class="mb-4" />
-            <h2 class="text-h5 mb-2">Generando preguntas...</h2>
-            <p class="text-body-1 text-medium-emphasis mb-4">
-              La IA está creando más preguntas para esta sesión. Esto toma unos segundos.
-            </p>
-            <v-btn
-              color="primary"
-              variant="tonal"
-              :loading="questionLoading"
-              @click="refetchNext()"
-            >
-              Reintentar
-            </v-btn>
-          </template>
-          <template v-else>
-            <v-icon size="64" color="success" class="mb-4"> mdi-check-circle </v-icon>
-            <h2 class="text-h5 mb-2">¡No hay más preguntas!</h2>
-            <p class="text-body-1 text-medium-emphasis mb-4">
-              Has completado todas las preguntas disponibles en esta sesión.
-            </p>
-            <v-btn color="primary" @click="finishSession"> Finalizar sesión </v-btn>
-          </template>
+          <v-icon size="64" color="success" class="mb-4"> mdi-check-circle </v-icon>
+          <h2 class="text-h5 mb-2">¡No hay más preguntas!</h2>
+          <p class="text-body-1 text-medium-emphasis mb-4">
+            Has completado todas las preguntas disponibles en esta sesión.
+          </p>
+          <v-btn color="primary" @click="finishSession"> Finalizar sesión </v-btn>
         </v-card-text>
       </v-card>
     </template>

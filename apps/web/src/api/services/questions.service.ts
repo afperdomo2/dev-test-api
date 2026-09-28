@@ -5,7 +5,6 @@ import type {
   UpdateQuestionRequest,
   ImportResult,
   ImportQuota,
-  AiQuota,
   QuestionStats,
 } from '@/types/question.types'
 import type { PaginatedResponse } from '@/types/api.types'
@@ -64,11 +63,6 @@ export async function importQuestionsFromText(content: string): Promise<ImportRe
 
 export async function getImportQuota(): Promise<ImportQuota> {
   const res = await apiClient.get<ImportQuota>('/api/v1/questions/import-quota')
-  return res.data
-}
-
-export async function getAiQuota(): Promise<AiQuota> {
-  const res = await apiClient.get<AiQuota>('/api/v1/questions/ai-quota')
   return res.data
 }
 

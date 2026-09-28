@@ -37,13 +37,6 @@ const canDelete = computed(() => {
   return created.getTime() > limit
 })
 
-const isGenerating = computed(
-  () =>
-    props.session.mode === 'generate' &&
-    props.session.status === 'in_progress' &&
-    props.session.questionsGenerated < 2,
-)
-
 const displayedTopics = computed(() => props.session.topics.slice(0, 2))
 const hiddenCount = computed(() => Math.max(0, props.session.topics.length - 2))
 
@@ -54,13 +47,13 @@ const STATUS_ICONS: Record<string, string> = {
 }
 
 const MODE_ICONS: Record<string, string> = {
-  generate: 'mdi-auto-fix',
   review: 'mdi-book-clock-outline',
+  daily: 'mdi-calendar-star',
 }
 
 const MODE_COLORS: Record<string, string> = {
-  generate: 'deep-purple',
   review: 'blue',
+  daily: 'teal',
 }
 
 const DIFFICULTY_ICONS = SESSION_DIFFICULTY_ICONS
@@ -96,25 +89,16 @@ async function handleDelete() {
 }
 
 function handleClick() {
-  if (isGenerating.value) {
-    appStore.showSnackbar('Las preguntas aún se están generando. Espera unos segundos.', 'info')
-    return
-  }
   if (props.session.status === 'completed') {
     router.push(`/sessions/${props.session.id}/review`)
     return
   }
   router.push(`/sessions/${props.session.id}/study`)
 }
-
-const cardClasses = computed(() => ({
-  'session-card': true,
-  'session-card--blocked': isGenerating.value,
-}))
 </script>
 
 <template>
-  <v-card :class="cardClasses" hover :ripple="!isGenerating" @click="handleClick">
+  <v-card hover @click="handleClick">
     <v-card-item>
       <template #prepend>
         <v-icon :color="MODE_COLORS[session.mode]" size="32">
@@ -180,10 +164,6 @@ const cardClasses = computed(() => ({
             </v-icon>
           </template>
         </v-tooltip>
-        <v-chip v-if="isGenerating" size="x-small" variant="flat" color="warning" class="ml-1">
-          <v-icon start size="14">mdi-cog</v-icon>
-          Generando...
-        </v-chip>
       </v-card-subtitle>
     </v-card-item>
 
@@ -263,14 +243,4 @@ const cardClasses = computed(() => ({
   </v-card>
 </template>
 
-<style scoped>
-.session-card--blocked {
-  opacity: 0.6;
-  cursor: default;
-  pointer-events: auto;
-}
-
-.session-card--blocked :deep(.v-card-item__prepend .v-icon) {
-  color: rgb(var(--v-theme-warning)) !important;
-}
-</style>
+<style scoped></style>

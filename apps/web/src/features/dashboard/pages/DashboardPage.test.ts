@@ -14,7 +14,6 @@ vi.mock('@/api/services/questions.service', async () => {
   const actual = await vi.importActual<typeof QuestionsService>('@/api/services/questions.service')
   return {
     ...actual,
-    getAiQuota: vi.fn(() => Promise.resolve({ dailyLimit: 20, usedToday: 5, remaining: 15 })),
     getImportQuota: vi.fn(() =>
       Promise.resolve({ dailyLimit: 200, usedToday: 10, remaining: 190 }),
     ),

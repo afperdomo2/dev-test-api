@@ -26,7 +26,6 @@ type mockQuestionService struct {
 	deleteFn      func(id uuid.UUID, userID uuid.UUID) error
 	importFn      func(userID uuid.UUID, r io.Reader) (*ImportResult, error)
 	importQuotaFn func(userID uuid.UUID) (*ImportQuota, error)
-	aiQuotaFn     func(userID uuid.UUID) (*AiQuota, error)
 	statsFn       func(isAdmin bool, userID uuid.UUID) (*QuestionStats, error)
 }
 
@@ -54,12 +53,6 @@ func (m *mockQuestionService) GetImportQuota(uid uuid.UUID) (*ImportQuota, error
 		return m.importQuotaFn(uid)
 	}
 	return &ImportQuota{}, nil
-}
-func (m *mockQuestionService) GetAiQuota(uid uuid.UUID) (*AiQuota, error) {
-	if m.aiQuotaFn != nil {
-		return m.aiQuotaFn(uid)
-	}
-	return &AiQuota{}, nil
 }
 func (m *mockQuestionService) Stats(isAdmin bool, uid uuid.UUID) (*QuestionStats, error) {
 	if m.statsFn != nil {
@@ -186,9 +179,6 @@ func TestQuestionsHandler_QuotaEndpointsAllowAdmin(t *testing.T) {
 		importQuotaFn: func(uuid.UUID) (*ImportQuota, error) {
 			return &ImportQuota{UsedToday: 5, Unlimited: true}, nil
 		},
-		aiQuotaFn: func(uuid.UUID) (*AiQuota, error) {
-			return &AiQuota{UsedToday: 3, Unlimited: true}, nil
-		},
 	}
 	h := NewHandler(svc)
 
@@ -208,27 +198,11 @@ func TestQuestionsHandler_QuotaEndpointsAllowAdmin(t *testing.T) {
 		assert.Equal(t, 5, body.Data.UsedToday)
 	})
 
-	t.Run("ai quota admin 200", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/questions/ai-quota", nil)
-		c.Set("user_claims", qClaims(uid, true))
-		h.AiQuota(c)
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var body struct {
-			Data AiQuota `json:"data"`
-		}
-		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-		assert.True(t, body.Data.Unlimited)
-		assert.Equal(t, 3, body.Data.UsedToday)
-	})
-
 	t.Run("quota without claims 401", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/questions/ai-quota", nil)
-		h.AiQuota(c)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/questions/import-quota", nil)
+		h.ImportQuota(c)
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 }

@@ -103,7 +103,7 @@ func TestSessionsHandler_Create(t *testing.T) {
 		h := NewHandler(svc)
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		body, _ := json.Marshal(CreateSessionRequest{Name: "s", Mode: "generate", Difficulty: "beginner", TopicIDs: []uuid.UUID{uuid.New()}})
+		body, _ := json.Marshal(CreateSessionRequest{Name: "s", Mode: "review", Difficulty: "beginner", TopicIDs: []uuid.UUID{uuid.New()}})
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/sessions", bytes.NewReader(body))
 		c.Request.Header.Set("Content-Type", "application/json")
 		c.Set("user_claims", sClaims(uid))

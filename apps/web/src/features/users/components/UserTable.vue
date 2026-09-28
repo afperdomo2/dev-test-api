@@ -19,7 +19,6 @@ const headers = [
   { title: 'Email', key: 'email', sortable: false },
   { title: 'Rol', key: 'isAdmin', sortable: false, align: 'center' as const },
   { title: 'Cupo importación', key: 'dailyImportLimit', sortable: false, align: 'center' as const },
-  { title: 'Cupo IA', key: 'dailyAiLimit', sortable: false, align: 'center' as const },
   { title: 'Creado', key: 'createdAt', sortable: false, align: 'center' as const },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' as const },
 ]
@@ -63,29 +62,6 @@ const headers = [
           </template>
         </v-tooltip>
         <v-chip v-else size="small" variant="tonal">{{ item.dailyImportLimit }}</v-chip>
-      </div>
-    </template>
-
-    <template #[`item.dailyAiLimit`]="{ item }">
-      <div class="d-flex justify-center">
-        <v-tooltip
-          v-if="item.isAdmin"
-          text="Los administradores no tienen cupo diario de IA"
-          location="top"
-        >
-          <template #activator="{ props: tooltipProps }">
-            <v-chip
-              v-bind="tooltipProps"
-              size="small"
-              variant="tonal"
-              color="primary"
-              prepend-icon="mdi-infinity"
-            >
-              Sin límite
-            </v-chip>
-          </template>
-        </v-tooltip>
-        <v-chip v-else size="small" variant="tonal" color="purple">{{ item.dailyAiLimit }}</v-chip>
       </div>
     </template>
 

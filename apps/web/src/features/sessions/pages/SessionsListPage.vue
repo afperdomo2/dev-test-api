@@ -1,19 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { computed, ref } from 'vue'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { sessionsInfiniteOptions, createSessionMutation } from '@/queries/sessions.queries'
-import { getAiQuota } from '@/api/services/questions.service'
 import { useAppStore } from '@/stores/app.store'
 import ListPageHeader from '@/components/ListPageHeader.vue'
 import SessionCard from '../components/SessionCard.vue'
 import type { Session, CreateSessionRequest, SessionStatus } from '@/types/session.types'
-import {
-  SESSION_MODE_DESCRIPTIONS,
-  SESSION_MODE_ICONS,
-  SESSION_MODES,
-  SESSION_DIFFICULTIES,
-  SESSION_STATUS_FILTERS,
-} from '@/types/session.types'
+import { SESSION_DIFFICULTIES, SESSION_STATUS_FILTERS } from '@/types/session.types'
 import { requiredRule, validateRules } from '@/utils/validators'
 import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
 
@@ -63,45 +56,6 @@ function openCreateDialog() {
   createDialog.value = true
 }
 
-const { data: aiQuota } = useQuery({
-  queryKey: ['questions', 'ai-quota'],
-  queryFn: () => getAiQuota(),
-  staleTime: 30 * 1000,
-  enabled: computed(() => createDialog.value && createForm.value.mode === 'generate'),
-})
-
-const aiQuotaPercent = computed(() => {
-  if (!aiQuota.value || aiQuota.value.dailyLimit === 0) return 0
-  return Math.min(100, Math.round((aiQuota.value.usedToday / aiQuota.value.dailyLimit) * 100))
-})
-
-const aiQuotaColor = computed(() => {
-  const p = aiQuotaPercent.value
-  if (p >= 90) return 'error'
-  if (p >= 70) return 'warning'
-  return 'success'
-})
-
-const aiQuotaExceeds = computed(() => {
-  if (
-    createForm.value.mode !== 'generate' ||
-    !aiQuota.value ||
-    aiQuota.value.unlimited ||
-    createForm.value.questionLimit === undefined
-  )
-    return false
-  return createForm.value.questionLimit > aiQuota.value.remaining
-})
-
-watch(
-  () => createForm.value.mode,
-  (mode) => {
-    if (mode === 'generate') {
-      queryClient.invalidateQueries({ queryKey: ['questions', 'ai-quota'] })
-    }
-  },
-)
-
 function validateCreate(): boolean {
   const newErrors: Record<string, Array<string>> = {}
   newErrors.name = validateRules([requiredRule()], createForm.value.name)
@@ -145,7 +99,6 @@ async function handleCreate() {
   try {
     await createMut.mutateAsync(createForm.value)
     queryClient.invalidateQueries({ queryKey: ['sessions', 'list', 'infinite'] })
-    queryClient.invalidateQueries({ queryKey: ['questions', 'ai-quota'] })
     createDialog.value = false
     resetCreateForm()
     appStore.showSnackbar('Sesión creada')
@@ -223,100 +176,6 @@ async function handleCreate() {
               required
               placeholder="Ej: Repaso de Go"
             />
-
-            <div class="mb-4">
-              <p class="text-subtitle-2 mb-2">Modo</p>
-              <v-radio-group
-                v-model="createForm.mode"
-                :disabled="creating"
-                hide-details
-                class="mt-0"
-              >
-                <v-card
-                  v-for="mode in SESSION_MODES"
-                  :key="mode.value"
-                  :variant="createForm.mode === mode.value ? 'tonal' : 'outlined'"
-                  :color="createForm.mode === mode.value ? 'primary' : undefined"
-                  class="mb-2 cursor-pointer"
-                  @click="createForm.mode = mode.value"
-                >
-                  <v-card-text class="d-flex align-center ga-3 py-3">
-                    <v-radio
-                      :value="mode.value"
-                      :disabled="creating"
-                      hide-details
-                      density="compact"
-                      color="primary"
-                    />
-                    <v-icon :icon="SESSION_MODE_ICONS[mode.value]" size="28" color="primary" />
-                    <div>
-                      <div class="text-body-2 font-weight-medium">{{ mode.title }}</div>
-                      <div class="text-caption text-medium-emphasis">
-                        {{ SESSION_MODE_DESCRIPTIONS[mode.value] }}
-                      </div>
-                    </div>
-                  </v-card-text>
-                </v-card>
-              </v-radio-group>
-            </div>
-
-            <v-alert
-              v-if="createForm.mode === 'generate' && aiQuota?.unlimited"
-              type="info"
-              variant="tonal"
-              density="compact"
-              class="mb-4"
-            >
-              <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-                <span class="text-body-2">
-                  <v-icon start size="18">mdi-shield-account</v-icon>
-                  Como administrador no tienes cupo diario de IA
-                  <span class="font-weight-bold">— Sin límite</span>
-                </span>
-              </div>
-              <div class="text-caption mt-2">
-                La IA generará tantas preguntas como necesites para esta sesión.
-              </div>
-            </v-alert>
-
-            <v-alert
-              v-else-if="createForm.mode === 'generate' && aiQuota"
-              :type="aiQuota.remaining === 0 ? 'error' : aiQuotaExceeds ? 'warning' : 'info'"
-              variant="tonal"
-              density="compact"
-              class="mb-4"
-            >
-              <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-                <span class="text-body-2">
-                  <v-icon start size="18">mdi-robot</v-icon>
-                  Cupo IA hoy: {{ aiQuota.usedToday }} / {{ aiQuota.dailyLimit }} usadas
-                  <span class="font-weight-bold">— Restan {{ aiQuota.remaining }}</span>
-                </span>
-              </div>
-              <v-progress-linear
-                :model-value="aiQuotaPercent"
-                :color="aiQuotaColor"
-                height="16"
-                rounded
-                class="mt-2"
-              >
-                <template #default>
-                  <span class="text-caption font-weight-medium">{{ aiQuotaPercent }}%</span>
-                </template>
-              </v-progress-linear>
-              <div v-if="aiQuota.remaining === 0" class="text-caption mt-2">
-                Has agotado tu cupo de IA hoy. Podrás generar nuevas preguntas mañana. Las preguntas
-                existentes seguirán disponibles.
-              </div>
-              <div v-else-if="aiQuotaExceeds" class="text-caption mt-2">
-                Pediste {{ createForm.questionLimit }} preguntas pero solo te quedan
-                {{ aiQuota.remaining }} nuevas con IA hoy. El resto se completará con preguntas
-                existentes o la sesión terminará antes.
-              </div>
-              <div v-else class="text-caption mt-2">
-                La IA generará preguntas hasta agotar tu cupo diario.
-              </div>
-            </v-alert>
 
             <v-select
               v-model="createForm.difficulty"

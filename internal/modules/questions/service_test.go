@@ -24,7 +24,6 @@ type mockQuestionStore struct {
 	replaceQuestionOptionsFn func(questionID uuid.UUID, opts []models.QuestionOption) error
 	bulkCreateFn             func(questions []*models.Question) error
 	countImportedSinceFn     func(userID uuid.UUID, since time.Time) (int64, error)
-	countAiGeneratedSinceFn  func(userID uuid.UUID, since time.Time) (int64, error)
 	statsFn                  func(isAdmin bool, userID uuid.UUID) (*QuestionStats, error)
 }
 
@@ -55,12 +54,6 @@ func (m *mockQuestionStore) BulkCreate(qs []*models.Question) error {
 func (m *mockQuestionStore) CountImportedSince(uid uuid.UUID, since time.Time) (int64, error) {
 	if m.countImportedSinceFn != nil {
 		return m.countImportedSinceFn(uid, since)
-	}
-	return 0, nil
-}
-func (m *mockQuestionStore) CountAiGeneratedSince(uid uuid.UUID, since time.Time) (int64, error) {
-	if m.countAiGeneratedSinceFn != nil {
-		return m.countAiGeneratedSinceFn(uid, since)
 	}
 	return 0, nil
 }
@@ -112,7 +105,7 @@ func newTopicMock() *mockTopicStore {
 func newUserMock(limit int) *mockUserStore {
 	return &mockUserStore{
 		findByIDFn: func(uuid.UUID) (*models.User, error) {
-			return &models.User{DailyImportLimit: limit, DailyAiLimit: 20}, nil
+			return &models.User{DailyImportLimit: limit}, nil
 		},
 	}
 }

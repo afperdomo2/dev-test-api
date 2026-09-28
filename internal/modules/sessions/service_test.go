@@ -7,11 +7,9 @@ import (
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/common"
-	"github.com/felipe/dev-test-api/internal/config"
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
 	"github.com/felipe/dev-test-api/internal/modules/tips"
-	"github.com/felipe/dev-test-api/internal/services/ai"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -197,13 +195,12 @@ func TestSessionEvaluateCorrectness(t *testing.T) {
 
 func TestSessionList(t *testing.T) {
 	uid := uuid.New()
-	gen := ai.NewGenerator(nil, config.AIConfig{}, nil)
 	t.Run("success", func(t *testing.T) {
 		store := newSessionStore()
 		store.findPageFn = func(uuid.UUID, ListSessionsParams) ([]models.Session, int64, error) {
 			return []models.Session{{Name: "s1"}}, 1, nil
 		}
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, aiGenerator: gen}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		list, total, err := svc.List(uid, ListSessionsParams{})
 		require.NoError(t, err)
 		assert.Len(t, list, 1)
@@ -214,7 +211,7 @@ func TestSessionList(t *testing.T) {
 		store.findPageFn = func(uuid.UUID, ListSessionsParams) ([]models.Session, int64, error) {
 			return nil, 0, errors.New("fail")
 		}
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, aiGenerator: gen}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		_, _, err := svc.List(uid, ListSessionsParams{})
 		require.Error(t, err)
 	})
@@ -245,14 +242,16 @@ func TestSessionCreate(t *testing.T) {
 	topicID := uuid.New()
 	limit := 2
 
-	t.Run("success generate", func(t *testing.T) {
+	t.Run("success review", func(t *testing.T) {
 		store := newSessionStore()
-		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
-			return &models.Session{ID: uuid.New(), Mode: "generate", QuestionsGenerated: 0}, nil
+		store.countAvailableQuestionsFn = func([]uuid.UUID, []uuid.UUID, string, string, uuid.UUID) (int64, error) {
+			return 10, nil
 		}
-		gen := ai.NewGenerator(nil, config.AIConfig{}, nil)
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, aiGenerator: gen}
-		got, err := svc.Create(uid, CreateSessionRequest{Name: "s", Mode: "generate", Difficulty: "beginner", TopicIDs: []uuid.UUID{topicID}, QuestionLimit: &limit})
+		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
+			return &models.Session{ID: uuid.New(), Mode: "review"}, nil
+		}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		got, err := svc.Create(uid, CreateSessionRequest{Name: "s", Mode: "review", Difficulty: "beginner", TopicIDs: []uuid.UUID{topicID}, QuestionLimit: &limit})
 		require.NoError(t, err)
 		assert.NotNil(t, got)
 	})

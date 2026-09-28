@@ -68,13 +68,6 @@ type ImportQuota struct {
 	Unlimited  bool `json:"unlimited"`
 }
 
-type AiQuota struct {
-	DailyLimit int  `json:"dailyLimit"`
-	UsedToday  int  `json:"usedToday"`
-	Remaining  int  `json:"remaining"`
-	Unlimited  bool `json:"unlimited"`
-}
-
 type TopicCount struct {
 	TopicID  uuid.UUID `json:"topicId"`
 	Name     string    `json:"name"`

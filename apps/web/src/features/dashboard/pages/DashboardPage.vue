@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { useAuthStore } from '@/stores/auth.store'
-import { getAiQuota, getImportQuota } from '@/api/services/questions.service'
+import { getImportQuota } from '@/api/services/questions.service'
 import { getOpenCodeUsage } from '@/api/services/opencode.service'
 import { generationStatsOptions } from '@/queries/generation.queries'
 import { formatShortDateTime, formatTimeUntil } from '@/utils/format'
@@ -24,12 +24,6 @@ const formattedDate = computed(() => {
 const isNotAdmin = computed(() => !authStore.isAdmin)
 const isAdmin = computed(() => authStore.isAdmin)
 
-const { data: aiQuota } = useQuery({
-  queryKey: ['questions', 'ai-quota'],
-  queryFn: () => getAiQuota(),
-  staleTime: 30 * 1000,
-})
-
 const { data: importQuota } = useQuery({
   queryKey: ['questions', 'import-quota'],
   queryFn: () => getImportQuota(),
@@ -47,8 +41,7 @@ const {
   enabled: isAdmin,
 })
 
-// Consumo global de generación por lotes (solo admins). El cupo por usuario
-// sigue existiendo hasta la Fase 3.
+// Consumo global de generación por lotes (solo admins).
 const { data: generationStats } = useQuery({
   ...generationStatsOptions(),
   enabled: isAdmin,
@@ -105,71 +98,6 @@ function openCodeErrorMessage(err: unknown): string {
               <v-icon size="16" color="success">mdi-identifier</v-icon>
               <span class="text-truncate">{{ authStore.user?.id }}</span>
             </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-
-      <v-col cols="12" md="6" lg="4">
-        <v-card>
-          <v-card-item>
-            <template #prepend>
-              <v-icon color="deep-purple" size="40">mdi-robot</v-icon>
-            </template>
-            <v-card-title>Cupo IA hoy</v-card-title>
-            <v-card-subtitle>Preguntas generadas con IA</v-card-subtitle>
-          </v-card-item>
-          <v-card-text v-if="aiQuota">
-            <template v-if="aiQuota.unlimited">
-              <div class="d-flex align-center justify-space-between mb-2">
-                <span class="text-body-2 font-weight-medium">
-                  {{ aiQuota.usedToday }}
-                  <span class="text-medium-emphasis">usadas</span>
-                </span>
-                <v-chip color="primary" size="small" variant="tonal" prepend-icon="mdi-infinity">
-                  Sin límite
-                </v-chip>
-              </div>
-              <v-alert
-                variant="tonal"
-                color="primary"
-                density="compact"
-                icon="mdi-shield-account"
-                text="Los administradores no tienen cupo diario de IA."
-              />
-            </template>
-            <template v-else>
-              <div class="d-flex align-center justify-space-between mb-2">
-                <span class="text-body-2 font-weight-medium">
-                  {{ aiQuota.usedToday }} / {{ aiQuota.dailyLimit }}
-                  <span class="text-medium-emphasis">usadas</span>
-                </span>
-                <v-chip
-                  :color="quotaColor(quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit))"
-                  size="small"
-                  variant="tonal"
-                >
-                  Restan {{ aiQuota.remaining }}
-                </v-chip>
-              </div>
-              <v-progress-linear
-                :model-value="quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit)"
-                :color="quotaColor(quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit))"
-                height="20"
-                rounded
-              >
-                <template #default>
-                  <span class="text-caption font-weight-medium">
-                    {{ quotaPercent(aiQuota.usedToday, aiQuota.dailyLimit) }}%
-                  </span>
-                </template>
-              </v-progress-linear>
-              <div class="text-caption text-medium-emphasis mt-2">
-                Límite diario configurable por el administrador (1–50)
-              </div>
-            </template>
-          </v-card-text>
-          <v-card-text v-else>
-            <v-skeleton-loader type="text" />
           </v-card-text>
         </v-card>
       </v-col>

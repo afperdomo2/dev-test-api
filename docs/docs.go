@@ -971,37 +971,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/questions/ai-quota": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve el límite diario de preguntas con IA, lo usado hoy y lo restante para el usuario autenticado. Los administradores no tienen cupo diario (unlimited=true).",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "questions"
-                ],
-                "summary": "Consultar cupo de IA",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/questions.AiQuota"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/apierr.APIError"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/questions/import": {
             "post": {
                 "security": [
@@ -1892,7 +1861,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene la siguiente pregunta sin responder de la sesión. Si no hay preguntas disponibles y la sesión es modo \"generate\", genera una nueva pregunta por IA en tiempo real. Puede devolver 404 si se alcanzó el límite de preguntas o no hay más disponibles, y 409 si la sesión ya fue completada.",
+                "description": "Obtiene la siguiente pregunta sin responder de la sesión. Puede devolver 404 si se alcanzó el límite de preguntas o no hay más disponibles, y 409 si la sesión ya fue completada.",
                 "produces": [
                     "application/json"
                 ],
@@ -3410,23 +3379,6 @@ const docTemplate = `{
                 }
             }
         },
-        "questions.AiQuota": {
-            "type": "object",
-            "properties": {
-                "dailyLimit": {
-                    "type": "integer"
-                },
-                "remaining": {
-                    "type": "integer"
-                },
-                "unlimited": {
-                    "type": "boolean"
-                },
-                "usedToday": {
-                    "type": "integer"
-                }
-            }
-        },
         "questions.CategoryCount": {
             "type": "object",
             "properties": {
@@ -3829,7 +3781,6 @@ const docTemplate = `{
                 "mode": {
                     "type": "string",
                     "enum": [
-                        "generate",
                         "review"
                     ]
                 },
@@ -4080,9 +4031,6 @@ const docTemplate = `{
                 "questionLimit": {
                     "type": "integer"
                 },
-                "questionsGenerated": {
-                    "type": "integer"
-                },
                 "reward": {
                     "$ref": "#/definitions/gamification.Reward"
                 },
@@ -4116,9 +4064,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "questionLimit": {
-                    "type": "integer"
-                },
-                "questionsGenerated": {
                     "type": "integer"
                 },
                 "status": {
@@ -4318,11 +4263,6 @@ const docTemplate = `{
                 "password"
             ],
             "properties": {
-                "dailyAiLimit": {
-                    "type": "integer",
-                    "maximum": 50,
-                    "minimum": 1
-                },
                 "dailyImportLimit": {
                     "type": "integer",
                     "maximum": 10000,
@@ -4344,11 +4284,6 @@ const docTemplate = `{
         "users.UpdateUserRequest": {
             "type": "object",
             "properties": {
-                "dailyAiLimit": {
-                    "type": "integer",
-                    "maximum": 50,
-                    "minimum": 1
-                },
                 "dailyImportLimit": {
                     "type": "integer",
                     "maximum": 10000,
@@ -4369,9 +4304,6 @@ const docTemplate = `{
             "properties": {
                 "createdAt": {
                     "type": "string"
-                },
-                "dailyAiLimit": {
-                    "type": "integer"
                 },
                 "dailyImportLimit": {
                     "type": "integer"

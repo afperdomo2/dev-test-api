@@ -14,21 +14,20 @@ func ToSessionResponse(s models.Session) SessionResponse {
 		topics[i] = t.Name
 	}
 	return SessionResponse{
-		ID:                 s.ID,
-		UserID:             s.UserID,
-		Name:               s.Name,
-		Status:             s.Status,
-		Mode:               s.Mode,
-		Difficulty:         s.Difficulty,
-		QuestionLimit:      s.QuestionLimit,
-		QuestionsGenerated: s.QuestionsGenerated,
-		Score:              s.Score,
-		StartedAt:          s.StartedAt,
-		FinishedAt:         s.FinishedAt,
-		Topics:             topics,
-		AnswerCount:        len(s.Answers),
-		CreatedAt:          s.CreatedAt,
-		UpdatedAt:          s.UpdatedAt,
+		ID:            s.ID,
+		UserID:        s.UserID,
+		Name:          s.Name,
+		Status:        s.Status,
+		Mode:          s.Mode,
+		Difficulty:    s.Difficulty,
+		QuestionLimit: s.QuestionLimit,
+		Score:         s.Score,
+		StartedAt:     s.StartedAt,
+		FinishedAt:    s.FinishedAt,
+		Topics:        topics,
+		AnswerCount:   len(s.Answers),
+		CreatedAt:     s.CreatedAt,
+		UpdatedAt:     s.UpdatedAt,
 	}
 }
 
@@ -38,20 +37,19 @@ func ToSessionListResponse(s models.Session) SessionListResponse {
 		topics[i] = t.Name
 	}
 	return SessionListResponse{
-		ID:                 s.ID,
-		UserID:             s.UserID,
-		Name:               s.Name,
-		Status:             s.Status,
-		Mode:               s.Mode,
-		Difficulty:         s.Difficulty,
-		QuestionLimit:      s.QuestionLimit,
-		QuestionsGenerated: s.QuestionsGenerated,
-		Score:              s.Score,
-		StartedAt:          s.StartedAt,
-		FinishedAt:         s.FinishedAt,
-		Topics:             topics,
-		AnswerCount:        len(s.Answers),
-		CreatedAt:          s.CreatedAt,
+		ID:            s.ID,
+		UserID:        s.UserID,
+		Name:          s.Name,
+		Status:        s.Status,
+		Mode:          s.Mode,
+		Difficulty:    s.Difficulty,
+		QuestionLimit: s.QuestionLimit,
+		Score:         s.Score,
+		StartedAt:     s.StartedAt,
+		FinishedAt:    s.FinishedAt,
+		Topics:        topics,
+		AnswerCount:   len(s.Answers),
+		CreatedAt:     s.CreatedAt,
 	}
 }
 

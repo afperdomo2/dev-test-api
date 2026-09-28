@@ -226,10 +226,9 @@ func (s *gormStore) CountWarmupCandidates(userID uuid.UUID) (int64, error) {
 }
 
 type SessionSummaryData struct {
-	Status             string
-	QuestionLimit      *int
-	QuestionsGenerated int
-	AnswerCount        int64
+	Status        string
+	QuestionLimit *int
+	AnswerCount   int64
 }
 
 func (s *gormStore) Delete(id uuid.UUID) error {
@@ -247,7 +246,7 @@ func (s *gormStore) Delete(id uuid.UUID) error {
 func (s *gormStore) FindSummary(id uuid.UUID) (*SessionSummaryData, error) {
 	var data SessionSummaryData
 	err := s.db.Raw(`
-		SELECT s.status, s.question_limit, s.questions_generated,
+		SELECT s.status, s.question_limit,
 			(SELECT COUNT(*) FROM session_answers WHERE session_id = ?) as answer_count
 		FROM sessions s WHERE s.id = ?
 	`, id, id).Scan(&data).Error

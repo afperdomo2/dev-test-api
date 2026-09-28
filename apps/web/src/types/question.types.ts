@@ -22,7 +22,6 @@ export type {
   ImportRowError,
   ImportResult,
   ImportQuota,
-  AiQuota,
   TopicCount,
   CategoryCount,
   DifficultyCount,

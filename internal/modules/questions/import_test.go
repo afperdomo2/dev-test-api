@@ -235,24 +235,6 @@ func TestGetImportQuota_AdminUnlimited(t *testing.T) {
 	assert.Equal(t, 37, quota.UsedToday, "el consumo real se sigue reportando")
 }
 
-func TestGetAiQuota_AdminUnlimited(t *testing.T) {
-	store := newQuestionMock()
-	store.countAiGeneratedSinceFn = func(uuid.UUID, time.Time) (int64, error) { return 12, nil }
-	userStore := &mockUserStore{
-		findByIDFn: func(uuid.UUID) (*models.User, error) {
-			return &models.User{IsAdmin: true, DailyAiLimit: 20}, nil
-		},
-	}
-	svc := NewService(store, newTopicMock(), userStore)
-
-	quota, err := svc.GetAiQuota(uuid.New())
-	require.NoError(t, err)
-	assert.True(t, quota.Unlimited)
-	assert.Equal(t, 0, quota.DailyLimit)
-	assert.Equal(t, 0, quota.Remaining)
-	assert.Equal(t, 12, quota.UsedToday)
-}
-
 func TestGetImportQuota_RegularUserNotUnlimited(t *testing.T) {
 	store := newQuestionMock()
 	store.countImportedSinceFn = func(uuid.UUID, time.Time) (int64, error) { return 190, nil }
