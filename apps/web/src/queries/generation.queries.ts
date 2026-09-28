@@ -24,11 +24,6 @@ export function generationJobsListOptions(
     queryKey: ['generation', 'list', page, perPage, status],
     queryFn: () => generationService.listGenerationJobs(page(), perPage(), status()),
     staleTime: 5 * 1000,
-    refetchInterval: (query) => {
-      const jobs: Array<{ status: GenerationJobStatus }> = query.state.data?.data ?? []
-      const inFlight = jobs.some((job) => job.status === 'pending' || job.status === 'running')
-      return inFlight ? 3_000 : false
-    },
   })
 }
 
@@ -37,13 +32,6 @@ export function generationStatsOptions() {
     queryKey: ['generation', 'stats'],
     queryFn: () => generationService.getGenerationStats(),
     staleTime: 5 * 1000,
-    // Mientras haya cola, el consumo del día cambia: refresca solo.
-    refetchInterval: (query) => {
-      const stats = query.state.data
-      if (!stats) return false
-      const inFlight = stats.pending > 0 || stats.running > 0
-      return inFlight ? 3_000 : 30_000
-    },
   })
 }
 

@@ -1,12 +1,11 @@
 import {
   createGenerationJobMutation,
   generationJobsListOptions,
-  generationStatsOptions,
   settingsListOptions,
   updateSettingsMutation,
 } from './generation.queries'
 import * as generationService from '@/api/services/generation.service'
-import type { GenerationJob, GenerationStats } from '@/types/generation.types'
+import type { GenerationJob } from '@/types/generation.types'
 
 vi.mock('@/api/services/generation.service', () => ({
   createGenerationJob: vi.fn(),
@@ -29,21 +28,6 @@ function job(status: GenerationJob['status']): GenerationJob {
     status,
     generated: 0,
     createdAt: '2026-01-01T00:00:00Z',
-  }
-}
-
-function stats(overrides: Partial<GenerationStats> = {}): GenerationStats {
-  return {
-    generatedToday: 0,
-    reservedToday: 0,
-    dailyCap: 200,
-    perJobCap: 10,
-    defaultQuantity: 5,
-    pending: 0,
-    running: 0,
-    failed: 0,
-    aiConfigured: true,
-    ...overrides,
   }
 }
 
@@ -70,31 +54,6 @@ describe('generation.queries', () => {
     )
     await (opts as unknown as QueryOptions).queryFn({} as never)
     expect(generationService.listGenerationJobs).toHaveBeenCalledWith(2, 25, 'failed')
-  })
-
-  it('generationJobsListOptions polls while a job is in flight', () => {
-    const opts = generationJobsListOptions(
-      () => 1,
-      () => 10,
-      () => undefined,
-    ) as unknown as {
-      refetchInterval: (query: { state: { data?: unknown } }) => number | false
-    }
-
-    const pending = { state: { data: { data: [job('pending')] } } }
-    const done = { state: { data: { data: [job('completed')] } } }
-
-    expect(opts.refetchInterval(pending)).toBe(3000)
-    expect(opts.refetchInterval(done)).toBe(false)
-  })
-
-  it('generationStatsOptions polls slowly when idle and fast when busy', () => {
-    const opts = generationStatsOptions() as unknown as {
-      refetchInterval: (query: { state: { data?: unknown } }) => number | false
-    }
-
-    expect(opts.refetchInterval({ state: { data: stats({ running: 1 }) } })).toBe(3000)
-    expect(opts.refetchInterval({ state: { data: stats() } })).toBe(30_000)
   })
 
   it('createGenerationJobMutation keys on generation/create', async () => {

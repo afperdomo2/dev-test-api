@@ -54,6 +54,7 @@ const { data, isLoading } = useQuery(
 )
 
 const createJob = useMutation(createGenerationJobMutation())
+const formRef = ref<InstanceType<typeof GenerationEnqueueForm>>()
 
 const jobList = computed<Array<GenerationJob>>(() => data.value?.data ?? [])
 const totalJobs = computed(() => data.value?.meta?.total ?? 0)
@@ -98,6 +99,7 @@ async function onSubmit(payload: {
     await createJob.mutateAsync(body)
     appStore.showSnackbar('Trabajo encolado')
     queryClient.invalidateQueries({ queryKey: ['generation'] })
+    formRef.value?.reset()
   } catch (error) {
     const detail =
       error && typeof error === 'object' && 'detail' in error
@@ -120,6 +122,7 @@ async function onSubmit(payload: {
     <v-row class="mb-4" dense>
       <v-col cols="12" md="7">
         <GenerationEnqueueForm
+          ref="formRef"
           :stats="stats"
           :loading="createJob.isPending.value"
           @submit="onSubmit"

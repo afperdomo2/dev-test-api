@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
+import DifficultySelect from '@/components/DifficultySelect.vue'
 import type { GenerationDifficulty, GenerationStats } from '@/types/generation.types'
 
 interface Props {
@@ -20,16 +21,9 @@ const emit = defineEmits<{
 }>()
 
 const topicIds = ref<Array<string>>([])
-const difficulty = ref<GenerationDifficulty>('intermediate')
+const difficulty = ref<GenerationDifficulty>('random')
 const quantity = ref<number>(5)
 const touched = ref(false)
-
-const difficultyOptions: Array<{ title: string; value: GenerationDifficulty }> = [
-  { title: 'Principiante', value: 'beginner' },
-  { title: 'Intermedio', value: 'intermediate' },
-  { title: 'Avanzado', value: 'advanced' },
-  { title: 'Aleatoria', value: 'random' },
-]
 
 const perJobCap = computed(() => props.stats?.perJobCap ?? 10)
 const defaultQuantity = computed(() => props.stats?.defaultQuantity ?? 5)
@@ -74,6 +68,15 @@ function submit() {
     quantity: quantity.value,
   })
 }
+
+function reset() {
+  topicIds.value = []
+  difficulty.value = 'random'
+  quantity.value = defaultQuantity.value
+  touched.value = false
+}
+
+defineExpose({ reset })
 </script>
 
 <template>
@@ -91,14 +94,7 @@ function submit() {
           <TopicAutocomplete v-model="topicIds" label="Temas" required />
         </v-col>
         <v-col cols="12" md="3">
-          <v-select
-            v-model="difficulty"
-            :items="difficultyOptions"
-            label="Dificultad"
-            hide-details
-            variant="outlined"
-            density="compact"
-          />
+          <DifficultySelect v-model="difficulty" />
         </v-col>
         <v-col cols="12" md="3">
           <v-text-field
@@ -118,6 +114,7 @@ function submit() {
     </v-card-text>
 
     <v-card-actions>
+      <v-btn variant="text" prepend-icon="mdi-eraser" @click="reset"> Limpiar </v-btn>
       <v-spacer />
       <v-btn
         color="primary"

@@ -4,9 +4,10 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/vue-que
 import { sessionsInfiniteOptions, createSessionMutation } from '@/queries/sessions.queries'
 import { useAppStore } from '@/stores/app.store'
 import ListPageHeader from '@/components/ListPageHeader.vue'
+import DifficultySelect from '@/components/DifficultySelect.vue'
 import SessionCard from '../components/SessionCard.vue'
 import type { Session, CreateSessionRequest, SessionStatus } from '@/types/session.types'
-import { SESSION_DIFFICULTIES, SESSION_STATUS_FILTERS } from '@/types/session.types'
+import { SESSION_STATUS_FILTERS } from '@/types/session.types'
 import { requiredRule, validateRules } from '@/utils/validators'
 import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
 
@@ -177,14 +178,7 @@ async function handleCreate() {
               placeholder="Ej: Repaso de Go"
             />
 
-            <v-select
-              v-model="createForm.difficulty"
-              label="Dificultad"
-              :items="SESSION_DIFFICULTIES"
-              item-props="props"
-              :disabled="creating"
-              required
-            />
+            <DifficultySelect v-model="createForm.difficulty" :disabled="creating" />
 
             <v-text-field
               v-model.number="createForm.questionLimit"
