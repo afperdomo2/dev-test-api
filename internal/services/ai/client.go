@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/config"
+	"github.com/google/uuid"
 )
 
 const defaultTemperature = 0.8
@@ -40,6 +41,7 @@ type aiClient struct {
 	apiKey     string
 	model      string
 	timeout    time.Duration
+	sessionID  string
 	httpClient *http.Client
 }
 
@@ -49,10 +51,11 @@ func newAIClient(cfg config.AIConfig) *aiClient {
 		timeout = 120 * time.Second
 	}
 	return &aiClient{
-		apiURL:  cfg.APIURL,
-		apiKey:  cfg.APIKey,
-		model:   cfg.Model,
-		timeout: timeout,
+		apiURL:    cfg.APIURL,
+		apiKey:    cfg.APIKey,
+		model:     cfg.Model,
+		timeout:   timeout,
+		sessionID: uuid.NewString(),
 		httpClient: &http.Client{
 			// Tope duro del entorno; el timeout efectivo se aplica por request.
 			Timeout: timeout + 30*time.Second,
@@ -119,6 +122,8 @@ func (c *aiClient) Chat(ctx context.Context, systemPrompt, userPrompt string, s 
 
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "dev-test-api/1.0")
+	req.Header.Set("x-opencode-session", c.sessionID)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
