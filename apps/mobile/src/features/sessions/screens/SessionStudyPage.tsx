@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import type { NextQuestionItem, SessionAnswer, SessionSummary, Reward } from '@devtest/shared'
 
@@ -38,6 +39,7 @@ export default function SessionStudyPage() {
 
   const questionNumber = summary ? summary.answerCount + 1 : 1
   const questionLimit = summary?.questionLimit ?? null
+  const progress = questionLimit ? questionNumber / questionLimit : 0
 
   const loadSessionData = useCallback(async (sessionId: string) => {
     const [sess, sum] = await Promise.all([
@@ -151,11 +153,21 @@ export default function SessionStudyPage() {
   if (phase === 'error' || error) {
     return (
       <View style={styles.center}>
+        <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.destructive} />
         <Text style={styles.error}>{error ?? 'Ocurrio un error'}</Text>
-        <Pressable style={styles.button} onPress={() => id && void loadNext(id)}>
+        <Pressable
+          style={styles.button}
+          onPress={() => id && void loadNext(id)}
+          accessibilityRole="button"
+        >
+          <MaterialCommunityIcons name="refresh" size={18} color={colors.onPrimary} />
           <Text style={styles.buttonLabel}>Reintentar</Text>
         </Pressable>
-        <Pressable style={styles.buttonGhost} onPress={() => router.back()}>
+        <Pressable
+          style={styles.buttonGhost}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+        >
           <Text style={styles.buttonGhostLabel}>Volver</Text>
         </Pressable>
       </View>
@@ -165,15 +177,25 @@ export default function SessionStudyPage() {
   if (phase === 'finished') {
     return (
       <View style={styles.center}>
-        <Text style={styles.finishedIcon}>🎉</Text>
+        <MaterialCommunityIcons name="check-circle" size={64} color={colors.primary} />
         <Text style={styles.finishedTitle}>Sesion completada</Text>
         <Text style={styles.finishedMeta}>
           Respondiste {summary?.answerCount ?? 0} preguntas
         </Text>
-        <Pressable style={styles.button} onPress={() => void handleFinish()}>
+        <Pressable
+          style={styles.button}
+          onPress={() => void handleFinish()}
+          accessibilityRole="button"
+          accessibilityLabel="Ver resumen de la sesion"
+        >
+          <MaterialCommunityIcons name="file-document-outline" size={18} color={colors.onPrimary} />
           <Text style={styles.buttonLabel}>Ver resumen</Text>
         </Pressable>
-        <Pressable style={styles.buttonGhost} onPress={() => router.replace('/(tabs)/sesiones')}>
+        <Pressable
+          style={styles.buttonGhost}
+          onPress={() => router.replace('/(tabs)/sesiones')}
+          accessibilityRole="button"
+        >
           <Text style={styles.buttonGhostLabel}>Volver a sesiones</Text>
         </Pressable>
       </View>
@@ -183,8 +205,12 @@ export default function SessionStudyPage() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.backLabel}>← Volver</Text>
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.counter}>
           {questionLimit !== null
@@ -192,6 +218,14 @@ export default function SessionStudyPage() {
             : `Pregunta ${questionNumber}`}
         </Text>
       </View>
+
+      {questionLimit && (
+        <View style={styles.progressContainer}>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+          </View>
+        </View>
+      )}
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {question && (
@@ -230,14 +264,25 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.sm,
   },
-  backLabel: {
-    fontSize: typography.size.md,
-    color: colors.primary,
-  },
   counter: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
     color: colors.mutedForeground,
+  },
+  progressContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: colors.muted,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 3,
   },
   scroll: {
     flex: 1,
@@ -252,10 +297,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.primary,
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+    minHeight: 44,
   },
   buttonLabel: {
     fontSize: typography.size.md,
@@ -265,13 +315,12 @@ const styles = StyleSheet.create({
   buttonGhost: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xl,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   buttonGhostLabel: {
     fontSize: typography.size.md,
     color: colors.mutedForeground,
-  },
-  finishedIcon: {
-    fontSize: 48,
   },
   finishedTitle: {
     fontSize: typography.size.xl,

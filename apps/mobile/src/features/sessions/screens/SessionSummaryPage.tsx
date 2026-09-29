@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import type { SessionDetail, SessionAnswerDetail } from '@devtest/shared'
 
@@ -48,9 +49,10 @@ export default function SessionSummaryPage() {
   if (error || !detail) {
     return (
       <View style={styles.center}>
+        <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.destructive} />
         <Text style={styles.error}>{error ?? 'No se pudo cargar el resumen'}</Text>
-        <Pressable style={styles.button} onPress={handleBack}>
-          <Text style={styles.buttonLabel}>Volver</Text>
+        <Pressable style={styles.stickyButton} onPress={handleBack} accessibilityRole="button">
+          <Text style={styles.stickyButtonLabel}>Volver</Text>
         </Pressable>
       </View>
     )
@@ -59,35 +61,63 @@ export default function SessionSummaryPage() {
   const { session, answers } = detail
   const correctCount = answers.filter((a) => a.isCorrect).length
   const total = answers.length
+  const percentage = total > 0 ? Math.round((correctCount / total) * 100) : 0
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={handleBack}>
-          <Text style={styles.backLabel}>← Sesiones</Text>
+        <Pressable
+          onPress={handleBack}
+          accessibilityRole="button"
+          accessibilityLabel="Volver a sesiones"
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
-        <Text style={styles.headerTitle}>{session.name}</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {session.name}
+        </Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.scoreBanner}>
-          <Text style={styles.scoreValue}>
-            {correctCount}/{total}
+          <MaterialCommunityIcons name="check-circle" size={48} color={colors.primary} />
+          <Text style={styles.scoreTitle}>Sesion completada</Text>
+
+          <Text style={styles.scorePercentage}>{percentage}%</Text>
+          <Text style={styles.scoreBreakdown}>
+            {correctCount} de {total} correctas
           </Text>
-          <Text style={styles.scoreLabel}>respuestas correctas</Text>
+
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${percentage}%` }]} />
+          </View>
+
           {session.score != null && session.score > 0 && (
-            <Text style={styles.scoreXp}>{session.score} puntos</Text>
+            <View style={styles.xpRow}>
+              <MaterialCommunityIcons name="lightning-bolt" size={16} color={colors.accent} />
+              <Text style={styles.scoreXp}>{session.score} puntos</Text>
+            </View>
           )}
         </View>
+
+        <Text style={styles.sectionTitle}>Respuestas</Text>
 
         {answers.map((answer, idx) => (
           <AnswerCard key={answer.id} answer={answer} index={idx} />
         ))}
-
-        <Pressable style={styles.button} onPress={handleBack}>
-          <Text style={styles.buttonLabel}>Volver a sesiones</Text>
-        </Pressable>
       </ScrollView>
+
+      <View style={styles.stickyFooter}>
+        <Pressable
+          style={styles.stickyButton}
+          onPress={handleBack}
+          accessibilityRole="button"
+          accessibilityLabel="Volver a sesiones"
+        >
+          <MaterialCommunityIcons name="format-list-bulleted" size={18} color={colors.onPrimary} />
+          <Text style={styles.stickyButtonLabel}>Volver a sesiones</Text>
+        </Pressable>
+      </View>
     </View>
   )
 }
@@ -99,10 +129,29 @@ function AnswerCard({ answer, index }: { answer: SessionAnswerDetail; index: num
   return (
     <View style={answerStyles.card}>
       <View style={answerStyles.header}>
-        <Text style={answerStyles.number}>#{index + 1}</Text>
-        <Text style={[answerStyles.badge, answer.isCorrect ? answerStyles.badgeOk : answerStyles.badgeFail]}>
-          {answer.isCorrect ? 'Correcto' : 'Incorrecto'}
-        </Text>
+        <View style={answerStyles.headerLeft}>
+          <MaterialCommunityIcons
+            name={answer.isCorrect ? 'check-circle' : 'close-circle'}
+            size={20}
+            color={answer.isCorrect ? colors.primary : colors.destructive}
+          />
+          <Text style={answerStyles.number}>#{index + 1}</Text>
+        </View>
+        <View
+          style={[
+            answerStyles.badge,
+            answer.isCorrect ? answerStyles.badgeOk : answerStyles.badgeFail,
+          ]}
+        >
+          <Text
+            style={[
+              answerStyles.badgeText,
+              answer.isCorrect ? answerStyles.badgeTextOk : answerStyles.badgeTextFail,
+            ]}
+          >
+            {answer.isCorrect ? 'Correcta' : 'Incorrecta'}
+          </Text>
+        </View>
       </View>
 
       <MarkdownText style={answerStyles.question}>{q.content}</MarkdownText>
@@ -119,10 +168,12 @@ function AnswerCard({ answer, index }: { answer: SessionAnswerDetail; index: num
               wasSelected && !isCorrect && answerStyles.optionWrong,
             ]}
           >
-            <Text style={answerStyles.optionIcon}>
-              {isCorrect ? '✓' : wasSelected ? '✗' : ''}
-            </Text>
-            <MarkdownText>
+            <MaterialCommunityIcons
+              name={isCorrect ? 'check' : wasSelected ? 'close' : 'minus'}
+              size={14}
+              color={isCorrect ? colors.primary : wasSelected ? colors.destructive : colors.mutedForeground}
+            />
+            <MarkdownText style={answerStyles.optionText}>
               {opt.content}
             </MarkdownText>
           </View>
@@ -131,7 +182,10 @@ function AnswerCard({ answer, index }: { answer: SessionAnswerDetail; index: num
 
       {answer.explanation ? (
         <View style={answerStyles.explanation}>
-          <Text style={answerStyles.explanationLabel}>Explicacion</Text>
+          <View style={answerStyles.explanationHeader}>
+            <MaterialCommunityIcons name="lightbulb-outline" size={14} color={colors.accent} />
+            <Text style={answerStyles.explanationLabel}>Explicacion</Text>
+          </View>
           <MarkdownText style={answerStyles.explanationText}>{answer.explanation}</MarkdownText>
         </View>
       ) : null}
@@ -153,24 +207,23 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
     paddingBottom: spacing.sm,
-    gap: spacing.xs,
-  },
-  backLabel: {
-    fontSize: typography.size.md,
-    color: colors.primary,
+    gap: spacing.md,
   },
   headerTitle: {
+    flex: 1,
     fontSize: typography.size.xl,
     fontWeight: typography.weight.bold,
     color: colors.foreground,
   },
   content: {
     padding: spacing.lg,
+    paddingBottom: 100,
     gap: spacing.md,
-    paddingBottom: spacing.xl,
   },
   scoreBanner: {
     backgroundColor: colors.card,
@@ -179,34 +232,82 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
-  scoreValue: {
-    fontSize: typography.size['2xl'],
+  scoreTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.foreground,
+  },
+  scorePercentage: {
+    fontSize: 48,
     fontWeight: typography.weight.bold,
     color: colors.primary,
+    marginTop: spacing.sm,
   },
-  scoreLabel: {
+  scoreBreakdown: {
     fontSize: typography.size.sm,
     color: colors.mutedForeground,
+  },
+  progressTrack: {
+    width: '100%',
+    height: 8,
+    backgroundColor: colors.muted,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginTop: spacing.sm,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+  },
+  xpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   scoreXp: {
     fontSize: typography.size.md,
     fontWeight: typography.weight.semibold,
     color: colors.accent,
   },
+  sectionTitle: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.mutedForeground,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingHorizontal: spacing.xs,
+  },
   error: {
     fontSize: typography.size.md,
     color: colors.destructive,
     textAlign: 'center',
   },
-  button: {
+  stickyFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  stickyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.primary,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
-    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 48,
   },
-  buttonLabel: {
+  stickyButtonLabel: {
     fontSize: typography.size.md,
     fontWeight: typography.weight.semibold,
     color: colors.onPrimary,
@@ -227,26 +328,36 @@ const answerStyles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   number: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
     color: colors.mutedForeground,
   },
   badge: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.semibold,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: radius.sm,
-    overflow: 'hidden',
   },
   badgeOk: {
-    color: colors.primary,
     backgroundColor: `${colors.primary}15`,
   },
   badgeFail: {
-    color: colors.destructive,
     backgroundColor: `${colors.destructive}15`,
+  },
+  badgeText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+  },
+  badgeTextOk: {
+    color: colors.primary,
+  },
+  badgeTextFail: {
+    color: colors.destructive,
   },
   question: {
     fontSize: typography.size.md,
@@ -260,7 +371,7 @@ const answerStyles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.sm,
     padding: spacing.sm,
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   optionCorrect: {
     borderColor: colors.primary,
@@ -270,28 +381,20 @@ const answerStyles = StyleSheet.create({
     borderColor: colors.destructive,
     backgroundColor: `${colors.destructive}10`,
   },
-  optionIcon: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.bold,
-    width: 16,
-    textAlign: 'center',
-  },
   optionText: {
     flex: 1,
     fontSize: typography.size.sm,
     color: colors.foreground,
   },
-  optionTextCorrect: {
-    color: colors.primary,
-    fontWeight: typography.weight.medium,
-  },
-  optionTextWrong: {
-    color: colors.destructive,
-  },
   explanation: {
     backgroundColor: colors.background,
     borderRadius: radius.sm,
     padding: spacing.sm,
+    gap: spacing.xs,
+  },
+  explanationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   explanationLabel: {

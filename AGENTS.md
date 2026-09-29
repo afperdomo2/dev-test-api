@@ -130,6 +130,26 @@ Load the relevant skill with the `skill` tool when working in each ecosystem. Fu
 | `apple-design` | Motion fluido, springs, gestos, materiales translúcidos, tipografía (Apple HIG traducido) — aplicar vía reanimated + gesture-handler |
 | `react-best-practices` | React performance, waterfall elimination, bundle optimization |
 | `composition-patterns` | Compound components, render props, context providers |
+| `ui-ux-pro-max` | **Obligatorio** para UI: antes de crear o modificar cualquier pantalla/componente, usar la skill para validar UX, accessibility, icons, touch targets. Ver `references/pro-rules.md` para checklist pre-entrega. |
+
+#### Mobile UX conventions (established patterns)
+
+All mobile UI **must** follow these rules (derived from `ui-ux-pro-max` skill + `pro-rules.md`):
+
+| Rule | Standard | Anti-pattern |
+|------|----------|-------------|
+| **Icons** | `MaterialCommunityIcons` from `@expo/vector-icons` (already installed) | Emojis as structural icons (🎉📅⏳✓✗) |
+| **Touch targets** | ≥44pt iOS / ≥48dp Android on every tappable element | Tiny buttons without expanded hit area |
+| **Tap feedback** | `opacity: 0.7-0.85` on `Pressable` via `({ pressed }) =>` style | No visual response on press |
+| **Destructive actions** | `Alert.alert()` confirmation before delete/logout | Direct delete without confirmation |
+| **Accessibility** | `accessibilityLabel` + `accessibilityRole` on all interactive elements | Unlabeled controls |
+| **Progress indicators** | Visual progress bars for multi-step flows (sessions, quizzes) | Text-only counter ("Pregunta 3") |
+| **Color not only** | Status = icon + color + text (never color alone) | Red/green only for error/success |
+| **Semantic tokens** | Use `colors.*`, `spacing.*`, `radius.*`, `typography.*` from tokens | Hardcoded hex values per screen |
+| **Consistent sizing** | Icon sizes: badges 12px, actions 20px, headers 24-48px | Mixing arbitrary icon sizes |
+| **Safe area** | Expo Router tabs handle safe areas automatically | Manually adding SafeAreaView |
+
+**Before delivering any mobile UI**, verify against `references/pro-rules.md` checklist (Icons, Touch, Contrast, Accessibility, Layout).
 
 ### Shared (TypeScript) — `packages/shared/`
 

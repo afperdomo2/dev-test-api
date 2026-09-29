@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { NextQuestionItem, SessionAnswer } from '@devtest/shared'
 
 import { MarkdownText } from '@/core/components/MarkdownText'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
+
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
 type QuestionCardMode = 'answer' | 'result'
 
@@ -64,11 +67,12 @@ export function QuestionCard({
       )}
 
       <View style={styles.options}>
-        {question.options.map((opt) => {
+        {question.options.map((opt, idx) => {
           const isSelected = activeSelection.has(opt.id)
           const isCorrect = opt.isCorrect === true
           const showCorrectHighlight = isResult && isCorrect
           const showWrongHighlight = isResult && isSelected && !isCorrect
+          const letter = LETTERS[idx] ?? String(idx + 1)
 
           return (
             <View
@@ -80,12 +84,20 @@ export function QuestionCard({
                 showWrongHighlight && styles.optionWrong,
               ]}
             >
-              {isResult && (
-                <Text style={[styles.optionIcon, isCorrect ? styles.iconCorrect : styles.iconWrong]}>
-                  {isCorrect ? '✓' : isSelected ? '✗' : ''}
-                </Text>
+              {isResult ? (
+                <MaterialCommunityIcons
+                  name={isCorrect ? 'check-circle' : isSelected ? 'close-circle' : 'circle-outline'}
+                  size={18}
+                  color={isCorrect ? colors.primary : isSelected ? colors.destructive : colors.mutedForeground}
+                />
+              ) : (
+                <View style={[styles.letterBadge, isSelected && styles.letterBadgeSelected]}>
+                  <Text style={[styles.letterText, isSelected && styles.letterTextSelected]}>
+                    {letter}
+                  </Text>
+                </View>
               )}
-              <MarkdownText>
+              <MarkdownText style={styles.optionText}>
                 {opt.content}
               </MarkdownText>
             </View>
@@ -95,21 +107,37 @@ export function QuestionCard({
 
       {isResult && lastResult?.explanation ? (
         <View style={styles.explanationBox}>
-          <Text style={styles.explanationLabel}>Explicacion</Text>
+          <View style={styles.explanationHeader}>
+            <MaterialCommunityIcons name="lightbulb-outline" size={16} color={colors.accent} />
+            <Text style={styles.explanationLabel}>Explicacion</Text>
+          </View>
           <MarkdownText style={styles.explanationText}>{lastResult.explanation}</MarkdownText>
         </View>
       ) : null}
 
       {isResult ? (
-        <Pressable style={styles.submit} onPress={onNext}>
+        <Pressable
+          style={({ pressed }) => [styles.submit, pressed && styles.submitPressed]}
+          onPress={onNext}
+          accessibilityRole="button"
+          accessibilityLabel="Siguiente pregunta"
+        >
           <Text style={styles.submitLabel}>Siguiente</Text>
+          <MaterialCommunityIcons name="arrow-right" size={18} color={colors.onPrimary} />
         </Pressable>
       ) : (
         <Pressable
-          style={[styles.submit, activeSelection.size === 0 && styles.submitDisabled]}
+          style={({ pressed }) => [
+            styles.submit,
+            activeSelection.size === 0 && styles.submitDisabled,
+            pressed && styles.submitPressed,
+          ]}
           onPress={() => handleSubmit()}
           disabled={activeSelection.size === 0}
+          accessibilityRole="button"
+          accessibilityLabel="Confirmar respuesta"
         >
+          <MaterialCommunityIcons name="check" size={18} color={colors.onPrimary} />
           <Text style={styles.submitLabel}>Confirmar</Text>
         </Pressable>
       )}
@@ -152,7 +180,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     backgroundColor: colors.card,
-    gap: spacing.sm,
+    gap: spacing.md,
+    minHeight: 48,
   },
   optionSelected: {
     borderColor: colors.primary,
@@ -160,39 +189,35 @@ const styles = StyleSheet.create({
   },
   optionCorrect: {
     borderColor: colors.primary,
-    backgroundColor: `${colors.primary}15`,
+    backgroundColor: `${colors.primary}10`,
   },
   optionWrong: {
     borderColor: colors.destructive,
-    backgroundColor: `${colors.destructive}15`,
+    backgroundColor: `${colors.destructive}10`,
   },
-  optionIcon: {
-    fontSize: typography.size.md,
+  letterBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.muted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  letterBadgeSelected: {
+    backgroundColor: colors.primary,
+  },
+  letterText: {
+    fontSize: typography.size.xs,
     fontWeight: typography.weight.bold,
-    width: 20,
-    textAlign: 'center',
+    color: colors.mutedForeground,
   },
-  iconCorrect: {
-    color: colors.primary,
-  },
-  iconWrong: {
-    color: colors.destructive,
+  letterTextSelected: {
+    color: colors.onPrimary,
   },
   optionText: {
     flex: 1,
     fontSize: typography.size.md,
     color: colors.foreground,
-  },
-  optionTextSelected: {
-    color: colors.primary,
-    fontWeight: typography.weight.medium,
-  },
-  optionTextCorrect: {
-    color: colors.primary,
-    fontWeight: typography.weight.medium,
-  },
-  optionTextWrong: {
-    color: colors.destructive,
   },
   explanationBox: {
     backgroundColor: colors.card,
@@ -200,6 +225,11 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    gap: spacing.sm,
+  },
+  explanationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   explanationLabel: {
@@ -215,10 +245,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   submit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.primary,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
-    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 48,
+  },
+  submitPressed: {
+    opacity: 0.85,
   },
   submitDisabled: {
     opacity: 0.5,

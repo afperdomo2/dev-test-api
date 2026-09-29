@@ -56,9 +56,57 @@ Screen → apiClient (fetch + SecureStore JWT) → backend
 ## Routing & navigation
 
 - Routes live in `app/`. Each file exports a default component (thin re-export of the feature screen).
-- `app/(tabs)/_layout.tsx` renders `<NativeTabs>` with 4 static triggers: `index` (Inicio), `temas`, `progreso`, `perfil`.
-- NativeTabs render no headers — screens show their title via the shared `Screen` primitive (`src/core/components/Screen.tsx`). When a tab needs sub-screens, nest a `<Stack>` group for that tab.
+- `app/(tabs)/_layout.tsx` renders `<NativeTabs>` with 3 triggers: `index` (Inicio), `sesiones` (Sesiones), `perfil` (Perfil).
+- Nested tabs use Stack navigators (e.g. `app/(tabs)/sesiones/` has `_layout.tsx` with `<Stack>` for list → study → summary).
+- NativeTabs render no headers — screens show their title via the shared `Screen` primitive or custom header. When a tab needs sub-screens, nest a `<Stack>` group for that tab.
 - Tab icons: SF Symbols (`sf`) + Material (`md`). Keep labels in Spanish.
+
+## UX conventions
+
+All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` skill):
+
+### Icons
+- **Always use `MaterialCommunityIcons`** from `@expo/vector-icons` — never emojis for structural/navigation icons.
+- Icon sizes: badges `12px`, action rows `20px`, headers `24-48px`.
+- One icon style per hierarchy level (don't mix filled/outline at the same level).
+
+### Touch & Interaction
+- **Touch targets**: minimum 44pt (iOS) / 48dp (Android). Use `hitSlop` or `minHeight`/`minWidth` to expand.
+- **Tap feedback**: every `Pressable` must show `opacity: 0.7-0.85` via `({ pressed }) =>` style pattern.
+- **Destructive actions**: always use `Alert.alert()` confirmation before delete/logout.
+
+### Accessibility
+- `accessibilityLabel` on every interactive element (cards, buttons, icons).
+- `accessibilityRole="button"` on all tappable elements.
+- `accessibilityState` for dynamic states (selected, disabled, busy).
+- Screen reader focus order must match visual order.
+
+### Layout & Spacing
+- Use design tokens from `src/core/theme/tokens.ts` — never hardcode hex values.
+- 8dp spacing rhythm (spacing.xs=4, sm=8, md=16, lg=24, xl=32).
+- Expo Router tabs handle safe areas automatically — don't add SafeAreaView manually.
+- Scroll content must not be hidden behind fixed bars.
+
+### Progress & Feedback
+- Visual progress bars for multi-step flows (sessions, quizzes) — not just text counters.
+- Loading states: `ActivityIndicator` for initial load, skeleton for content.
+- Status = icon + color + text (never color alone for error/success).
+
+### Components
+- `@gorhom/bottom-sheet` for action menus (requires `react-native-reanimated` + `react-native-gesture-handler`, both SDK-compatible via `expo install`).
+- `react-native-markdown-display` for rendering markdown content (questions, explanations).
+- `expo-constants` for app version (`Constants.expoConfig?.version`).
+
+### Pre-delivery checklist
+Before delivering any mobile UI, verify against `pro-rules.md`:
+- [ ] No emojis as icons
+- [ ] All touch targets ≥44pt
+- [ ] Tap feedback on every Pressable
+- [ ] `accessibilityLabel` on interactive elements
+- [ ] Destructive actions have confirmation
+- [ ] Status uses icon + color + text
+- [ ] Design tokens used (no hardcoded colors)
+- [ ] Progress bars for multi-step flows
 
 ## Design system
 

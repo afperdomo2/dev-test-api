@@ -14,11 +14,11 @@ Stack: **React Native + Expo SDK 57** + **Expo Router** (file-based) + **NativeT
 
 ```
 app/            # Expo Router — SOLO rutas y _layout (thin re-exports)
-src/features/   # Dominios: home, themes, progress, profile (screens/, components/)
-src/core/       # theme (tokens), components (Screen), api (por construir)
+src/features/   # Dominios: home, sessions, profile (screens/, components/)
+src/core/       # theme (tokens), components (Screen, MarkdownText), api (client + services), auth, utils
 ```
 
-Rutas actuales: `app/(tabs)/` → Inicio (index), Temas, Progreso, Perfil + `+not-found`.
+Rutas actuales: `app/(tabs)/` → Inicio (index), Sesiones (con sub-rutas), Perfil + `+not-found`.
 
 ## Key facts
 
@@ -27,6 +27,16 @@ Rutas actuales: `app/(tabs)/` → Inicio (index), Temas, Progreso, Perfil + `+no
 - Alias de import `@/*` → `src/*` (tsconfig + `experiments.tsconfigPaths`).
 - Tabs con **NativeTabs** (`expo-router/unstable-native-tabs`), labels en español, iconos SF Symbol + Material.
 - DTOs/tipos/formatters desde `@devtest/shared` — no duplicar.
+- **Iconos**: `MaterialCommunityIcons` de `@expo/vector-icons` — nunca emojis para iconos estructurales.
+- **Bottom sheet**: `@gorhom/bottom-sheet` para menús de acciones (requiere reanimated + gesture-handler del SDK).
+- **Markdown**: `react-native-markdown-display` para contenido de preguntas/explicaciones.
+
+## UX conventions
+
+Ver `.agents/mobile/architecture.md` sección "UX conventions" para reglas completas. Resumen:
+- Touch targets ≥44pt/48dp · Tap feedback en todo Pressable · `accessibilityLabel` en controles interactivos
+- Confirmación `Alert.alert()` antes de acciones destructivas · Progress bars para flujos multi-paso
+- Status = icono + color + texto (nunca solo color) · Usar design tokens (nunca hex hardcodeados)
 
 ## Details
 
