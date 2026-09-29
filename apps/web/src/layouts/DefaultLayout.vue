@@ -22,31 +22,30 @@ interface NavSection {
 }
 
 const navSections: Array<NavSection> = [
-  { items: [{ title: 'Dashboard', to: '/', icon: 'mdi-view-dashboard' }] },
+  { items: [{ title: 'Inicio', to: '/', icon: 'mdi-home' }] },
   {
-    title: 'Preguntas',
-    items: [
-      { title: 'Preguntas', to: '/questions', icon: 'mdi-help-circle' },
-      { title: 'Importar', to: '/questions/import', icon: 'mdi-file-upload' },
-      { title: 'Temas', to: '/topics', icon: 'mdi-tag' },
-      { title: 'Estadísticas', to: '/stats', icon: 'mdi-chart-bar' },
-    ],
-  },
-  {
-    title: 'Estudio',
     items: [
       { title: 'Sesiones', to: '/sessions', icon: 'mdi-play-circle', userOnly: true },
       { title: 'Progreso', to: '/progress', icon: 'mdi-chart-line', userOnly: true },
     ],
   },
   {
+    title: 'Contenido',
+    items: [
+      { title: 'Preguntas', to: '/questions', icon: 'mdi-help-circle' },
+      { title: 'Importar', to: '/questions/import', icon: 'mdi-file-upload' },
+      { title: 'Temas', to: '/topics', icon: 'mdi-tag' },
+      { title: 'Estadísticas', to: '/stats', icon: 'mdi-chart-bar' },
+      { title: 'Tips', to: '/tips', icon: 'mdi-lightbulb-on-outline', adminOnly: true },
+    ],
+  },
+  {
     title: 'Administración',
     items: [
       { title: 'Usuarios', to: '/users', icon: 'mdi-account-group', adminOnly: true },
-      { title: 'Tips', to: '/tips', icon: 'mdi-lightbulb-on-outline', adminOnly: true },
-      { title: 'Generar con IA', to: '/generation', icon: 'mdi-auto-fix', adminOnly: true },
+      { title: 'Generar preguntas', to: '/generation', icon: 'mdi-auto-fix', adminOnly: true },
       {
-        title: 'Ajustes de IA',
+        title: 'Configuración de IA',
         to: '/generation/settings',
         icon: 'mdi-tune-variant',
         adminOnly: true,

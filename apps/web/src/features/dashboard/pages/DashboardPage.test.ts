@@ -34,7 +34,7 @@ describe('DashboardPage', () => {
 
   it('renders dashboard title', async () => {
     const wrapper = await mountDashboard()
-    expect(wrapper.text()).toContain('Dashboard')
+    expect(wrapper.text()).toContain('Inicio')
   })
 
   it('shows user email when logged', async () => {

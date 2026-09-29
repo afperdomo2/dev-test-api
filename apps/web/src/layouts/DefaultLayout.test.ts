@@ -71,7 +71,7 @@ describe('DefaultLayout', () => {
     expect(titles).not.toContain('Progreso')
   })
 
-  it('exposes Tips and Moderación as admin-only items in Administración', () => {
+  it('exposes Moderación as admin-only item in Administración, and Tips in Contenido', () => {
     const { wrapper } = mountLayout(true)
     const vm = wrapper.vm as unknown as {
       filteredSections: Array<{ title?: string; items: Array<{ title: string; to: string }> }>
@@ -79,10 +79,12 @@ describe('DefaultLayout', () => {
     const adminSection = vm.filteredSections.find((s) => s.title === 'Administración')
     const adminItems = adminSection?.items ?? []
     expect(adminItems.map((i) => i.title)).toEqual(
-      expect.arrayContaining(['Usuarios', 'Tips', 'Moderación']),
+      expect.arrayContaining(['Usuarios', 'Moderación']),
     )
-    expect(adminItems.find((i) => i.title === 'Tips')?.to).toBe('/tips')
     expect(adminItems.find((i) => i.title === 'Moderación')?.to).toBe('/reports')
+    const contenidoSection = vm.filteredSections.find((s) => s.title === 'Contenido')
+    const contenidoItems = contenidoSection?.items ?? []
+    expect(contenidoItems.find((i) => i.title === 'Tips')?.to).toBe('/tips')
   })
 
   it('groups nav into sections with correct titles', () => {
@@ -91,12 +93,11 @@ describe('DefaultLayout', () => {
       filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
     }
     const sectionTitles = vm.filteredSections.map((s) => s.title)
-    // Top section has no title (Dashboard), then Preguntas and Estudio
-    expect(sectionTitles).toContain('Preguntas')
-    expect(sectionTitles).toContain('Estudio')
+    // Top section has no title (Inicio), Estudio section has no title, then Contenido
+    expect(sectionTitles).toContain('Contenido')
     expect(sectionTitles).not.toContain('Administración')
-    const preguntasSection = vm.filteredSections.find((s) => s.title === 'Preguntas')
-    expect(preguntasSection?.items.map((i) => i.title)).toEqual(
+    const contenidoSection = vm.filteredSections.find((s) => s.title === 'Contenido')
+    expect(contenidoSection?.items.map((i) => i.title)).toEqual(
       expect.arrayContaining(['Preguntas', 'Importar', 'Temas', 'Estadísticas']),
     )
   })
@@ -109,9 +110,11 @@ describe('DefaultLayout', () => {
     const adminItems = vm.filteredSections.find((s) => s.title === 'Administración')?.items ?? []
     const titles = adminItems.map((i) => i.title)
 
-    expect(titles).toEqual(expect.arrayContaining(['Generar con IA', 'Ajustes de IA']))
-    expect(adminItems.find((i) => i.title === 'Generar con IA')?.to).toBe('/generation')
-    expect(adminItems.find((i) => i.title === 'Ajustes de IA')?.to).toBe('/generation/settings')
+    expect(titles).toEqual(expect.arrayContaining(['Generar preguntas', 'Configuración de IA']))
+    expect(adminItems.find((i) => i.title === 'Generar preguntas')?.to).toBe('/generation')
+    expect(adminItems.find((i) => i.title === 'Configuración de IA')?.to).toBe(
+      '/generation/settings',
+    )
   })
 
   it('does not expose the generation entries to non-admins', () => {
@@ -120,8 +123,8 @@ describe('DefaultLayout', () => {
       filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
     }
     const titles = vm.filteredSections.flatMap((s) => s.items.map((n) => n.title))
-    expect(titles).not.toContain('Generar con IA')
-    expect(titles).not.toContain('Ajustes de IA')
+    expect(titles).not.toContain('Generar preguntas')
+    expect(titles).not.toContain('Configuración de IA')
   })
 
   it('hides empty sections for admin', () => {

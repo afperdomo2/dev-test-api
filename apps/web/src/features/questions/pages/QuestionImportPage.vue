@@ -235,7 +235,7 @@ async function doImport() {
   <v-container>
     <div class="d-flex align-center mb-4">
       <v-btn icon="mdi-arrow-left" variant="text" to="/questions" class="mr-2" />
-      <h1 class="text-h4">Importar contenido</h1>
+      <h1 class="text-h4">Importar</h1>
     </div>
 
     <v-btn-toggle

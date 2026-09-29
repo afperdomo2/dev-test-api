@@ -113,7 +113,7 @@ async function onSubmit(payload: {
 <template>
   <v-container>
     <ListPageHeader
-      title="Generación con IA"
+      title="Generar preguntas"
       create-label=""
       :show-create="false"
       @refresh="handleRefresh"
