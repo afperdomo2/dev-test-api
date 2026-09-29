@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -8,20 +9,43 @@ import {
   Text,
   View,
 } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useRouter } from 'expo-router'
+import type BottomSheet from '@gorhom/bottom-sheet'
 import type { Session } from '@devtest/shared'
 import { SESSION_STATUS_LABELS, SESSION_MODE_LABELS } from '@devtest/shared'
 
-import { listSessions, deleteSession } from '@/core/api/services/sessions.service'
+import { listSessions, deleteSession, finishSession } from '@/core/api/services/sessions.service'
+import { SessionActionsSheet } from '@/features/sessions/components/SessionActionsSheet'
+import { formatRelativeTime } from '@/core/utils/dates'
 import { getErrorDetail } from '@/core/utils/errors'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
+const STATUS_COLORS: Record<string, string> = {
+  in_progress: colors.accent,
+  completed: colors.primary,
+  cancelled: colors.destructive,
+}
+
+const STATUS_ICONS: Record<string, string> = {
+  in_progress: '⏳',
+  completed: '✓',
+  cancelled: '✗',
+}
+
+const MODE_ICONS: Record<string, string> = {
+  review: '📚',
+  daily: '📅',
+}
+
 export default function SessionsListPage() {
   const router = useRouter()
+  const bottomSheetRef = useRef<BottomSheet>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null)
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -42,38 +66,72 @@ export default function SessionsListPage() {
     void load()
   }, [load])
 
+  const openActions = useCallback((session: Session) => {
+    setSelectedSession(session)
+    bottomSheetRef.current?.expand()
+  }, [])
+
+  const handleContinue = useCallback(
+    (id: string) => {
+      router.push(`/(tabs)/sesiones/${id}`)
+    },
+    [router],
+  )
+
+  const handleFinish = useCallback(
+    async (id: string) => {
+      try {
+        await finishSession(id)
+        setSessions((prev) =>
+          prev.map((s) => (s.id === id ? { ...s, status: 'completed' as const } : s)),
+        )
+        router.push(`/(tabs)/sesiones/${id}/summary`)
+      } catch (err) {
+        Alert.alert('Error', getErrorDetail(err, 'No se pudo finalizar la sesion'))
+      }
+    },
+    [router],
+  )
+
+  const handleReview = useCallback(
+    (id: string) => {
+      router.push(`/(tabs)/sesiones/${id}/summary`)
+    },
+    [router],
+  )
+
   const handleDelete = useCallback(async (id: string) => {
     try {
       await deleteSession(id)
       setSessions((prev) => prev.filter((s) => s.id !== id))
-    } catch {
-      // silenciar
+    } catch (err) {
+      Alert.alert('Error', getErrorDetail(err, 'No se pudo eliminar la sesion'))
     }
   }, [])
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <GestureHandlerRootView style={styles.container}>
         <Text style={styles.title}>Sesiones</Text>
         <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      </GestureHandlerRootView>
     )
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
+      <GestureHandlerRootView style={styles.container}>
         <Text style={styles.title}>Sesiones</Text>
         <Text style={styles.error}>{error}</Text>
         <Pressable style={styles.retryButton} onPress={() => void load()}>
           <Text style={styles.retryLabel}>Reintentar</Text>
         </Pressable>
-      </View>
+      </GestureHandlerRootView>
     )
   }
 
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <Text style={styles.title}>Sesiones</Text>
       <FlatList
         data={sessions}
@@ -92,34 +150,77 @@ export default function SessionsListPage() {
             <Text style={styles.emptySubtitle}>Crea tu primera sesion para comenzar a estudiar</Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <Pressable
-            style={styles.card}
-            onPress={() =>
-              router.push(
-                item.status === 'completed'
-                  ? `/(tabs)/sesiones/${item.id}/summary`
-                  : `/(tabs)/sesiones/${item.id}`,
-              )
-            }
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardName} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text style={styles.cardMode}>{SESSION_MODE_LABELS[item.mode]}</Text>
-            </View>
-            <View style={styles.cardMeta}>
-              <Text style={styles.cardStatus}>{SESSION_STATUS_LABELS[item.status]}</Text>
-              {item.score != null && item.score > 0 && (
-                <Text style={styles.cardScore}>{item.score} pts</Text>
-              )}
-              <Text style={styles.cardQuestions}>{item.answerCount} respuestas</Text>
-            </View>
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const statusColor = STATUS_COLORS[item.status] ?? colors.mutedForeground
+          return (
+            <Pressable
+              style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+              onPress={() =>
+                router.push(
+                  item.status === 'completed'
+                    ? `/(tabs)/sesiones/${item.id}/summary`
+                    : `/(tabs)/sesiones/${item.id}`,
+                )
+              }
+              onLongPress={() => openActions(item)}
+            >
+              <View style={[styles.accentDot, { backgroundColor: statusColor }]} />
+
+              <View style={styles.cardBody}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Pressable
+                    style={styles.menuButton}
+                    onPress={() => openActions(item)}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.menuDots}>⋮</Text>
+                  </Pressable>
+                </View>
+
+                <View style={styles.cardBadges}>
+                  <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+                    <Text style={[styles.statusIcon, { color: statusColor }]}>
+                      {STATUS_ICONS[item.status] ?? '?'}
+                    </Text>
+                    <Text style={[styles.statusText, { color: statusColor }]}>
+                      {SESSION_STATUS_LABELS[item.status]}
+                    </Text>
+                  </View>
+                  <View style={styles.modeBadge}>
+                    <Text style={styles.modeIcon}>{MODE_ICONS[item.mode] ?? '📚'}</Text>
+                    <Text style={styles.modeText}>{SESSION_MODE_LABELS[item.mode]}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.cardMeta}>
+                  <Text style={styles.metaDate}>{formatRelativeTime(item.createdAt)}</Text>
+                  <Text style={styles.metaDot}>·</Text>
+                  <Text style={styles.metaText}>{item.answerCount} respuestas</Text>
+                  {item.score != null && item.score > 0 && (
+                    <>
+                      <Text style={styles.metaDot}>·</Text>
+                      <Text style={styles.metaScore}>{item.score} pts</Text>
+                    </>
+                  )}
+                </View>
+              </View>
+            </Pressable>
+          )
+        }}
       />
-    </View>
+
+      <SessionActionsSheet
+        ref={bottomSheetRef}
+        session={selectedSession}
+        onContinue={handleContinue}
+        onFinish={handleFinish}
+        onReview={handleReview}
+        onDelete={handleDelete}
+      />
+    </GestureHandlerRootView>
   )
 }
 
@@ -180,18 +281,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   card: {
+    flexDirection: 'row',
     backgroundColor: colors.card,
     borderRadius: radius.md,
-    padding: spacing.md,
     marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  cardPressed: {
+    opacity: 0.7,
+    borderColor: colors.primary,
+  },
+  accentDot: {
+    width: 4,
+  },
+  cardBody: {
+    flex: 1,
+    padding: spacing.md,
+    gap: spacing.xs,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
   },
   cardName: {
     flex: 1,
@@ -200,26 +313,72 @@ const styles = StyleSheet.create({
     color: colors.foreground,
     marginRight: spacing.sm,
   },
-  cardMode: {
+  menuButton: {
+    padding: spacing.xs,
+  },
+  menuDots: {
+    fontSize: typography.size.xl,
+    color: colors.mutedForeground,
+    fontWeight: typography.weight.bold,
+  },
+  cardBadges: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+    gap: spacing.xs,
+  },
+  statusIcon: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
+  },
+  statusText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.medium,
+  },
+  modeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+    backgroundColor: `${colors.primary}15`,
+    gap: spacing.xs,
+  },
+  modeIcon: {
+    fontSize: typography.size.xs,
+  },
+  modeText: {
     fontSize: typography.size.xs,
     color: colors.primary,
     fontWeight: typography.weight.medium,
   },
   cardMeta: {
     flexDirection: 'row',
-    gap: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.xs,
   },
-  cardStatus: {
+  metaDate: {
     fontSize: typography.size.xs,
     color: colors.mutedForeground,
   },
-  cardScore: {
+  metaDot: {
+    fontSize: typography.size.xs,
+    color: colors.mutedForeground,
+    marginHorizontal: spacing.xs,
+  },
+  metaText: {
+    fontSize: typography.size.xs,
+    color: colors.mutedForeground,
+  },
+  metaScore: {
     fontSize: typography.size.xs,
     color: colors.accent,
     fontWeight: typography.weight.medium,
-  },
-  cardQuestions: {
-    fontSize: typography.size.xs,
-    color: colors.mutedForeground,
   },
 })
