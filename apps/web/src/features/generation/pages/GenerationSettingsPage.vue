@@ -21,7 +21,7 @@ const settings = computed<Array<Setting>>(() => data.value ?? [])
 watch(
   settings,
   (list) => {
-    if (initialized.value) return
+    if (initialized.value || list.length === 0) return
     draft.value = Object.fromEntries(list.map((s) => [s.key, s.value]))
     initialized.value = true
   },

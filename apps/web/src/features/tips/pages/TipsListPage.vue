@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { tipsListOptions, deleteTipMutation } from '@/queries/tips.queries'
 import { useAppStore } from '@/stores/app.store'
+import { useAuthStore } from '@/stores/auth.store'
 import { usePagination } from '@/composables/usePagination'
 import ListPageHeader from '@/components/ListPageHeader.vue'
 import PaginatedFooter from '@/components/PaginatedFooter.vue'
@@ -11,6 +12,7 @@ import TopicSelect from '@/components/TopicSelect.vue'
 import type { Tip } from '@/types/tip.types'
 
 const appStore = useAppStore()
+const authStore = useAuthStore()
 const queryClient = useQueryClient()
 const { page, perPage, reset: resetPagination } = usePagination()
 
@@ -34,12 +36,17 @@ const deleteDialog = ref(false)
 const tipList = computed<Array<Tip>>(() => data.value?.data ?? [])
 const totalTips = computed(() => data.value?.meta?.total ?? 0)
 
-const headers = [
-  { title: 'Contenido', key: 'content', sortable: false },
-  { title: 'Tema', key: 'topic', sortable: false },
-  { title: 'Origen', key: 'source', sortable: false, align: 'center' as const },
-  { title: 'Acciones', key: 'actions', sortable: false, align: 'center' as const },
-]
+const headers = computed(() => {
+  const cols = [
+    { title: 'Contenido', key: 'content', sortable: false },
+    { title: 'Tema', key: 'topic', sortable: false },
+    { title: 'Origen', key: 'source', sortable: false, align: 'center' as const },
+  ]
+  if (authStore.isAdmin) {
+    cols.push({ title: 'Acciones', key: 'actions', sortable: false, align: 'center' as const })
+  }
+  return cols
+})
 
 function onPerPageChange(val: number) {
   perPage.value = val
@@ -97,7 +104,7 @@ function preview(tip: Tip): string {
     <ListPageHeader
       title="Tips"
       create-label="Nuevo tip"
-      :show-create="true"
+      :show-create="authStore.isAdmin"
       @refresh="handleRefresh"
       @create="openCreate"
     />

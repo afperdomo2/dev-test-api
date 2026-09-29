@@ -53,7 +53,7 @@ describe('DefaultLayout', () => {
     expect(titles).toContain('Preguntas')
     expect(titles).toContain('Sesiones')
     expect(titles).not.toContain('Usuarios')
-    expect(titles).not.toContain('Tips')
+    expect(titles).toContain('Tips')
     expect(titles).not.toContain('Moderación')
   })
 
