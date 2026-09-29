@@ -1,6 +1,7 @@
 {
   "name": "dev-test-api",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "packageManager": "pnpm@10.30.3",
   "scripts": {
     "web": "pnpm --filter dev-test-frontend dev",

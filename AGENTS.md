@@ -2,6 +2,12 @@
 
 Fullstack monorepo: **Go + Gin** REST API + **Vue 3 + Vite + Vuetify** web SPA + **React Native + Expo** mobile app + **shared TS** package.
 
+## Rule: no duplicar contenido detallado
+
+**AGENTS.md es un índice ligero.** Para reglas detalladas (convenciones UX, patrones de arquitectura, reglas de diseño, etc.), SIEMPRE leer los archivos en `.agents/<ecosystem>/`. Si un detalle vive en `.agents/`, NO duplicarlo aquí — solo referenciarlo.
+
+Cada ecosystem tiene su propio `AGENTS.md` rápido (`apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md`) y archivos detallados en `.agents/<ecosystem>/`.
+
 ## Commands
 
 ### Backend (root)
@@ -132,24 +138,18 @@ Load the relevant skill with the `skill` tool when working in each ecosystem. Fu
 | `composition-patterns` | Compound components, render props, context providers |
 | `ui-ux-pro-max` | **Obligatorio** para UI: antes de crear o modificar cualquier pantalla/componente, usar la skill para validar UX, accessibility, icons, touch targets. Ver `references/pro-rules.md` para checklist pre-entrega. |
 
-#### Mobile UX conventions (established patterns)
+#### Mobile UX conventions
 
-All mobile UI **must** follow these rules (derived from `ui-ux-pro-max` skill + `pro-rules.md`):
+> **Reglas detalladas**: `.agents/mobile/architecture.md` → sección "UX conventions" + `references/pro-rules.md` del skill `ui-ux-pro-max`.
 
-| Rule | Standard | Anti-pattern |
-|------|----------|-------------|
-| **Icons** | `MaterialCommunityIcons` from `@expo/vector-icons` (already installed) | Emojis as structural icons (🎉📅⏳✓✗) |
-| **Touch targets** | ≥44pt iOS / ≥48dp Android on every tappable element | Tiny buttons without expanded hit area |
-| **Tap feedback** | `opacity: 0.7-0.85` on `Pressable` via `({ pressed }) =>` style | No visual response on press |
-| **Destructive actions** | `Alert.alert()` confirmation before delete/logout | Direct delete without confirmation |
-| **Accessibility** | `accessibilityLabel` + `accessibilityRole` on all interactive elements | Unlabeled controls |
-| **Progress indicators** | Visual progress bars for multi-step flows (sessions, quizzes) | Text-only counter ("Pregunta 3") |
-| **Color not only** | Status = icon + color + text (never color alone) | Red/green only for error/success |
-| **Semantic tokens** | Use `colors.*`, `spacing.*`, `radius.*`, `typography.*` from tokens | Hardcoded hex values per screen |
-| **Consistent sizing** | Icon sizes: badges 12px, actions 20px, headers 24-48px | Mixing arbitrary icon sizes |
-| **Safe area** | Expo Router tabs handle safe areas automatically | Manually adding SafeAreaView |
-
-**Before delivering any mobile UI**, verify against `references/pro-rules.md` checklist (Icons, Touch, Contrast, Accessibility, Layout).
+Reglas clave (resumen — la fuente completa está en `.agents/mobile/architecture.md`):
+- **Icons**: `MaterialCommunityIcons` — nunca emojis para iconos estructurales
+- **Touch targets**: ≥44pt iOS / ≥48dp Android
+- **Tap feedback**: `opacity` en `Pressable` via `({ pressed }) =>` style
+- **Destructive**: `Alert.alert()` antes de delete/logout
+- **Accessibility**: `accessibilityLabel` + `accessibilityRole` en controles interactivos
+- **Progress**: barras de progreso para flujos multi-paso
+- **Tokens**: usar `colors.*`, `spacing.*`, `radius.*`, `typography.*` — no hex hardcodeados
 
 ### Shared (TypeScript) — `packages/shared/`
 
@@ -192,7 +192,7 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 
 | File | Purpose |
 |------|---------|
-| `architecture.md` | Expo Router (`app/`), feature-driven (`src/features` + `src/core`), NativeTabs, design tokens, metro monorepo, SecureStore, HTTP client |
+| `architecture.md` | Expo Router (`app/`), feature-driven (`src/features` + `src/core`), NativeTabs, design tokens, metro monorepo, SecureStore, HTTP client, **UX conventions** |
 | `design-system.md` | **SOURCE OF TRUTH** del diseño mobile: Dark Mode (OLED), paleta, tipografía, anti-patrones |
 | `dependencies.md` | Safety checks before `pnpm add` — Expo compatibility, native module checks |
 

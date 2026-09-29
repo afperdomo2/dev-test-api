@@ -267,3 +267,11 @@ curl http://localhost:8080/api/v1/users \
 - `docs/` y `tmp/` son auto-generados y no se editan manualmente.
 - Air se instaló como project tool (`go get -tool`), no requiere instalación global.
 - `internal/` es privado al módulo Go — no puede ser importado desde fuera del proyecto.
+
+## 📄 Licencia
+
+Este proyecto está licenciado bajo la [PolyForm Noncommercial License 1.0.0](LICENSE).
+
+**Resumen**: Puedes usar, copiar, modificar y distribuir este software para fines **no comerciales**. No está permitido usarlo con fines de lucro o comercialización.
+
+Para más detalles, consulta el archivo [LICENSE](LICENSE).
