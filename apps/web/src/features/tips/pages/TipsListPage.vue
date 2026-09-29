@@ -7,7 +7,6 @@ import { usePagination } from '@/composables/usePagination'
 import ListPageHeader from '@/components/ListPageHeader.vue'
 import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import TipFormDialog from '../components/TipFormDialog.vue'
-import TipImportPanel from '../components/TipImportPanel.vue'
 import TopicSelect from '@/components/TopicSelect.vue'
 import type { Tip } from '@/types/tip.types'
 
@@ -29,7 +28,6 @@ const deleteMut = useMutation(deleteTipMutation())
 
 const dialogOpen = ref(false)
 const editingTip = ref<Tip | null>(null)
-const importDialog = ref(false)
 const deleteTarget = ref<Tip | null>(null)
 const deleteDialog = ref(false)
 
@@ -102,18 +100,7 @@ function preview(tip: Tip): string {
       :show-create="true"
       @refresh="handleRefresh"
       @create="openCreate"
-    >
-      <template #actions>
-        <v-btn
-          variant="tonal"
-          color="secondary"
-          prepend-icon="mdi-upload"
-          @click="importDialog = true"
-        >
-          Importar
-        </v-btn>
-      </template>
-    </ListPageHeader>
+    />
 
     <v-alert type="info" variant="tonal" density="compact" class="mb-4">
       Los tips son públicos para todos los usuarios y se muestran como consejo del día durante la
@@ -196,22 +183,6 @@ function preview(tip: Tip): string {
     </v-card>
 
     <TipFormDialog v-model="dialogOpen" :tip="editingTip" @saved="dialogOpen = false" />
-
-    <v-dialog v-model="importDialog" max-width="720">
-      <v-card>
-        <v-card-title>Importar tips</v-card-title>
-        <v-card-subtitle>
-          Sube un archivo CSV o pega el contenido. Encabezado: <code>content,topic</code>
-        </v-card-subtitle>
-        <v-card-text>
-          <TipImportPanel @imported="importDialog = false" />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="importDialog = false"> Cerrar </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
 
     <v-dialog v-model="deleteDialog" max-width="420">
       <v-card>
