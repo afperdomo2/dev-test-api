@@ -2464,6 +2464,12 @@ const docTemplate = `{
                         "description": "Filtrar solo mis temas personalizados",
                         "name": "myOnly",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filtrar solo temas que tienen al menos una pregunta",
+                        "name": "hasQuestions",
+                        "in": "query"
                     }
                 ],
                 "responses": {

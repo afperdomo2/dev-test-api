@@ -77,6 +77,19 @@ func TestList(t *testing.T) {
 		_, _, err := svc.List(ListTopicsParams{}, false, uid)
 		require.Error(t, err)
 	})
+
+	t.Run("propagates HasQuestions to store", func(t *testing.T) {
+		store := newTopicMock()
+		var got ListTopicsParams
+		store.findPageFilteredFn = func(p ListTopicsParams, _ bool, _ uuid.UUID) ([]models.Topic, int64, error) {
+			got = p
+			return nil, 0, nil
+		}
+		svc := NewService(store)
+		_, _, err := svc.List(ListTopicsParams{HasQuestions: true}, false, uid)
+		require.NoError(t, err)
+		assert.True(t, got.HasQuestions)
+	})
 }
 
 func TestGetByID(t *testing.T) {

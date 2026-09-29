@@ -56,7 +56,8 @@ function clearFilters() {
           <TopicAutocomplete
             v-model="selectedTopicIds"
             label="Tema"
-            no-data-text="Sin temas"
+            has-questions
+            no-data-text="Sin temas con preguntas"
             hide-details
             density="compact"
             placeholder="Filtrar por tema"

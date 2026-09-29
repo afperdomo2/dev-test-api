@@ -95,6 +95,39 @@ func TestTopicsHandler_List(t *testing.T) {
 		h.List(c)
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
+	t.Run("parses hasQuestions filter", func(t *testing.T) {
+		var got ListTopicsParams
+		svc := &mockTopicService{
+			listFn: func(p ListTopicsParams, _ bool, _ uuid.UUID) ([]TopicListResponse, int64, error) {
+				got = p
+				return nil, 0, nil
+			},
+		}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/topics?hasQuestions=true", nil)
+		c.Set("user_claims", claims(uid, false))
+		h.List(c)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.True(t, got.HasQuestions)
+	})
+	t.Run("hasQuestions defaults to false", func(t *testing.T) {
+		var got ListTopicsParams
+		svc := &mockTopicService{
+			listFn: func(p ListTopicsParams, _ bool, _ uuid.UUID) ([]TopicListResponse, int64, error) {
+				got = p
+				return nil, 0, nil
+			},
+		}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/topics", nil)
+		c.Set("user_claims", claims(uid, false))
+		h.List(c)
+		assert.False(t, got.HasQuestions)
+	})
 }
 
 func TestTopicsHandler_Get(t *testing.T) {

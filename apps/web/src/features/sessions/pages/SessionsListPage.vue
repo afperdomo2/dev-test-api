@@ -168,38 +168,49 @@ async function handleCreate() {
       <v-card>
         <v-card-title>Nueva sesión de estudio</v-card-title>
         <v-card-text>
-          <v-form @submit.prevent="handleCreate">
+          <v-form autocomplete="off" @submit.prevent="handleCreate">
             <v-text-field
               v-model="createForm.name"
               label="Nombre"
+              autocomplete="off"
               :error-messages="createErrors.name"
               :disabled="creating"
               required
               placeholder="Ej: Repaso de Go"
             />
 
-            <DifficultySelect v-model="createForm.difficulty" :disabled="creating" />
-
-            <v-text-field
-              v-model.number="createForm.questionLimit"
-              label="Limite de preguntas (opcional)"
-              type="number"
-              min="1"
-              max="50"
-              :error-messages="createErrors.questionLimit"
-              :disabled="creating"
-              hint="Deja en blanco para preguntas ilimitadas"
-              persistent-hint
-            />
+            <v-row dense>
+              <v-col cols="12" sm="6">
+                <DifficultySelect v-model="createForm.difficulty" :disabled="creating" />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model.number="createForm.questionLimit"
+                  label="Límite de preguntas (opcional)"
+                  type="number"
+                  min="1"
+                  max="50"
+                  autocomplete="off"
+                  density="compact"
+                  variant="outlined"
+                  :error-messages="createErrors.questionLimit"
+                  :disabled="creating"
+                  hint="Deja en blanco para ilimitadas"
+                  persistent-hint
+                />
+              </v-col>
+            </v-row>
 
             <TopicAutocomplete
               v-model="createForm.topicIds"
               :active="createDialog"
               label="Temas"
+              has-questions
+              autocomplete="off"
               :error-messages="createErrors.topicIds"
               :disabled="creating"
               required
-              hint="Busca y selecciona los temas a incluir"
+              hint="Solo se muestran los temas que tienen preguntas"
               persistent-hint
             />
           </v-form>

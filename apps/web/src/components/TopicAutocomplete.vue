@@ -18,6 +18,8 @@ interface Props {
   errorMessages?: string | Array<string>
   required?: boolean
   noDataText?: string
+  hasQuestions?: boolean
+  autocomplete?: string
   itemTitle?: (topic: Topic) => string
   itemSubtitle?: (topic: Topic) => string
 }
@@ -34,6 +36,8 @@ const props = withDefaults(defineProps<Props>(), {
   errorMessages: undefined,
   required: false,
   noDataText: 'No se encontraron temas',
+  hasQuestions: false,
+  autocomplete: undefined,
   itemTitle: (topic: Topic) => topic.name,
   itemSubtitle: (topic: Topic) => topic.category,
 })
@@ -43,12 +47,16 @@ const selectedTopics = defineModel<Array<Topic>>('selectedTopics', { default: ()
 
 const { value: search, debouncedValue: debouncedSearch } = useDebounce('', 400)
 
-const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery(
-  topicsInfiniteOptions(
-    () => debouncedSearch.value ?? '',
-    () => props.active,
-  ),
+const queryOptions = computed(() =>
+  topicsInfiniteOptions({
+    search: debouncedSearch.value ?? '',
+    enabled: props.active,
+    hasQuestions: props.hasQuestions,
+  }),
 )
+
+const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  useInfiniteQuery(queryOptions)
 
 const topics = computed<Array<Topic>>(() => data.value?.pages.flatMap((p) => p.data) ?? [])
 
@@ -110,6 +118,7 @@ function onIntersect(isIntersecting: boolean) {
     :disabled="disabled"
     :required="required"
     :loading="isLoading"
+    :autocomplete="autocomplete"
     multiple
     chips
     closable-chips

@@ -65,6 +65,10 @@ func (s *gormStore) FindPageFiltered(params ListTopicsParams, isAdmin bool, user
 		query = query.Where("category = ?", params.Category)
 	}
 
+	if params.HasQuestions {
+		query = query.Where("id IN (SELECT topic_id FROM question_topics)")
+	}
+
 	query.Count(&total)
 
 	err := query.Offset((params.Page - 1) * params.PerPage).Limit(params.PerPage).

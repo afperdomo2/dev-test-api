@@ -288,8 +288,10 @@ function close() {
             v-model="topicIds"
             :active="modelValue"
             label="Temas"
+            has-questions
             :error-messages="fieldError('topicIds')"
             :disabled="saving"
+            required
             hide-details
             density="compact"
             class="mb-3"

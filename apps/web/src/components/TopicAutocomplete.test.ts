@@ -31,7 +31,7 @@ describe('TopicAutocomplete', () => {
     })
     await flushPromises()
 
-    expect(listTopics).toHaveBeenCalledWith(1, 20, 'name', 'asc', '')
+    expect(listTopics).toHaveBeenCalledWith(1, 20, 'name', 'asc', '', undefined, undefined, false)
     const vm = wrapper.vm as unknown as { items: Array<{ title: string; value: string }> }
     expect(vm.items).toEqual([{ title: 'Vue', value: 't1', props: { subtitle: 'frontend' } }])
   })
@@ -59,6 +59,16 @@ describe('TopicAutocomplete', () => {
     })
     await flushPromises()
 
-    expect(listTopics).toHaveBeenCalledWith(1, 20, 'name', 'asc', '')
+    expect(listTopics).toHaveBeenCalledWith(1, 20, 'name', 'asc', '', undefined, undefined, false)
+  })
+
+  it('requests only topics with questions when hasQuestions is set', async () => {
+    vi.mocked(listTopics).mockResolvedValue(pageResponse([vueTopic], 1))
+    await mountWithProviders(TopicAutocomplete, {
+      props: { modelValue: [], hasQuestions: true },
+    })
+    await flushPromises()
+
+    expect(listTopics).toHaveBeenCalledWith(1, 20, 'name', 'asc', '', undefined, undefined, true)
   })
 })

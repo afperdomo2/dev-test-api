@@ -63,21 +63,43 @@ describe('topics.queries', () => {
 
   it('topicsInfiniteOptions queryFn calls service with search', async () => {
     vi.mocked(topicsService.listTopics).mockResolvedValue({ data: [] } as never)
-    const opts = topicsInfiniteOptions(
-      () => 'vue',
-      () => true,
-    )
+    const opts = topicsInfiniteOptions({ search: 'vue', enabled: true, hasQuestions: false })
     await (
       opts as unknown as { queryFn: (ctx: { pageParam: number }) => Promise<unknown> }
     ).queryFn({ pageParam: 2 })
-    expect(topicsService.listTopics).toHaveBeenCalledWith(2, 20, 'name', 'asc', 'vue')
+    expect(topicsService.listTopics).toHaveBeenCalledWith(
+      2,
+      20,
+      'name',
+      'asc',
+      'vue',
+      undefined,
+      undefined,
+      false,
+    )
+  })
+
+  it('topicsInfiniteOptions propagates hasQuestions and isolates the cache key', async () => {
+    vi.mocked(topicsService.listTopics).mockResolvedValue({ data: [] } as never)
+    const opts = topicsInfiniteOptions({ search: '', enabled: true, hasQuestions: true })
+    await (
+      opts as unknown as { queryFn: (ctx: { pageParam: number }) => Promise<unknown> }
+    ).queryFn({ pageParam: 1 })
+    expect(topicsService.listTopics).toHaveBeenCalledWith(
+      1,
+      20,
+      'name',
+      'asc',
+      '',
+      undefined,
+      undefined,
+      true,
+    )
+    expect(opts.queryKey).toEqual(['topics', 'list', 'infinite', '', true])
   })
 
   it('topicsInfiniteOptions getNextPageParam by total', () => {
-    const opts = topicsInfiniteOptions(
-      () => '',
-      () => true,
-    )
+    const opts = topicsInfiniteOptions({ search: '', enabled: true, hasQuestions: false })
     const getNextPageParam = (
       opts as unknown as {
         getNextPageParam: (

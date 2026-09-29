@@ -2454,6 +2454,10 @@ paths:
         in: query
         name: myOnly
         type: boolean
+      - description: Filtrar solo temas que tienen al menos una pregunta
+        in: query
+        name: hasQuestions
+        type: boolean
       produces:
       - application/json
       responses:

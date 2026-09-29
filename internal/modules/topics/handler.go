@@ -30,7 +30,8 @@ func NewHandler(service Service) *Handler {
 // @Param        sortOrder  query  string  false  "Dirección: asc o desc (default: desc)"
 // @Param        search     query  string  false  "Búsqueda por nombre o slug"
 // @Param        category   query  string  false  "Filtrar por categoría"
-// @Param        myOnly     query  bool    false  "Filtrar solo mis temas personalizados"
+// @Param        myOnly       query  bool    false  "Filtrar solo mis temas personalizados"
+// @Param        hasQuestions query  bool    false  "Filtrar solo temas que tienen al menos una pregunta"
 // @Success      200  {object}  response.Meta  "Lista de temas (con paginación)"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
@@ -54,6 +55,7 @@ func (h *Handler) List(c *gin.Context) {
 		Search:           c.Query("search"),
 		Category:         c.Query("category"),
 		MyOnly:           c.Query("myOnly") == "true" || c.Query("myOnly") == "1",
+		HasQuestions:     c.Query("hasQuestions") == "true" || c.Query("hasQuestions") == "1",
 	}
 
 	topics, total, err := h.service.List(params, isAdmin, userID)

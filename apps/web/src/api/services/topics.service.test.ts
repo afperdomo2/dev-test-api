@@ -27,7 +27,7 @@ describe('topics.service', () => {
 
   it('listTopics with all optional params', async () => {
     mockedGet.mockResolvedValue({ data: {} })
-    await listTopics(1, 10, 'name', 'asc', 'search term', 'backend', true)
+    await listTopics(1, 10, 'name', 'asc', 'search term', 'backend', true, true)
     expect(mockedGet).toHaveBeenCalledWith('/api/v1/topics', {
       params: {
         page: 1,
@@ -37,13 +37,14 @@ describe('topics.service', () => {
         search: 'search term',
         category: 'backend',
         myOnly: true,
+        hasQuestions: true,
       },
     })
   })
 
   it('listTopics omits falsy optionals', async () => {
     mockedGet.mockResolvedValue({ data: {} })
-    await listTopics(1, 10, undefined, undefined, '', '', false)
+    await listTopics(1, 10, undefined, undefined, '', '', false, false)
     expect(mockedGet).toHaveBeenCalledWith('/api/v1/topics', { params: { page: 1, perPage: 10 } })
   })
 

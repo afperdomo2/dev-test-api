@@ -5,11 +5,26 @@ import type { Topic } from '@/types/topic.types'
 
 const TOPICS_PER_PAGE = 20
 
-export function topicsInfiniteOptions(search: () => string, enabled: () => boolean) {
+export interface TopicsInfiniteFilters {
+  search: string
+  enabled: boolean
+  hasQuestions: boolean
+}
+
+export function topicsInfiniteOptions(filters: TopicsInfiniteFilters) {
   return infiniteQueryOptions({
-    queryKey: ['topics', 'list', 'infinite', search],
+    queryKey: ['topics', 'list', 'infinite', filters.search, filters.hasQuestions],
     queryFn: ({ pageParam = 1 }) =>
-      topicsService.listTopics(pageParam as number, TOPICS_PER_PAGE, 'name', 'asc', search()),
+      topicsService.listTopics(
+        pageParam as number,
+        TOPICS_PER_PAGE,
+        'name',
+        'asc',
+        filters.search,
+        undefined,
+        undefined,
+        filters.hasQuestions,
+      ),
     getNextPageParam: (
       lastPage: PaginatedResponse<Topic>,
       allPages: Array<PaginatedResponse<Topic>>,
@@ -19,7 +34,7 @@ export function topicsInfiniteOptions(search: () => string, enabled: () => boole
     },
     initialPageParam: 1,
     staleTime: 60 * 1000,
-    enabled,
+    enabled: filters.enabled,
   })
 }
 
