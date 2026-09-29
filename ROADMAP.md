@@ -145,7 +145,7 @@
 ### Fase 7 — Mobile foundation + sesión diaria
 > La sesión diaria es mobile-first (prompt al entrar), pero la app mobile no tiene infraestructura aún. Dependencias previas obligatorias.
 
-- [ ] **7.1** **Auth mobile**: pantalla de login/setup + `expo-secure-store` para JWT.
+- [x] **7.1** **Auth mobile**: pantalla de login/setup + `expo-secure-store` para JWT.
 - [ ] **7.2** **API client mobile** (`src/core/api/client.ts`): fetch + Bearer token + unwrap envelope + RFC 9457 errors.
 - [ ] **7.3** **Servicios mobile** (`src/core/api/services/`): sessions, questions, progress, gamification (usando `@devtest/shared`).
 - [ ] **7.4** **Flujo de sesión** en mobile: crear sesión → `NextQuestion` → responder → feedback con `Reward`.

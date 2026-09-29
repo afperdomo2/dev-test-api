@@ -21,22 +21,55 @@ pnpm mobile
 cd apps/mobile && npx expo start
 ```
 
+## 🔧 Variables de entorno
+
+Copia `.env.example` a `.env` y ajusta según tu entorno:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Descripción | Default |
+|----------|-------------|---------|
+| `EXPO_PUBLIC_API_BASE_URL` | URL del backend (sin trailing slash) | `http://localhost:8080` |
+
+**Para dispositivo real** en la misma red WiFi, usa la IP LAN de tu máquina:
+
+```env
+EXPO_PUBLIC_API_BASE_URL=http://192.168.1.x:8080
+```
+
+> En iOS simulator / Android emulator `localhost` funciona directamente. En dispositivo real necesitas la IP de tu máquina en la LAN.
+
 ## 📁 Estructura
 
 ```
 apps/mobile/
-├── app/               # Expo Router — solo rutas y _layout (app/(tabs)/, +not-found)
+├── app/                 # Expo Router — rutas + _layout (AuthGate, tabs, login, setup)
 ├── src/
-│   ├── features/      # Dominios: home, themes, progress, profile (screens/, components/)
-│   └── core/          # theme (tokens), components (Screen), api (por construir)
-├── metro.config.js    # Config monorepo (watchFolders, nodeModulesPaths)
-├── app.json           # Config Expo (plugin expo-router, dark, scheme "devtest")
-├── tsconfig.json      # Extiende expo/tsconfig.base + alias "@/*" → src/*
-└── assets/            # Íconos, splash
+│   ├── core/
+│   │   ├── api/         # client.ts (fetch + Bearer + unwrap envelope) + services/
+│   │   ├── auth/        # storage.ts (SecureStore) + auth.store.ts (Zustand)
+│   │   ├── components/  # Screen.tsx (primitivo compartido)
+│   │   ├── theme/       # tokens.ts (colores, spacing, tipografía)
+│   │   └── utils/       # errors.ts (extrae detail de RFC 9457)
+│   └── features/
+│       ├── auth/        # LoginScreen, SetupScreen, AuthCard, AuthInput, AuthButton
+│       ├── home/        # HomeScreen (placeholder)
+│       ├── profile/     # ProfileScreen (placeholder)
+│       ├── progress/    # ProgressScreen (placeholder)
+│       └── themes/      # ThemesScreen (placeholder)
+├── metro.config.js      # Config monorepo (watchFolders, nodeModulesPaths)
+├── app.json             # Config Expo (plugin expo-router, dark, scheme "devtest")
+├── tsconfig.json        # Extiende expo/tsconfig.base + alias "@/*" → src/*
+├── .env                 # Variables de entorno local (no commitear)
+├── .env.example         # Plantilla de variables de entorno
+└── assets/              # Íconos, splash
 ```
 
 - Navegación: **Expo Router** con **NativeTabs** (4 tabs: Inicio, Temas, Progreso, Perfil).
 - Design system (dark, OLED): `.agents/mobile/design-system.md` → tokens en `src/core/theme/tokens.ts`.
+- Auth: `expo-secure-store` (JWT) + Zustand (`auth.store.ts`). El `AuthGate` en `app/_layout.tsx` gestiona login/setup/tabs.
 
 ## 🔗 Paquete compartido (@devtest/shared)
 
