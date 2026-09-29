@@ -1,20 +1,36 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import type { NextQuestionItem } from '@devtest/shared'
+import type { NextQuestionItem, SessionAnswer } from '@devtest/shared'
 
+import { MarkdownText } from '@/core/components/MarkdownText'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
+
+type QuestionCardMode = 'answer' | 'result'
 
 type QuestionCardProps = {
   question: NextQuestionItem
+  mode: QuestionCardMode
+  selectedOptions: string[]
+  lastResult: SessionAnswer | null
   onAnswer: (selectedOptions: string[]) => void
+  onNext: () => void
 }
 
-export function QuestionCard({ question, onAnswer }: QuestionCardProps) {
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+export function QuestionCard({
+  question,
+  mode,
+  selectedOptions,
+  lastResult,
+  onAnswer,
+  onNext,
+}: QuestionCardProps) {
+  const [localSelected, setLocalSelected] = useState<Set<string>>(new Set())
   const isMultiple = question.type === 'multiple_choice'
+  const isResult = mode === 'result'
 
   const toggleOption = (id: string) => {
-    setSelected((prev) => {
+    if (isResult) return
+    setLocalSelected((prev) => {
       const next = new Set(prev)
       if (next.has(id)) {
         next.delete(id)
@@ -27,61 +43,85 @@ export function QuestionCard({ question, onAnswer }: QuestionCardProps) {
   }
 
   const handleSubmit = () => {
-    if (selected.size === 0) return
-    onAnswer(Array.from(selected))
+    if (localSelected.size === 0) return
+    onAnswer(Array.from(localSelected))
   }
 
+  const activeSelection = isResult ? new Set(selectedOptions) : localSelected
+
   return (
-    <>
-      <View style={styles.content}>
-        <Text style={styles.text}>{question.content}</Text>
+    <View style={styles.container}>
+      <MarkdownText style={styles.content}>{question.content}</MarkdownText>
 
-        {question.topics.length > 0 && (
-          <View style={styles.topics}>
-            {question.topics.map((t) => (
-              <Text key={t} style={styles.topic}>
-                {t}
-              </Text>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.options}>
-          {question.options.map((opt) => {
-            const isSelected = selected.has(opt.id)
-            return (
-              <Pressable
-                key={opt.id}
-                style={[styles.option, isSelected && styles.optionSelected]}
-                onPress={() => toggleOption(opt.id)}
-              >
-                <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
-                  {opt.content}
-                </Text>
-              </Pressable>
-            )
-          })}
+      {question.topics.length > 0 && (
+        <View style={styles.topics}>
+          {question.topics.map((t) => (
+            <Text key={t} style={styles.topic}>
+              {t}
+            </Text>
+          ))}
         </View>
+      )}
+
+      <View style={styles.options}>
+        {question.options.map((opt) => {
+          const isSelected = activeSelection.has(opt.id)
+          const isCorrect = opt.isCorrect === true
+          const showCorrectHighlight = isResult && isCorrect
+          const showWrongHighlight = isResult && isSelected && !isCorrect
+
+          return (
+            <View
+              key={opt.id}
+              style={[
+                styles.option,
+                isSelected && !isResult && styles.optionSelected,
+                showCorrectHighlight && styles.optionCorrect,
+                showWrongHighlight && styles.optionWrong,
+              ]}
+            >
+              {isResult && (
+                <Text style={[styles.optionIcon, isCorrect ? styles.iconCorrect : styles.iconWrong]}>
+                  {isCorrect ? '✓' : isSelected ? '✗' : ''}
+                </Text>
+              )}
+              <MarkdownText>
+                {opt.content}
+              </MarkdownText>
+            </View>
+          )
+        })}
       </View>
 
-      <View style={styles.footer}>
+      {isResult && lastResult?.explanation ? (
+        <View style={styles.explanationBox}>
+          <Text style={styles.explanationLabel}>Explicacion</Text>
+          <MarkdownText style={styles.explanationText}>{lastResult.explanation}</MarkdownText>
+        </View>
+      ) : null}
+
+      {isResult ? (
+        <Pressable style={styles.submit} onPress={onNext}>
+          <Text style={styles.submitLabel}>Siguiente</Text>
+        </Pressable>
+      ) : (
         <Pressable
-          style={[styles.submit, selected.size === 0 && styles.submitDisabled]}
-          onPress={handleSubmit}
-          disabled={selected.size === 0}
+          style={[styles.submit, activeSelection.size === 0 && styles.submitDisabled]}
+          onPress={() => handleSubmit()}
+          disabled={activeSelection.size === 0}
         >
           <Text style={styles.submitLabel}>Confirmar</Text>
         </Pressable>
-      </View>
-    </>
+      )}
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  content: {
+  container: {
     gap: spacing.lg,
   },
-  text: {
+  content: {
     fontSize: typography.size.lg,
     fontWeight: typography.weight.medium,
     color: colors.foreground,
@@ -105,17 +145,41 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   option: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
     padding: spacing.md,
     backgroundColor: colors.card,
+    gap: spacing.sm,
   },
   optionSelected: {
     borderColor: colors.primary,
     backgroundColor: `${colors.primary}15`,
   },
+  optionCorrect: {
+    borderColor: colors.primary,
+    backgroundColor: `${colors.primary}15`,
+  },
+  optionWrong: {
+    borderColor: colors.destructive,
+    backgroundColor: `${colors.destructive}15`,
+  },
+  optionIcon: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    width: 20,
+    textAlign: 'center',
+  },
+  iconCorrect: {
+    color: colors.primary,
+  },
+  iconWrong: {
+    color: colors.destructive,
+  },
   optionText: {
+    flex: 1,
     fontSize: typography.size.md,
     color: colors.foreground,
   },
@@ -123,9 +187,32 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: typography.weight.medium,
   },
-  footer: {
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xl,
+  optionTextCorrect: {
+    color: colors.primary,
+    fontWeight: typography.weight.medium,
+  },
+  optionTextWrong: {
+    color: colors.destructive,
+  },
+  explanationBox: {
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.xs,
+  },
+  explanationLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.mutedForeground,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  explanationText: {
+    fontSize: typography.size.sm,
+    color: colors.foreground,
+    lineHeight: 20,
   },
   submit: {
     backgroundColor: colors.primary,

@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import type { NextQuestionItem, SessionAnswer, Reward } from '@devtest/shared'
+import type { NextQuestionItem, SessionAnswer, SessionSummary, Reward } from '@devtest/shared'
 
 import { QuestionCard } from '@/features/sessions/components/QuestionCard'
-import { FeedbackOverlay } from '@/features/sessions/components/FeedbackOverlay'
 import {
   getSessionById,
+  getSessionSummary,
   getNextQuestion,
   submitAnswer,
   finishSession,
@@ -14,83 +21,126 @@ import {
 import { getErrorDetail } from '@/core/utils/errors'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
-type StudyState = 'loading' | 'question' | 'feedback' | 'finished' | 'error'
+type Phase = 'loading' | 'question' | 'result' | 'finished' | 'error'
 
 export default function SessionStudyPage() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
 
-  const [state, setState] = useState<StudyState>('loading')
+  const [phase, setPhase] = useState<Phase>('loading')
+  const [sessionStatus, setSessionStatus] = useState<string | null>(null)
   const [question, setQuestion] = useState<NextQuestionItem | null>(null)
-  const [feedback, setFeedback] = useState<{
-    isCorrect: boolean
-    xpGained: number
-    reward?: Reward
-  } | null>(null)
+  const [summary, setSummary] = useState<SessionSummary | null>(null)
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([])
+  const [lastResult, setLastResult] = useState<SessionAnswer | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [answerCount, setAnswerCount] = useState(0)
   const loadingRef = useRef(false)
+
+  const questionNumber = summary ? summary.answerCount + 1 : 1
+  const questionLimit = summary?.questionLimit ?? null
+
+  const loadSessionData = useCallback(async (sessionId: string) => {
+    const [sess, sum] = await Promise.all([
+      getSessionById(sessionId).catch(() => null),
+      getSessionSummary(sessionId).catch(() => null),
+    ])
+    if (sess) setSessionStatus(sess.status)
+    if (sum) setSummary(sum)
+    return { session: sess, summary: sum }
+  }, [])
 
   const loadNext = useCallback(
     async (sessionId: string) => {
       if (loadingRef.current) return
       loadingRef.current = true
-      setState('loading')
+      setPhase('loading')
+      setSelectedOptions([])
+      setLastResult(null)
       try {
         const next = await getNextQuestion(sessionId)
         setQuestion(next)
-        setState('question')
+        setPhase('question')
       } catch {
-        setState('finished')
+        await loadSessionData(sessionId)
+        setPhase('finished')
       } finally {
         loadingRef.current = false
       }
     },
-    [],
+    [loadSessionData],
   )
 
   useEffect(() => {
     if (!id) return
-    void loadNext(id)
-  }, [id, loadNext])
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { session, summary: sum } = await loadSessionData(id)
+        if (cancelled) return
+
+        if (session?.status === 'completed') {
+          setPhase('finished')
+          return
+        }
+        await loadNext(id)
+      } catch {
+        if (!cancelled) setPhase('error')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [id, loadSessionData, loadNext])
 
   const handleAnswer = useCallback(
-    async (selectedOptions: string[]) => {
+    async (options: string[]) => {
       if (!id || !question) return
-      setState('feedback')
+      setSelectedOptions(options)
+      setPhase('loading')
       try {
         const result = await submitAnswer(id, {
           questionId: question.id,
-          selectedOptions,
+          selectedOptions: options,
         })
-        setFeedback({
-          isCorrect: result.isCorrect,
-          xpGained: 0, // el backend no retorna xpGained en SessionAnswer
-        })
-        setAnswerCount((prev) => prev + 1)
+        setLastResult(result)
+        setSummary((prev) =>
+          prev ? { ...prev, answerCount: prev.answerCount + 1 } : prev,
+        )
+        setPhase('result')
       } catch {
-        // si falla, avanzar de todas formas
-        setFeedback({ isCorrect: false, xpGained: 0 })
+        setPhase('result')
       }
     },
     [id, question],
   )
 
-  const handleFeedbackDismiss = useCallback(() => {
-    setFeedback(null)
-    if (id) void loadNext(id)
-  }, [id, loadNext])
+  const handleNext = useCallback(() => {
+    if (!id) return
+    if (questionLimit !== null && questionNumber >= questionLimit) {
+      setPhase('finished')
+      return
+    }
+    void loadNext(id)
+  }, [id, questionNumber, questionLimit, loadNext])
 
   const handleFinish = useCallback(async () => {
     if (!id) return
+    if (sessionStatus === 'completed') {
+      router.replace(`/(tabs)/sesiones/${id}/summary`)
+      return
+    }
     try {
       await finishSession(id)
-    } finally {
-      router.replace('/(tabs)/sesiones')
+      router.replace(`/(tabs)/sesiones/${id}/summary`)
+    } catch (err) {
+      const detail = getErrorDetail(err, 'Error al finalizar')
+      if (detail.includes('completada')) {
+        router.replace(`/(tabs)/sesiones/${id}/summary`)
+      }
     }
-  }, [id, router])
+  }, [id, sessionStatus, router])
 
-  if (state === 'loading') {
+  if (phase === 'loading' && !question) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -98,28 +148,33 @@ export default function SessionStudyPage() {
     )
   }
 
-  if (state === 'error' || error) {
+  if (phase === 'error' || error) {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>{error ?? 'Ocurrio un error'}</Text>
         <Pressable style={styles.button} onPress={() => id && void loadNext(id)}>
           <Text style={styles.buttonLabel}>Reintentar</Text>
         </Pressable>
-        <Pressable style={styles.buttonSecondary} onPress={() => router.back()}>
-          <Text style={styles.buttonSecondaryLabel}>Volver</Text>
+        <Pressable style={styles.buttonGhost} onPress={() => router.back()}>
+          <Text style={styles.buttonGhostLabel}>Volver</Text>
         </Pressable>
       </View>
     )
   }
 
-  if (state === 'finished') {
+  if (phase === 'finished') {
     return (
       <View style={styles.center}>
         <Text style={styles.finishedIcon}>🎉</Text>
         <Text style={styles.finishedTitle}>Sesion completada</Text>
-        <Text style={styles.finishedMeta}>Respondiste {answerCount} preguntas</Text>
-        <Pressable style={styles.button} onPress={() => handleFinish()}>
+        <Text style={styles.finishedMeta}>
+          Respondiste {summary?.answerCount ?? 0} preguntas
+        </Text>
+        <Pressable style={styles.button} onPress={() => void handleFinish()}>
           <Text style={styles.buttonLabel}>Ver resumen</Text>
+        </Pressable>
+        <Pressable style={styles.buttonGhost} onPress={() => router.replace('/(tabs)/sesiones')}>
+          <Text style={styles.buttonGhostLabel}>Volver a sesiones</Text>
         </Pressable>
       </View>
     )
@@ -131,21 +186,25 @@ export default function SessionStudyPage() {
         <Pressable onPress={() => router.back()}>
           <Text style={styles.backLabel}>← Volver</Text>
         </Pressable>
-        <Text style={styles.counter}>{answerCount}</Text>
+        <Text style={styles.counter}>
+          {questionLimit !== null
+            ? `${questionNumber} / ${questionLimit}`
+            : `Pregunta ${questionNumber}`}
+        </Text>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {question && <QuestionCard question={question} onAnswer={handleAnswer} />}
+        {question && (
+          <QuestionCard
+            question={question}
+            mode={phase === 'result' ? 'result' : 'answer'}
+            selectedOptions={selectedOptions}
+            lastResult={lastResult}
+            onAnswer={handleAnswer}
+            onNext={handleNext}
+          />
+        )}
       </ScrollView>
-
-      {feedback && (
-        <FeedbackOverlay
-          isCorrect={feedback.isCorrect}
-          xpGained={feedback.xpGained}
-          reward={feedback.reward}
-          onDismiss={handleFeedbackDismiss}
-        />
-      )}
     </View>
   )
 }
@@ -176,7 +235,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   counter: {
-    fontSize: typography.size.md,
+    fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
     color: colors.mutedForeground,
   },
@@ -203,11 +262,11 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.semibold,
     color: colors.onPrimary,
   },
-  buttonSecondary: {
+  buttonGhost: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xl,
   },
-  buttonSecondaryLabel: {
+  buttonGhostLabel: {
     fontSize: typography.size.md,
     color: colors.mutedForeground,
   },

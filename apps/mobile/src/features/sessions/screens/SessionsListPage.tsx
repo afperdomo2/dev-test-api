@@ -95,7 +95,13 @@ export default function SessionsListPage() {
         renderItem={({ item }) => (
           <Pressable
             style={styles.card}
-            onPress={() => router.push(`/(tabs)/sesiones/${item.id}`)}
+            onPress={() =>
+              router.push(
+                item.status === 'completed'
+                  ? `/(tabs)/sesiones/${item.id}/summary`
+                  : `/(tabs)/sesiones/${item.id}`,
+              )
+            }
           >
             <View style={styles.cardHeader}>
               <Text style={styles.cardName} numberOfLines={1}>
@@ -105,10 +111,10 @@ export default function SessionsListPage() {
             </View>
             <View style={styles.cardMeta}>
               <Text style={styles.cardStatus}>{SESSION_STATUS_LABELS[item.status]}</Text>
-              <Text style={styles.cardScore}>{item.score} pts</Text>
-              <Text style={styles.cardQuestions}>
-                {item.answerCount}/{item.questionLimit ?? '∞'}
-              </Text>
+              {item.score != null && item.score > 0 && (
+                <Text style={styles.cardScore}>{item.score} pts</Text>
+              )}
+              <Text style={styles.cardQuestions}>{item.answerCount} respuestas</Text>
             </View>
           </Pressable>
         )}
