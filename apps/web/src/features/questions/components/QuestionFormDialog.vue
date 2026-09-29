@@ -46,6 +46,8 @@ const options = ref<Array<{ content: string; isCorrect: boolean }>>([
   { content: '', isCorrect: false },
 ])
 
+const trueFalseAnswer = ref<boolean | null>(null)
+
 const language = ref('')
 const starterCode = ref('')
 const expectedOutput = ref('')
@@ -54,6 +56,7 @@ const testCases = ref('')
 const isChoiceType = computed(
   () => selectedType.value === 'single_choice' || selectedType.value === 'multiple_choice',
 )
+const isTrueFalse = computed(() => selectedType.value === 'true_false')
 const isCodeType = computed(() => selectedType.value === 'code_completion')
 
 const validationErrors = ref<Record<string, Array<string>>>({})
@@ -100,6 +103,7 @@ watch(
         expectedOutput.value = ''
         testCases.value = ''
       }
+      trueFalseAnswer.value = props.question ? resolveTrueFalseAnswer(props.question) : null
       validationErrors.value = {}
       serverErrors.value = {}
     }
@@ -112,6 +116,35 @@ function addOption() {
 
 function removeOption(index: number) {
   options.value.splice(index, 1)
+}
+
+function resolveTrueFalseAnswer(question: Question): boolean | null {
+  const correct = question.options?.find((o) => o.isCorrect)
+  if (!correct) return null
+  return /^(falso|false)\b/i.test(correct.content.trim()) ? false : true
+}
+
+function buildTrueFalseOptions(): Array<CreateQuestionOption> {
+  const answerIsTrue = trueFalseAnswer.value === true
+  return [
+    { content: 'Verdadero', isCorrect: answerIsTrue },
+    { content: 'Falso', isCorrect: !answerIsTrue },
+  ]
+}
+
+function applyTypePayload(data: CreateQuestionRequest | UpdateQuestionRequest): void {
+  if (isChoiceType.value) {
+    data.options = options.value.filter((o) => o.content.trim()) as Array<CreateQuestionOption>
+    return
+  }
+  if (isTrueFalse.value) {
+    data.options = buildTrueFalseOptions()
+    return
+  }
+  data.language = language.value
+  data.starterCode = starterCode.value || undefined
+  data.expectedOutput = expectedOutput.value || undefined
+  data.testCases = testCases.value || undefined
 }
 
 function validate(): boolean {
@@ -129,6 +162,9 @@ function validate(): boolean {
         'Debe marcar al menos una opción como correcta',
       ]
     }
+  }
+  if (isTrueFalse.value && trueFalseAnswer.value === null) {
+    newErrors.trueFalseAnswer = ['Selecciona cuál es la respuesta correcta']
   }
   if (isCodeType.value) {
     newErrors.language = validateRules([requiredRule()], language.value)
@@ -156,14 +192,7 @@ async function submit() {
         explanation: explanation.value || undefined,
         topicIds: topicIds.value,
       }
-      if (isChoiceType.value) {
-        data.options = options.value.filter((o) => o.content.trim()) as Array<CreateQuestionOption>
-      } else {
-        data.language = language.value
-        data.starterCode = starterCode.value || undefined
-        data.expectedOutput = expectedOutput.value || undefined
-        data.testCases = testCases.value || undefined
-      }
+      applyTypePayload(data)
       await updateMut.mutateAsync({ id: props.question.id, data })
       appStore.showSnackbar('Pregunta actualizada')
     } else {
@@ -174,14 +203,7 @@ async function submit() {
         explanation: explanation.value || undefined,
         topicIds: topicIds.value,
       }
-      if (isChoiceType.value) {
-        data.options = options.value.filter((o) => o.content.trim()) as Array<CreateQuestionOption>
-      } else {
-        data.language = language.value
-        data.starterCode = starterCode.value || undefined
-        data.expectedOutput = expectedOutput.value || undefined
-        data.testCases = testCases.value || undefined
-      }
+      applyTypePayload(data)
       await createMut.mutateAsync(data)
       appStore.showSnackbar('Pregunta creada')
     }
@@ -323,6 +345,23 @@ function close() {
             >
               Agregar opción
             </v-btn>
+          </template>
+
+          <!-- True/False -->
+          <template v-if="isTrueFalse">
+            <v-divider class="mb-3" />
+            <div class="text-subtitle-2 mb-2">Respuesta correcta</div>
+            <v-radio-group
+              v-model="trueFalseAnswer"
+              inline
+              :disabled="saving"
+              :error-messages="fieldError('trueFalseAnswer')"
+              hide-details="auto"
+              density="compact"
+            >
+              <v-radio :value="true" label="Verdadero" color="success" />
+              <v-radio :value="false" label="Falso" color="error" />
+            </v-radio-group>
           </template>
 
           <!-- Code challenge -->

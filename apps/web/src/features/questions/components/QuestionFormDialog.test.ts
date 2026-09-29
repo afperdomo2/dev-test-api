@@ -71,4 +71,62 @@ describe('QuestionFormDialog', () => {
     vm.close()
     expect(wrapper.emitted('update:modelValue')).toBeTruthy()
   })
+
+  it('requires selecting the correct answer for true_false', () => {
+    const wrapper = mountDialog()
+    const vm = wrapper.vm as unknown as {
+      selectedType: string
+      content: string
+      topicIds: Array<string>
+      trueFalseAnswer: boolean | null
+      validate: () => boolean
+      validationErrors: Record<string, Array<string>>
+    }
+    vm.selectedType = 'true_false'
+    vm.content = '¿Go permite múltiples valores de retorno?'
+    vm.topicIds = ['t1']
+
+    expect(vm.validate()).toBe(false)
+    expect(vm.validationErrors.trueFalseAnswer).toBeTruthy()
+
+    vm.trueFalseAnswer = true
+    expect(vm.validate()).toBe(true)
+  })
+
+  it('buildTrueFalseOptions returns exactly 2 options with one correct', () => {
+    const wrapper = mountDialog()
+    const vm = wrapper.vm as unknown as {
+      trueFalseAnswer: boolean | null
+      buildTrueFalseOptions: () => Array<{ content: string; isCorrect: boolean }>
+    }
+    vm.trueFalseAnswer = true
+    expect(vm.buildTrueFalseOptions()).toEqual([
+      { content: 'Verdadero', isCorrect: true },
+      { content: 'Falso', isCorrect: false },
+    ])
+    vm.trueFalseAnswer = false
+    expect(vm.buildTrueFalseOptions()).toEqual([
+      { content: 'Verdadero', isCorrect: false },
+      { content: 'Falso', isCorrect: true },
+    ])
+  })
+
+  it('derives the true_false answer when editing an existing question', async () => {
+    const question = {
+      id: '1',
+      type: 'true_false',
+      content: 'Q',
+      difficulty: 'easy',
+      explanation: '',
+      topics: [],
+      options: [
+        { id: 'o1', content: 'Verdadero', isCorrect: false },
+        { id: 'o2', content: 'Falso', isCorrect: true },
+      ],
+    }
+    const wrapper = mountDialog({ modelValue: false, question })
+    await wrapper.setProps({ modelValue: true })
+    const vm = wrapper.vm as unknown as { trueFalseAnswer: boolean | null }
+    expect(vm.trueFalseAnswer).toBe(false)
+  })
 })
