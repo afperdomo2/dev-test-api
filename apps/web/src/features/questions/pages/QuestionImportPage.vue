@@ -2,52 +2,49 @@
 import { computed, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { importQuestions, getImportQuota } from '@/api/services/questions.service'
-import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
 import TipImportPanel from '@/features/tips/components/TipImportPanel.vue'
 import { MAX_QUESTIONS_PER_FILE, type ImportResult } from '@/types/question.types'
 import {
   IMPORT_CSV_HEADER,
-  IMPORT_CSV_TEMPLATE,
-  buildImportPrompt,
+  IMPORT_QUESTION_KINDS,
   PROMPT_DIFFICULTIES,
   PROMPT_OBJECTIVES,
+  buildImportPrompt,
+  buildTipsImportPrompt,
+  getImportCsvTemplate,
+  type ImportQuestionKind,
   type PromptDifficulty,
   type PromptObjective,
 } from '@/constants/questionImport'
 import { requiredRule, validateRules } from '@/utils/validators'
 import type { Topic } from '@/types/topic.types'
 
-type ContentType = 'questions' | 'true_false' | 'tips'
+type ContentType = 'questions' | 'tips'
 
 const appStore = useAppStore()
-const authStore = useAuthStore()
 const queryClient = useQueryClient()
 
 const contentType = ref<ContentType>('questions')
+const questionKind = ref<ImportQuestionKind>('single_choice')
 
 const contentTypeOptions = computed<Array<{ title: string; value: ContentType; icon: string }>>(
-  () => {
-    const options = [
-      { title: 'Preguntas', value: 'questions' as ContentType, icon: 'mdi-help-circle' },
-      { title: 'Verdadero/Falso', value: 'true_false' as ContentType, icon: 'mdi-toggle-switch' },
-    ]
-    if (authStore.isAdmin) {
-      options.push({ title: 'Tips', value: 'tips' as ContentType, icon: 'mdi-lightbulb-outline' })
-    }
-    return options
-  },
+  () => [
+    { title: 'Preguntas', value: 'questions', icon: 'mdi-help-circle' },
+    { title: 'Tips', value: 'tips', icon: 'mdi-lightbulb-outline' },
+  ],
 )
 
-/** El prompt de IA y la importación CSV solo aplican a preguntas (V-F incluido). */
-const isQuestionsType = computed(() => contentType.value !== 'tips')
-
 const csvPlaceholder = computed(() => {
-  if (contentType.value === 'true_false') {
-    return 'type,content,difficulty,topics,explanation,options&#10;true_false,"¿...?",beginner,go,"...","[v] Verdadero | [ ] Falso"'
+  switch (questionKind.value) {
+    case 'true_false':
+      return 'type,content,difficulty,topics,explanation,options\ntrue_false,"¿...?",beginner,go,"...","[v] Verdadero | [ ] Falso"'
+    case 'multiple_choice':
+      return 'type,content,difficulty,topics,explanation,options\nmultiple_choice,"¿...?",beginner,go,"...","[v] a | [ ] b | [v] c"'
+    default:
+      return 'type,content,difficulty,topics,explanation,options\nsingle_choice,"¿...?",beginner,go,"...","[v] a | [ ] b"'
   }
-  return 'type,content,difficulty,topics,explanation,options&#10;single_choice,"¿...?",beginner,go,"...","[v] a | [ ] b"'
 })
 
 const selectedTopicIds = ref<Array<string>>([])
@@ -63,6 +60,13 @@ const fileInputKey = ref(0)
 const importResult = ref<ImportResult | null>(null)
 const importing = ref(false)
 const promptValidated = ref(false)
+
+// Tips
+const tipsTopicIds = ref<Array<string>>([])
+const tipsTopicTitles = ref<Array<Topic>>([])
+const tipsCount = ref<number>(10)
+const tipsContext = ref('')
+const tipsPromptText = ref('')
 
 const { data: quota } = useQuery({
   queryKey: ['questions', 'import-quota'],
@@ -97,13 +101,29 @@ const topicsPromptError = computed<Array<string>>(() => {
   return validateRules([requiredRule()], selectedTopicIds.value.length > 0 ? 'filled' : '')
 })
 
+const tipsCountError = computed(() => {
+  const n = Number(tipsCount.value)
+  if (!Number.isInteger(n) || n < 1) return 'Mínimo 1'
+  if (n > 50) return 'Máximo 50'
+  return ''
+})
+
 function rebuildPrompt() {
   const n = Number(questionCount.value)
   const qty = Number.isInteger(n) && n >= 1 && n <= 50 ? n : 5
   promptText.value = buildImportPrompt(selectedTopics.value, qty, {
+    kind: questionKind.value,
     difficulty: selectedDifficulty.value,
     objective: selectedObjective.value,
     customContext: customContext.value,
+  })
+}
+
+function rebuildTipsPrompt() {
+  const n = Number(tipsCount.value)
+  const qty = Number.isInteger(n) && n >= 1 && n <= 50 ? n : 10
+  tipsPromptText.value = buildTipsImportPrompt(tipsTopicTitles.value, qty, {
+    customContext: tipsContext.value,
   })
 }
 
@@ -112,6 +132,11 @@ watch(questionCount, rebuildPrompt)
 watch(selectedDifficulty, rebuildPrompt)
 watch(selectedObjective, rebuildPrompt)
 watch(customContext, rebuildPrompt)
+watch(questionKind, rebuildPrompt)
+
+watch(tipsTopicIds, rebuildTipsPrompt, { immediate: true })
+watch(tipsCount, rebuildTipsPrompt)
+watch(tipsContext, rebuildTipsPrompt)
 
 watch(contentType, () => {
   importResult.value = null
@@ -128,12 +153,26 @@ async function copyPrompt() {
   appStore.showSnackbar('Prompt copiado al portapapeles')
 }
 
+async function copyTipsPrompt() {
+  if (!tipsPromptText.value) return
+  await navigator.clipboard.writeText(tipsPromptText.value)
+  appStore.showSnackbar('Prompt de tips copiado al portapapeles')
+}
+
 function downloadTemplate() {
-  const blob = new Blob([IMPORT_CSV_TEMPLATE], { type: 'text/csv;charset=utf-8;' })
+  const isTips = contentType.value === 'tips'
+  const blob = isTips
+    ? new Blob(
+        [
+          `content,topic\n"Usa defer para liberar el archivo al terminar la petición",go\n"Go permite encapsular datos y comportamiento en el mismo tipo",goroutines\n`,
+        ],
+        { type: 'text/csv;charset=utf-8;' },
+      )
+    : new Blob([getImportCsvTemplate(questionKind.value)], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'plantilla-preguntas.csv'
+  a.download = isTips ? 'plantilla-tips.csv' : 'plantilla-preguntas.csv'
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -170,7 +209,6 @@ async function doImport() {
     queryClient.invalidateQueries({ queryKey: ['questions', 'import-quota'] })
     if (result.imported > 0) {
       appStore.showSnackbar(`Se importaron ${result.imported} preguntas`)
-      // Limpiar para evitar re-importar accidentalmente
       if (importMode.value === 'paste') {
         csvText.value = ''
       } else {
@@ -218,7 +256,8 @@ async function doImport() {
       </v-btn>
     </v-btn-toggle>
 
-    <template v-if="isQuestionsType">
+    <!-- Quota (questions only) -->
+    <template v-if="contentType === 'questions'">
       <v-card v-if="quota && !quota.unlimited" class="mb-4">
         <v-card-text>
           <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
@@ -263,121 +302,133 @@ async function doImport() {
 
     <v-alert v-else type="info" variant="tonal" density="compact" class="mb-4">
       Los tips son públicos y se muestran como consejo del día. No tienen cupo diario ni generación
-      con IA: se cargan manualmente o por CSV.
+      automática con IA.
     </v-alert>
 
     <v-row>
-      <!-- Columna: Generar con IA -->
-      <v-col v-if="isQuestionsType" cols="12" md="6">
-        <v-card>
-          <v-card-title class="d-flex align-center ga-2">
-            <v-icon icon="mdi-robot" color="primary" />
-            Generar con IA
-          </v-card-title>
-          <v-card-subtitle> Prepara el prompt para tu IA </v-card-subtitle>
-          <v-card-text>
-            <p class="text-caption mb-3">
-              Selecciona los temas para incluir sus slugs exactos en el prompt. Así la IA generará
-              el CSV sin errores de nombres.
-            </p>
-            <v-alert type="info" variant="tonal" density="compact" class="mb-3">
-              El contenido soporta formato enriquecido:
-              <code>`código inline`</code>, bloques <code>```lang```</code> y
-              <strong>**negrita**</strong>. Úsalo en enunciado, explicación y opciones para que las
-              preguntas sean más atractivas. El prompt de la IA ya incluye estas instrucciones.
-            </v-alert>
-            <v-row dense class="mb-3">
-              <v-col style="flex: 0 0 60%; max-width: 60%">
-                <TopicAutocomplete
-                  v-model="selectedTopicIds"
-                  v-model:selected-topics="selectedTopics"
-                  label="Temas para el prompt *"
-                  :item-title="topicTitle"
-                  :error-messages="topicsPromptError"
-                  required
-                  density="compact"
-                  placeholder="Elige temas para el prompt"
-                />
-              </v-col>
-              <v-col style="flex: 0 0 40%; max-width: 40%">
-                <v-text-field
-                  v-model.number="questionCount"
-                  label="Cantidad *"
-                  type="number"
-                  :min="1"
-                  :max="50"
-                  :error-messages="questionCountError || undefined"
-                  density="compact"
-                  variant="outlined"
-                  hide-details="auto"
-                  hint="1 a 50"
-                  persistent-hint
-                  required
-                />
-              </v-col>
-            </v-row>
-            <v-row dense class="mb-3">
-              <v-col cols="12" sm="6">
-                <v-select
-                  v-model="selectedObjective"
-                  label="Objetivo"
-                  :items="PROMPT_OBJECTIVES"
-                  item-title="title"
-                  item-value="value"
-                  density="compact"
-                  variant="outlined"
-                  hide-details="auto"
-                >
-                  <template #item="{ props: itemProps, item }">
-                    <v-list-item v-bind="itemProps">
-                      <template #subtitle>
-                        <span class="text-caption">{{ item.raw.description }}</span>
-                      </template>
-                    </v-list-item>
-                  </template>
-                </v-select>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-select
-                  v-model="selectedDifficulty"
-                  label="Dificultad"
-                  :items="PROMPT_DIFFICULTIES"
-                  item-title="title"
-                  item-value="value"
-                  density="compact"
-                  variant="outlined"
-                  hide-details="auto"
-                />
-              </v-col>
-            </v-row>
-            <v-textarea
-              v-model="customContext"
-              label="Contexto adicional (opcional)"
-              placeholder="Ej: preguntas enfocadas a Go con concurrencia para entrevista senior, con ejemplos de canales y goroutines…"
-              rows="2"
-              auto-grow
-              density="compact"
-              variant="outlined"
-              hide-details="auto"
-              class="mb-3"
-            />
-            <div
-              v-if="selectedObjective === 'custom' && !customContext.trim()"
-              class="text-caption text-warning mb-3"
-            >
-              Con objetivo “Personalizado”, escribe tu contexto arriba para orientar a la IA.
-            </div>
-            <v-textarea
-              v-model="promptText"
-              label="Prompt para la IA"
-              no-auto-grow
-              rows="12"
-              readonly
-              density="compact"
-              variant="outlined"
-              class="mb-3 fixed-textarea"
-            />
-            <div class="d-flex ga-2">
+      <!-- ═══ PREGUNTAS ═══ -->
+      <template v-if="contentType === 'questions'">
+        <!-- Columna: Generar con IA -->
+        <v-col cols="12" md="6">
+          <v-card>
+            <v-card-title class="d-flex align-center ga-2">
+              <v-icon icon="mdi-robot" color="primary" />
+              Generar con IA
+            </v-card-title>
+            <v-card-subtitle>Prepara el prompt para tu IA</v-card-subtitle>
+            <v-card-text>
+              <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+                <strong>Flujo:</strong> Copia el prompt → pégalo en ChatGPT/Claude → copia el CSV
+                resultante → pégalo en "Importar CSV".
+              </v-alert>
+              <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+                El contenido soporta formato enriquecido:
+                <code>`código inline`</code>, bloques <code>```lang```</code> y
+                <strong>**negrita**</strong>. El prompt ya incluye estas instrucciones.
+              </v-alert>
+              <v-row dense class="mb-3">
+                <v-col style="flex: 0 0 60%; max-width: 60%">
+                  <TopicAutocomplete
+                    v-model="selectedTopicIds"
+                    v-model:selected-topics="selectedTopics"
+                    label="Temas para el prompt *"
+                    :item-title="topicTitle"
+                    :error-messages="topicsPromptError"
+                    required
+                    density="compact"
+                    placeholder="Elige temas para el prompt"
+                  />
+                </v-col>
+                <v-col style="flex: 0 0 40%; max-width: 40%">
+                  <v-text-field
+                    v-model.number="questionCount"
+                    label="Cantidad *"
+                    type="number"
+                    :min="1"
+                    :max="50"
+                    :error-messages="questionCountError || undefined"
+                    density="compact"
+                    variant="outlined"
+                    hide-details="auto"
+                    hint="1 a 50"
+                    persistent-hint
+                    required
+                  />
+                </v-col>
+              </v-row>
+              <v-row dense class="mb-3">
+                <v-col cols="12">
+                  <v-select
+                    v-model="questionKind"
+                    label="Tipo de pregunta"
+                    :items="IMPORT_QUESTION_KINDS"
+                    density="compact"
+                    variant="outlined"
+                    hide-details
+                  />
+                </v-col>
+              </v-row>
+              <v-row dense class="mb-3">
+                <v-col cols="12" sm="6">
+                  <v-select
+                    v-model="selectedObjective"
+                    label="Objetivo"
+                    :items="PROMPT_OBJECTIVES"
+                    item-title="title"
+                    item-value="value"
+                    density="compact"
+                    variant="outlined"
+                    hide-details="auto"
+                  >
+                    <template #item="{ props: itemProps, item }">
+                      <v-list-item v-bind="itemProps">
+                        <template #subtitle>
+                          <span class="text-caption">{{ item.raw.description }}</span>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-select>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <v-select
+                    v-model="selectedDifficulty"
+                    label="Dificultad"
+                    :items="PROMPT_DIFFICULTIES"
+                    item-title="title"
+                    item-value="value"
+                    density="compact"
+                    variant="outlined"
+                    hide-details="auto"
+                  />
+                </v-col>
+              </v-row>
+              <v-textarea
+                v-model="customContext"
+                label="Contexto adicional (opcional)"
+                placeholder="Ej: preguntas enfocadas a Go con concurrencia para entrevista senior..."
+                rows="2"
+                auto-grow
+                density="compact"
+                variant="outlined"
+                hide-details="auto"
+                class="mb-3"
+              />
+              <div
+                v-if="selectedObjective === 'custom' && !customContext.trim()"
+                class="text-caption text-warning mb-3"
+              >
+                Con objetivo "Personalizado", escribe tu contexto arriba para orientar a la IA.
+              </div>
+              <v-textarea
+                v-model="promptText"
+                label="Prompt para la IA"
+                no-auto-grow
+                rows="12"
+                readonly
+                density="compact"
+                variant="outlined"
+                class="mb-3 fixed-textarea"
+              />
               <v-btn
                 color="primary"
                 variant="tonal"
@@ -386,119 +437,205 @@ async function doImport() {
               >
                 Copiar prompt
               </v-btn>
-              <v-btn variant="tonal" prepend-icon="mdi-download" @click="downloadTemplate">
+            </v-card-text>
+          </v-card>
+        </v-col>
+
+        <!-- Columna: Importar CSV -->
+        <v-col cols="12" md="6">
+          <v-card>
+            <v-card-title class="d-flex align-center ga-2">
+              <v-icon icon="mdi-file-upload" color="primary" />
+              Importar CSV
+            </v-card-title>
+            <v-card-subtitle>Sube un archivo o pega el contenido</v-card-subtitle>
+            <v-card-text>
+              <v-btn-toggle
+                v-model="importMode"
+                mandatory
+                density="compact"
+                class="mb-3"
+                color="primary"
+              >
+                <v-btn value="file" prepend-icon="mdi-file-delimited">Archivo</v-btn>
+                <v-btn value="paste" prepend-icon="mdi-clipboard-text">Pegar texto</v-btn>
+              </v-btn-toggle>
+
+              <div v-if="importMode === 'file'" class="mb-3">
+                <v-file-input
+                  :key="fileInputKey"
+                  label="Archivo CSV"
+                  accept=".csv,text/csv"
+                  :disabled="importing"
+                  hide-details
+                  density="compact"
+                  variant="outlined"
+                  @change="onFileChange"
+                />
+                <div class="text-caption text-medium-emphasis mt-1">
+                  <template v-if="questionKind === 'true_false'">
+                    Encabezado: {{ IMPORT_CSV_HEADER }} — usa <code>type=true_false</code> y
+                    exactamente 2 opciones (Verdadero/Falso) con 1 marcada como correcta.
+                  </template>
+                  <template v-else>
+                    Encabezado: {{ IMPORT_CSV_HEADER }} — el contenido admite <code>`código`</code>,
+                    bloques <code>```</code> y <strong>**negrita**</strong>.
+                  </template>
+                </div>
+              </div>
+              <div v-else class="mb-3">
+                <v-textarea
+                  v-model="csvText"
+                  label="Pega aquí el CSV"
+                  :disabled="importing"
+                  no-auto-grow
+                  rows="10"
+                  density="compact"
+                  variant="outlined"
+                  class="fixed-textarea"
+                  :placeholder="csvPlaceholder"
+                />
+              </div>
+
+              <div class="d-flex ga-2 mb-3">
+                <v-btn
+                  color="primary"
+                  :loading="importing"
+                  block
+                  size="large"
+                  prepend-icon="mdi-upload"
+                  @click="doImport"
+                >
+                  Importar
+                </v-btn>
+              </div>
+
+              <v-btn
+                variant="tonal"
+                prepend-icon="mdi-download"
+                block
+                class="mb-3"
+                @click="downloadTemplate"
+              >
                 Descargar plantilla CSV
               </v-btn>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
 
-      <!-- Columna: Importar tips -->
-      <v-col v-if="!isQuestionsType" cols="12">
-        <v-card>
-          <v-card-title class="d-flex align-center ga-2">
-            <v-icon icon="mdi-lightbulb-outline" color="primary" />
-            Importar tips
-          </v-card-title>
-          <v-card-subtitle> Sube un archivo o pega el contenido </v-card-subtitle>
-          <v-card-text>
-            <TipImportPanel />
-          </v-card-text>
-        </v-card>
-      </v-col>
+              <div v-if="importResult" class="mt-4">
+                <v-alert
+                  :type="importResult.failed === 0 ? 'success' : 'warning'"
+                  variant="tonal"
+                  class="mb-3"
+                >
+                  Importadas: {{ importResult.imported }} / {{ importResult.total }} — Fallidas:
+                  {{ importResult.failed }}
+                </v-alert>
+                <v-data-table
+                  v-if="importResult.errors.length"
+                  :headers="[
+                    { title: 'Fila', key: 'row' },
+                    { title: 'Motivo', key: 'reason' },
+                  ]"
+                  :items="importResult.errors"
+                  density="compact"
+                  hide-default-footer
+                  no-data-text="Sin errores"
+                />
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </template>
 
-      <!-- Columna: Importar -->
-      <v-col v-else cols="12" md="6">
-        <v-card>
-          <v-card-title class="d-flex align-center ga-2">
-            <v-icon icon="mdi-file-upload" color="primary" />
-            Importar CSV
-          </v-card-title>
-          <v-card-subtitle> Sube un archivo o pega el contenido </v-card-subtitle>
-          <v-card-text>
-            <v-btn-toggle
-              v-model="importMode"
-              mandatory
-              density="compact"
-              class="mb-3"
-              color="primary"
-            >
-              <v-btn value="file" prepend-icon="mdi-file-delimited">Archivo</v-btn>
-              <v-btn value="paste" prepend-icon="mdi-clipboard-text">Pegar texto</v-btn>
-            </v-btn-toggle>
-
-            <div v-if="importMode === 'file'" class="mb-3">
-              <v-file-input
-                :key="fileInputKey"
-                label="Archivo CSV"
-                accept=".csv,text/csv"
-                :disabled="importing"
-                hide-details
+      <!-- ═══ TIPS ═══ -->
+      <template v-else>
+        <!-- Columna: Generar tips con IA -->
+        <v-col cols="12" md="6">
+          <v-card>
+            <v-card-title class="d-flex align-center ga-2">
+              <v-icon icon="mdi-robot" color="primary" />
+              Generar tips con IA
+            </v-card-title>
+            <v-card-subtitle>Prepara el prompt para tu IA</v-card-subtitle>
+            <v-card-text>
+              <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+                <strong>Flujo:</strong> Copia el prompt → pégalo en ChatGPT/Claude → copia el CSV
+                resultante → pégalo en "Importar tips".
+              </v-alert>
+              <v-row dense class="mb-3">
+                <v-col style="flex: 0 0 60%; max-width: 60%">
+                  <TopicAutocomplete
+                    v-model="tipsTopicIds"
+                    v-model:selected-topics="tipsTopicTitles"
+                    label="Temas para el prompt *"
+                    :item-title="topicTitle"
+                    required
+                    density="compact"
+                    placeholder="Elige temas para el prompt"
+                  />
+                </v-col>
+                <v-col style="flex: 0 0 40%; max-width: 40%">
+                  <v-text-field
+                    v-model.number="tipsCount"
+                    label="Cantidad"
+                    type="number"
+                    :min="1"
+                    :max="50"
+                    :error-messages="tipsCountError || undefined"
+                    density="compact"
+                    variant="outlined"
+                    hide-details="auto"
+                    hint="1 a 50"
+                    persistent-hint
+                  />
+                </v-col>
+              </v-row>
+              <v-textarea
+                v-model="tipsContext"
+                label="Contexto adicional (opcional)"
+                placeholder="Ej: tips prácticos sobre buenas prácticas de testing, concisos y accionables..."
+                rows="2"
+                auto-grow
                 density="compact"
                 variant="outlined"
-                @change="onFileChange"
+                hide-details="auto"
+                class="mb-3"
               />
-              <div class="text-caption text-medium-emphasis mt-1">
-                <template v-if="contentType === 'true_false'">
-                  Encabezado requerido: {{ IMPORT_CSV_HEADER }} — usa <code>type=true_false</code> y
-                  exactamente 2 opciones (Verdadero/Falso) con 1 marcada como correcta.
-                </template>
-                <template v-else>
-                  Encabezado requerido: {{ IMPORT_CSV_HEADER }} — el contenido admite
-                  <code>`código`</code>, bloques <code>```</code> y <strong>**negrita**</strong>.
-                </template>
-              </div>
-            </div>
-            <div v-else class="mb-3">
               <v-textarea
-                v-model="csvText"
-                label="Pega aquí el CSV"
-                :disabled="importing"
+                v-model="tipsPromptText"
+                label="Prompt para la IA"
                 no-auto-grow
                 rows="10"
+                readonly
                 density="compact"
                 variant="outlined"
-                class="fixed-textarea"
-                :placeholder="csvPlaceholder"
+                class="mb-3 fixed-textarea"
               />
-            </div>
-
-            <v-btn
-              color="primary"
-              :loading="importing"
-              block
-              size="large"
-              prepend-icon="mdi-upload"
-              @click="doImport"
-            >
-              Importar
-            </v-btn>
-
-            <div v-if="importResult" class="mt-4">
-              <v-alert
-                :type="importResult.failed === 0 ? 'success' : 'warning'"
+              <v-btn
+                color="primary"
                 variant="tonal"
-                class="mb-3"
+                prepend-icon="mdi-content-copy"
+                @click="copyTipsPrompt"
               >
-                Importadas: {{ importResult.imported }} / {{ importResult.total }} — Fallidas:
-                {{ importResult.failed }}
-              </v-alert>
-              <v-data-table
-                v-if="importResult.errors.length"
-                :headers="[
-                  { title: 'Fila', key: 'row' },
-                  { title: 'Motivo', key: 'reason' },
-                ]"
-                :items="importResult.errors"
-                density="compact"
-                hide-default-footer
-                no-data-text="Sin errores"
-              />
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
+                Copiar prompt
+              </v-btn>
+            </v-card-text>
+          </v-card>
+        </v-col>
+
+        <!-- Columna: Importar tips -->
+        <v-col cols="12" md="6">
+          <v-card>
+            <v-card-title class="d-flex align-center ga-2">
+              <v-icon icon="mdi-file-upload" color="primary" />
+              Importar tips
+            </v-card-title>
+            <v-card-subtitle>Sube un archivo o pega el contenido</v-card-subtitle>
+            <v-card-text>
+              <TipImportPanel />
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </template>
     </v-row>
   </v-container>
 </template>

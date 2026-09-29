@@ -32,7 +32,7 @@
 |---|---|
 | V/F | Extender `Question` con `type="true_false"` (2 opciones Verdadero/Falso, 1 correcta). Reusa pipeline create/import/answer. |
 | Tips ↔ temas | Un solo tema por tip: `Tip.TopicID` FK indexada. |
-| Tips creación | **Solo admin**; siempre públicos. **Solo manual + import CSV** (sin IA). Usuario normal solo lectura. |
+| Tips creación | **Solo admin**; siempre públicos. En el **backend** solo manual + import CSV (sin generación de IA). El admin puede usar el prompt helper de `/questions/import` para armar el CSV de tips en una IA externa. Usuario normal solo lectura. |
 | Visibilidad | **SIN cambios**: mantener `is_public` + `source` como está. Solo IA y admin son públicos; el usuario normal queda privado. Sin `pending_review`, sin acción "publicar", sin refactor `isPublic → visibility`. |
 | Moderación | Solo **reportar contenido público + revisión admin** (sin "publish"). |
 | Import UI (web) | Una página unificada con selector "preguntas / V-F / tips"; tips solo visible en la UI para admin. |
@@ -41,7 +41,7 @@
 | Sesión diaria | Modo `daily` nuevo en `Session` + selección on-the-fly (sin tabla de cola persistente). |
 | Informes | **Renombrado a "Insights"** (`/insights/summary`) para no chocar con moderación `/reports` (reportes de contenido). |
 | Concurrencia | goroutines + `sync.WaitGroup`; **sin `errgroup`** (evitar dependencia nueva). |
-| IA (alcance) | La IA se genera **solo por lotes y solo por admins** (Fase 9). El modo `generate` de las sesiones y la cuota de IA por usuario se retiraron en las **Fases 10 y 11** (hecho). La IA **nunca** genera tips. |
+| IA (alcance) | La IA se genera **solo por lotes y solo por admins** (Fase 9). El **backend** (`/generation`) solo genera preguntas (single_choice); **nunca** genera tips. El generador de prompt de `/questions/import` es un helper de texto externo (copy-paste), independiente de la IA del backend. El modo `generate` de las sesiones y la cuota de IA por usuario se retiraron en las **Fases 10 y 11** (hecho). |
 | Cuotas | `ImportQuota` (import CSV, con exención de admin) se conserva; la **cuota de IA por usuario se eliminó** (hecho, Fase 11) — el tope es global `ai.max_per_day`. |
 
 ---
@@ -115,6 +115,7 @@
 - [x] **6.6** **Overview de gamificación**: `features/gamification/components/GamificationPanel.vue` (XP total, nivel con barra, racha + freeze, meta diaria, XP por tema) + `DailyGoalDialog` (meta 10–200 XP) + `TopicXpList`. Integrado como **pestaña "Gamificación"** en `ProgressPage` y como **card** en `Dashboard` (solo no-admin). Controles: `setDailyGoalMutation`, `freezeStreakMutation`.
 - [x] **6.7** **Moderación admin**: `features/moderation/pages/ReportsListPage.vue` (filtro por status, paginación) + `ReportReviewDialog` (opción de des-publicar solo para `question`; en tips el backend la ignora y se informa en la UI). Ruta `/reports` (`requiresAdmin`) + nav item *Moderación*.
 - [x] **6.8** Tests: `tips/gamification/moderation` service + queries, `TipFormDialog`, y nav de `DefaultLayout`. `make fe-format` + `make fe-check` + `make fe-lint` + `make fe-test` (272 tests) + `pnpm --filter @devtest/shared typecheck` + `pnpm --filter mobile typecheck` en verde.
+- [x] **6.9** **Prompt de IA por tipo de contenido** en `/questions/import`: unificar "Preguntas" y "Verdadero/Falso" en un solo tab "Preguntas" con selector de tipo (`single_choice` / `multiple_choice` / `true_false`); prompt, placeholder y plantilla CSV adaptan al tipo seleccionado. Añadir generador de prompt para tips (formato `content,topic`). Mover "Descargar plantilla" a la columna Importar. Añadir guía 1-2-3 del flujo copy-paste.
 
 ### Fase 8 — Verificación final
 - [x] **8.1** `make fmt` + `make vet`.
