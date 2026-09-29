@@ -56,3 +56,14 @@ export function importTipsTextMutation() {
     mutationFn: (content: string) => tipsService.importTipsFromText(content),
   }
 }
+
+export function tipTotalOptions() {
+  return queryOptions({
+    queryKey: ['tips', 'total'],
+    queryFn: async () => {
+      const res = await tipsService.listTips(1, 1)
+      return res.meta.total
+    },
+    staleTime: 60 * 1000,
+  })
+}

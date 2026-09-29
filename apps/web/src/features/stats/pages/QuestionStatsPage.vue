@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { questionStatsOptions } from '@/queries/questions.queries'
+import { tipTotalOptions } from '@/queries/tips.queries'
 import { DIFFICULTY_COLORS, DIFFICULTY_LABELS, TYPE_ICONS } from '@/types/question.types'
 import type { TopicCount, CategoryCount, DifficultyCount, TypeCount } from '@/types/question.types'
 import { useAuthStore } from '@/stores/auth.store'
@@ -12,6 +13,7 @@ const queryClient = useQueryClient()
 const authStore = useAuthStore()
 
 const { data: stats, isLoading, isError } = useQuery(questionStatsOptions())
+const { data: totalTips } = useQuery(tipTotalOptions())
 
 const total = computed(() => stats.value?.total ?? 0)
 const byTopic = computed<Array<TopicCount>>(() => stats.value?.byTopic ?? [])
@@ -40,6 +42,7 @@ const typeLabels: Record<string, string> = {
   single_choice: 'Selección única',
   multiple_choice: 'Selección múltiple',
   code_completion: 'Completar código',
+  true_false: 'Verdadero/Falso',
 }
 
 const topicHeaders = [
@@ -47,11 +50,6 @@ const topicHeaders = [
   { title: 'Categoría', key: 'category', sortable: false, align: 'center' as const },
   { title: 'Cantidad', key: 'count', sortable: false, align: 'center' as const },
   { title: '', key: 'action', sortable: false, align: 'center' as const },
-]
-
-const categoryHeaders = [
-  { title: 'Categoría', key: 'category', sortable: false },
-  { title: 'Cantidad', key: 'count', sortable: false, align: 'center' as const },
 ]
 </script>
 
@@ -68,76 +66,63 @@ const categoryHeaders = [
       No se pudieron cargar las estadísticas.
     </v-alert>
 
-    <v-skeleton-loader v-if="isLoading" type="card, card, table" />
+    <v-skeleton-loader v-if="isLoading" type="card, card, card, table" />
 
     <template v-else>
-      <!-- Total + summary chips -->
+      <!-- KPI Cards -->
       <v-row class="mb-4">
-        <v-col cols="12" md="4">
-          <v-card color="primary" variant="tonal">
+        <v-col cols="12" sm="6" md="3">
+          <v-card color="primary" variant="tonal" class="h-100">
             <v-card-text class="d-flex align-center ga-4">
-              <v-icon size="48" color="primary">mdi-help-circle</v-icon>
+              <v-icon size="44" color="primary">mdi-help-circle</v-icon>
               <div>
-                <div class="text-h3 font-weight-bold">{{ total }}</div>
-                <div class="text-body-2 text-medium-emphasis">
-                  {{ authStore.isAdmin ? 'Preguntas del banco' : 'Preguntas visibles' }}
-                </div>
+                <div class="text-h4 font-weight-bold">{{ total }}</div>
                 <div class="text-caption text-medium-emphasis">
-                  {{
-                    authStore.isAdmin
-                      ? 'IA compartidas + públicas (visibles para todos)'
-                      : 'Tus preguntas + IA compartidas + públicas'
-                  }}
+                  {{ authStore.isAdmin ? 'Preguntas del banco' : 'Preguntas visibles' }}
                 </div>
               </div>
             </v-card-text>
           </v-card>
         </v-col>
 
-        <v-col cols="12" md="8">
-          <v-card variant="flat" border>
-            <v-card-text>
-              <div class="text-subtitle-2 mb-2 d-flex align-center ga-2">
-                <v-icon size="18">mdi-chart-donut</v-icon>
-                Resumen
+        <v-col cols="12" sm="6" md="3">
+          <v-card color="amber" variant="tonal" class="h-100">
+            <v-card-text class="d-flex align-center ga-4">
+              <v-icon size="44" color="amber">mdi-lightbulb-on-outline</v-icon>
+              <div>
+                <div class="text-h4 font-weight-bold">{{ totalTips ?? 0 }}</div>
+                <div class="text-caption text-medium-emphasis">Tips públicos disponibles</div>
               </div>
-              <div class="d-flex flex-wrap ga-2">
-                <v-chip
-                  v-for="d in byDifficulty"
-                  :key="d.difficulty"
-                  :color="
-                    DIFFICULTY_COLORS[d.difficulty as keyof typeof DIFFICULTY_COLORS] ?? 'default'
-                  "
-                  variant="tonal"
-                  size="small"
-                >
-                  {{
-                    DIFFICULTY_LABELS[d.difficulty as keyof typeof DIFFICULTY_LABELS] ??
-                    d.difficulty
-                  }}: {{ d.count }}
-                </v-chip>
-                <v-chip
-                  v-for="t in byType"
-                  :key="t.type"
-                  variant="tonal"
-                  size="small"
-                  :prepend-icon="TYPE_ICONS[t.type as keyof typeof TYPE_ICONS] ?? 'mdi-help'"
-                >
-                  {{ typeLabels[t.type] ?? t.type }}: {{ t.count }}
-                </v-chip>
+            </v-card-text>
+          </v-card>
+        </v-col>
+
+        <v-col cols="12" sm="6" md="3">
+          <v-card color="info" variant="tonal" class="h-100">
+            <v-card-text class="d-flex align-center ga-4">
+              <v-icon size="44" color="info">mdi-tag-multiple</v-icon>
+              <div>
+                <div class="text-h4 font-weight-bold">{{ byTopic.length }}</div>
+                <div class="text-caption text-medium-emphasis">Temas con preguntas</div>
               </div>
-              <div
-                v-if="!byDifficulty.length && !byType.length"
-                class="text-body-2 text-medium-emphasis"
-              >
-                Aún no hay preguntas para mostrar distribución.
+            </v-card-text>
+          </v-card>
+        </v-col>
+
+        <v-col cols="12" sm="6" md="3">
+          <v-card color="teal" variant="tonal" class="h-100">
+            <v-card-text class="d-flex align-center ga-4">
+              <v-icon size="44" color="teal">mdi-shape</v-icon>
+              <div>
+                <div class="text-h4 font-weight-bold">{{ byCategory.length }}</div>
+                <div class="text-caption text-medium-emphasis">Categorías</div>
               </div>
             </v-card-text>
           </v-card>
         </v-col>
       </v-row>
 
-      <!-- Por tema -->
+      <!-- Preguntas por tema -->
       <v-card class="mb-4" variant="flat" border>
         <v-card-title class="d-flex align-center ga-2">
           <v-icon>mdi-tag-multiple</v-icon>
@@ -147,7 +132,7 @@ const categoryHeaders = [
         <v-card-subtitle>Clic en una fila para ver las preguntas de ese tema</v-card-subtitle>
 
         <v-card-text>
-          <!-- Barras horizontales -->
+          <!-- Barras horizontales top 20 -->
           <div v-if="byTopic.length" class="mb-6">
             <div
               v-for="item in byTopic.slice(0, 20)"
@@ -210,7 +195,7 @@ const categoryHeaders = [
         </v-card-text>
       </v-card>
 
-      <!-- Por categoría / dificultad / tipo -->
+      <!-- Distribución: categoría + dificultad + tipo -->
       <v-row>
         <v-col cols="12" md="6">
           <v-card variant="flat" border class="h-100">
@@ -219,7 +204,7 @@ const categoryHeaders = [
               Por categoría
             </v-card-title>
             <v-card-text>
-              <div v-if="byCategory.length" class="mb-4">
+              <div v-if="byCategory.length">
                 <div
                   v-for="c in byCategory"
                   :key="c.category"
@@ -242,18 +227,7 @@ const categoryHeaders = [
                   </v-progress-linear>
                 </div>
               </div>
-              <v-data-table
-                :headers="categoryHeaders"
-                :items="byCategory"
-                :items-per-page="10"
-                no-data-text="Sin datos por categoría"
-                density="compact"
-                hide-default-footer
-              >
-                <template #[`item.count`]="{ item }">
-                  <v-chip size="small" color="teal" variant="tonal">{{ item.count }}</v-chip>
-                </template>
-              </v-data-table>
+              <div v-else class="text-body-2 text-medium-emphasis">No hay datos por categoría.</div>
             </v-card-text>
           </v-card>
         </v-col>

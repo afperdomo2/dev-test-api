@@ -6,6 +6,7 @@ import {
   deleteTipMutation,
   importTipsMutation,
   importTipsTextMutation,
+  tipTotalOptions,
 } from './tips.queries'
 import * as tipsService from '@/api/services/tips.service'
 
@@ -87,5 +88,18 @@ describe('tips.queries', () => {
     const mut = importTipsTextMutation()
     await mut.mutationFn('content,topic')
     expect(tipsService.importTipsFromText).toHaveBeenCalledWith('content,topic')
+  })
+
+  it('tipTotalOptions returns meta.total from listTips', async () => {
+    vi.mocked(tipsService.listTips).mockResolvedValue({
+      data: [],
+      meta: { total: 42, page: 1, perPage: 1 },
+    } as never)
+    const opts = tipTotalOptions()
+    const res = await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn(
+      {} as never,
+    )
+    expect(tipsService.listTips).toHaveBeenCalledWith(1, 1)
+    expect(res).toBe(42)
   })
 })
