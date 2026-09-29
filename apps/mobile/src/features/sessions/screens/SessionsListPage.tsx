@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useRouter } from 'expo-router'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type BottomSheet from '@gorhom/bottom-sheet'
 import type { Session } from '@devtest/shared'
 import { SESSION_STATUS_LABELS, SESSION_MODE_LABELS } from '@devtest/shared'
@@ -27,15 +28,15 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: colors.destructive,
 }
 
-const STATUS_ICONS: Record<string, string> = {
-  in_progress: '⏳',
-  completed: '✓',
-  cancelled: '✗',
+const STATUS_ICON_NAMES: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  in_progress: 'progress-clock',
+  completed: 'check-circle',
+  cancelled: 'close-circle',
 }
 
-const MODE_ICONS: Record<string, string> = {
-  review: '📚',
-  daily: '📅',
+const MODE_ICON_NAMES: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  review: 'book-open-variant',
+  daily: 'calendar-star',
 }
 
 export default function SessionsListPage() {
@@ -123,7 +124,12 @@ export default function SessionsListPage() {
       <GestureHandlerRootView style={styles.container}>
         <Text style={styles.title}>Sesiones</Text>
         <Text style={styles.error}>{error}</Text>
-        <Pressable style={styles.retryButton} onPress={() => void load()}>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => void load()}
+          accessibilityRole="button"
+          accessibilityLabel="Reintentar carga de sesiones"
+        >
           <Text style={styles.retryLabel}>Reintentar</Text>
         </Pressable>
       </GestureHandlerRootView>
@@ -152,6 +158,10 @@ export default function SessionsListPage() {
         }
         renderItem={({ item }) => {
           const statusColor = STATUS_COLORS[item.status] ?? colors.mutedForeground
+          const statusIconName = STATUS_ICON_NAMES[item.status] ?? 'help-circle'
+          const modeIconName = MODE_ICON_NAMES[item.mode] ?? 'book-open-variant'
+          const statusLabel = SESSION_STATUS_LABELS[item.status] ?? item.status
+          const modeLabel = SESSION_MODE_LABELS[item.mode] ?? item.mode
           return (
             <Pressable
               style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
@@ -163,6 +173,11 @@ export default function SessionsListPage() {
                 )
               }
               onLongPress={() => openActions(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`Sesion ${item.name}, ${statusLabel}, ${modeLabel}, ${item.answerCount} respuestas${item.score ? `, ${item.score} puntos` : ''}`}
+              accessibilityState={{
+                busy: false,
+              }}
             >
               <View style={[styles.accentDot, { backgroundColor: statusColor }]} />
 
@@ -174,24 +189,36 @@ export default function SessionsListPage() {
                   <Pressable
                     style={styles.menuButton}
                     onPress={() => openActions(item)}
-                    hitSlop={8}
+                    hitSlop={12}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Abrir acciones de ${item.name}`}
                   >
-                    <Text style={styles.menuDots}>⋮</Text>
+                    <MaterialCommunityIcons
+                      name="dots-vertical"
+                      size={20}
+                      color={colors.mutedForeground}
+                    />
                   </Pressable>
                 </View>
 
                 <View style={styles.cardBadges}>
                   <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
-                    <Text style={[styles.statusIcon, { color: statusColor }]}>
-                      {STATUS_ICONS[item.status] ?? '?'}
-                    </Text>
+                    <MaterialCommunityIcons
+                      name={statusIconName}
+                      size={12}
+                      color={statusColor}
+                    />
                     <Text style={[styles.statusText, { color: statusColor }]}>
-                      {SESSION_STATUS_LABELS[item.status]}
+                      {statusLabel}
                     </Text>
                   </View>
                   <View style={styles.modeBadge}>
-                    <Text style={styles.modeIcon}>{MODE_ICONS[item.mode] ?? '📚'}</Text>
-                    <Text style={styles.modeText}>{SESSION_MODE_LABELS[item.mode]}</Text>
+                    <MaterialCommunityIcons
+                      name={modeIconName}
+                      size={12}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.modeText}>{modeLabel}</Text>
                   </View>
                 </View>
 
@@ -254,6 +281,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xl,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   retryLabel: {
     fontSize: typography.size.md,
@@ -315,11 +344,10 @@ const styles = StyleSheet.create({
   },
   menuButton: {
     padding: spacing.xs,
-  },
-  menuDots: {
-    fontSize: typography.size.xl,
-    color: colors.mutedForeground,
-    fontWeight: typography.weight.bold,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardBadges: {
     flexDirection: 'row',
@@ -333,10 +361,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     gap: spacing.xs,
   },
-  statusIcon: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.bold,
-  },
   statusText: {
     fontSize: typography.size.xs,
     fontWeight: typography.weight.medium,
@@ -349,9 +373,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     backgroundColor: `${colors.primary}15`,
     gap: spacing.xs,
-  },
-  modeIcon: {
-    fontSize: typography.size.xs,
   },
   modeText: {
     fontSize: typography.size.xs,

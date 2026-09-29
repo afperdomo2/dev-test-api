@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@devtest/shared": "workspace:*",
+    "@expo/vector-icons": "^15.1.1",
     "@gorhom/bottom-sheet": "^5.2.14",
     "expo": "~57.0.23",
     "expo-constants": "~57.0.18",

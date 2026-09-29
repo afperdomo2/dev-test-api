@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useMemo } from 'react'
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import BottomSheet, { BottomSheetBackdrop, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import type { Session } from '@devtest/shared'
 
@@ -69,14 +70,20 @@ export const SessionActionsSheet = forwardRef<BottomSheet, SessionActionsSheetPr
             <Text style={styles.title} numberOfLines={1}>
               {session.name}
             </Text>
-            <Text style={styles.subtitle}>{session.status === 'in_progress' ? 'En progreso' : session.status === 'completed' ? 'Completada' : 'Cancelada'}</Text>
+            <Text style={styles.subtitle}>
+              {session.status === 'in_progress'
+                ? 'En progreso'
+                : session.status === 'completed'
+                  ? 'Completada'
+                  : 'Cancelada'}
+            </Text>
           </View>
 
           <View style={styles.actions}>
             {isInProgress && (
               <>
                 <ActionRow
-                  icon="▶"
+                  icon="play"
                   label="Continuar sesion"
                   onPress={() => {
                     ;(ref as React.RefObject<BottomSheet>).current?.close()
@@ -84,7 +91,7 @@ export const SessionActionsSheet = forwardRef<BottomSheet, SessionActionsSheetPr
                   }}
                 />
                 <ActionRow
-                  icon="⏹"
+                  icon="stop"
                   label="Finalizar sesion"
                   onPress={() => {
                     ;(ref as React.RefObject<BottomSheet>).current?.close()
@@ -96,7 +103,7 @@ export const SessionActionsSheet = forwardRef<BottomSheet, SessionActionsSheetPr
 
             {(isCompleted || session.status === 'cancelled') && (
               <ActionRow
-                icon="📋"
+                icon="file-document-outline"
                 label="Ver resumen"
                 onPress={() => {
                   ;(ref as React.RefObject<BottomSheet>).current?.close()
@@ -108,7 +115,7 @@ export const SessionActionsSheet = forwardRef<BottomSheet, SessionActionsSheetPr
             <View style={styles.separator} />
 
             <ActionRow
-              icon="🗑"
+              icon="delete-outline"
               label="Eliminar"
               destructive
               onPress={() => {
@@ -131,17 +138,20 @@ function ActionRow({
   destructive,
   onPress,
 }: {
-  icon: string
+  icon: keyof typeof MaterialCommunityIcons.glyphMap
   label: string
   destructive?: boolean
   onPress: () => void
 }) {
+  const iconColor = destructive ? colors.destructive : colors.foreground
   return (
     <Pressable
       style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
     >
-      <Text style={styles.actionIcon}>{icon}</Text>
+      <MaterialCommunityIcons name={icon} size={20} color={iconColor} />
       <Text style={[styles.actionLabel, destructive && styles.actionLabelDestructive]}>
         {label}
       </Text>
@@ -194,14 +204,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius: radius.sm,
     gap: spacing.md,
+    minHeight: 48,
   },
   actionRowPressed: {
     backgroundColor: `${colors.foreground}08`,
-  },
-  actionIcon: {
-    fontSize: typography.size.lg,
-    width: 28,
-    textAlign: 'center',
   },
   actionLabel: {
     fontSize: typography.size.md,
