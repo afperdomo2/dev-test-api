@@ -5,6 +5,8 @@ import { getToken, removeToken } from '@/core/auth/storage'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
+export type QueryParams = Record<string, string | number | boolean | undefined>
+
 let unauthorizedHandler: (() => void) | null = null
 
 export function onUnauthorized(handler: () => void): void {
@@ -31,14 +33,29 @@ function unwrap<T>(raw: unknown): T {
   return raw as T
 }
 
-async function request<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
+function buildUrl(path: string, params?: QueryParams): string {
+  if (!params) return `${API_BASE_URL}${path}`
+  const filtered = Object.entries(params).filter(
+    (entry): entry is [string, string | number | boolean] => entry[1] !== undefined,
+  )
+  if (filtered.length === 0) return `${API_BASE_URL}${path}`
+  const qs = new URLSearchParams(filtered.map(([k, v]) => [k, String(v)])).toString()
+  return `${API_BASE_URL}${path}?${qs}`
+}
+
+async function request<T>(
+  method: HttpMethod,
+  path: string,
+  body?: unknown,
+  params?: QueryParams,
+): Promise<T> {
   const token = await getToken()
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
 
   let res: Response
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
+    res = await fetch(buildUrl(path, params), {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -68,8 +85,10 @@ async function request<T>(method: HttpMethod, path: string, body?: unknown): Pro
 }
 
 export const apiClient = {
-  get: <T>(path: string) => request<T>('GET', path),
-  post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
-  put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
+  get: <T>(path: string, params?: QueryParams) => request<T>('GET', path, undefined, params),
+  post: <T>(path: string, body?: unknown, params?: QueryParams) =>
+    request<T>('POST', path, body, params),
+  put: <T>(path: string, body?: unknown, params?: QueryParams) =>
+    request<T>('PUT', path, body, params),
   delete: <T>(path: string) => request<T>('DELETE', path),
 }

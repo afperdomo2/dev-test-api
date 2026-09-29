@@ -9,13 +9,9 @@ export default function TabLayout() {
         <NativeTabs.Trigger.Icon sf="house.fill" md="home" />
         <NativeTabs.Trigger.Label>Inicio</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="temas">
-        <NativeTabs.Trigger.Icon sf="book.fill" md="menu_book" />
-        <NativeTabs.Trigger.Label>Temas</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="progreso">
-        <NativeTabs.Trigger.Icon sf="chart.bar.fill" md="bar_chart" />
-        <NativeTabs.Trigger.Label>Progreso</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="sesiones">
+        <NativeTabs.Trigger.Icon sf="list.bullet" md="format_list_bulleted" />
+        <NativeTabs.Trigger.Label>Sesiones</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="perfil">
         <NativeTabs.Trigger.Icon sf="person.crop.circle.fill" md="person" />

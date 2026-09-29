@@ -17,7 +17,7 @@
 - [x] Fase 5 — Sesión diaria inteligente ("Repasar hoy")
 - [x] Fase 6a — Sync web/shared: capa de datos (tipos/servicios/queries)
 - [x] Fase 6b — Sync web/shared: UI web (tips admin, import unificado, gamificación, moderación admin)
-- [ ] Fase 7 — Mobile foundation (auth + API client + sesión) + prompt sesión diaria
+- [x] Fase 7 — Mobile foundation (auth + API client + sesión) + prompt sesión diaria
 - [x] Fase 8 — Verificación final
 - [x] Fase 9 — Generación de preguntas con IA (solo admin, por lotes + worker pool)
 - [x] Fase 10 — Retirada de la IA en sesiones (modo `generate`)
@@ -146,10 +146,10 @@
 > La sesión diaria es mobile-first (prompt al entrar), pero la app mobile no tiene infraestructura aún. Dependencias previas obligatorias.
 
 - [x] **7.1** **Auth mobile**: pantalla de login/setup + `expo-secure-store` para JWT.
-- [ ] **7.2** **API client mobile** (`src/core/api/client.ts`): fetch + Bearer token + unwrap envelope + RFC 9457 errors.
-- [ ] **7.3** **Servicios mobile** (`src/core/api/services/`): sessions, questions, progress, gamification (usando `@devtest/shared`).
-- [ ] **7.4** **Flujo de sesión** en mobile: crear sesión → `NextQuestion` → responder → feedback con `Reward`.
-- [ ] **7.5** **Sesión diaria (prompt al entrar)**: al abrir la app, preguntar si desea hacer el repaso diario. `POST /sessions/daily` → tip del día + contadores → flujo de estudio. Mostrar racha y meta diaria en Home/Progreso.
+- [x] **7.2** **API client mobile** (`src/core/api/client.ts`): fetch + Bearer token + unwrap envelope + RFC 9457 errors + query params.
+- [x] **7.3** **Servicios mobile** (`src/core/api/services/`): sessions, questions, progress, gamification (usando `@devtest/shared`).
+- [x] **7.4** **Flujo de sesión** en mobile: crear sesión → `NextQuestion` → responder → feedback con `Reward`.
+- [x] **7.5** **Sesión diaria (prompt al entrar)**: al abrir la app, preguntar si desea hacer el repaso diario. `POST /sessions/daily` → tip del día + contadores → flujo de estudio. Mostrar racha y meta diaria en Home.
 
 > Nota: la **Fase 8** se ejecutó al cerrar la 6b (6b era la última fase de implementación abierta). Volver a correrla al final de la Fase 7, cuando haya código nuevo de backend/mobile.
 
