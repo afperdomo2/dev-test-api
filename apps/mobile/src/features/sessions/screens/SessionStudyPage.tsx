@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import type { NextQuestionItem, SessionAnswer, Reward } from '@devtest/shared'
 
@@ -134,9 +134,9 @@ export default function SessionStudyPage() {
         <Text style={styles.counter}>{answerCount}</Text>
       </View>
 
-      <View style={styles.body}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {question && <QuestionCard question={question} onAnswer={handleAnswer} />}
-      </View>
+      </ScrollView>
 
       {feedback && (
         <FeedbackOverlay
@@ -180,9 +180,12 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.semibold,
     color: colors.mutedForeground,
   },
-  body: {
+  scroll: {
     flex: 1,
+  },
+  scrollContent: {
     padding: spacing.lg,
+    flexGrow: 1,
   },
   error: {
     fontSize: typography.size.md,

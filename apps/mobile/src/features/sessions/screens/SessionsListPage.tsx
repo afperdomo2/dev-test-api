@@ -12,7 +12,6 @@ import { useRouter } from 'expo-router'
 import type { Session } from '@devtest/shared'
 import { SESSION_STATUS_LABELS, SESSION_MODE_LABELS } from '@devtest/shared'
 
-import { Screen } from '@/core/components/Screen'
 import { listSessions, deleteSession } from '@/core/api/services/sessions.service'
 import { getErrorDetail } from '@/core/utils/errors'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
@@ -43,43 +42,39 @@ export default function SessionsListPage() {
     void load()
   }, [load])
 
-  const handleDelete = useCallback(
-    async (id: string) => {
-      try {
-        await deleteSession(id)
-        setSessions((prev) => prev.filter((s) => s.id !== id))
-      } catch {
-        // silenciar — el usuario puede reintentar
-      }
-    },
-    [],
-  )
-
-  const handleNewSession = useCallback(() => {
-    // TODO: Fase 7.4 — abrir diálogo de creación
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await deleteSession(id)
+      setSessions((prev) => prev.filter((s) => s.id !== id))
+    } catch {
+      // silenciar
+    }
   }, [])
 
   if (loading) {
     return (
-      <Screen title="Sesiones">
+      <View style={styles.container}>
+        <Text style={styles.title}>Sesiones</Text>
         <ActivityIndicator size="large" color={colors.primary} />
-      </Screen>
+      </View>
     )
   }
 
   if (error) {
     return (
-      <Screen title="Sesiones">
+      <View style={styles.container}>
+        <Text style={styles.title}>Sesiones</Text>
         <Text style={styles.error}>{error}</Text>
         <Pressable style={styles.retryButton} onPress={() => void load()}>
           <Text style={styles.retryLabel}>Reintentar</Text>
         </Pressable>
-      </Screen>
+      </View>
     )
   }
 
   return (
-    <Screen title="Sesiones">
+    <View style={styles.container}>
+      <Text style={styles.title}>Sesiones</Text>
       <FlatList
         data={sessions}
         keyExtractor={(item) => item.id}
@@ -90,7 +85,7 @@ export default function SessionsListPage() {
             tintColor={colors.primary}
           />
         }
-        contentContainerStyle={sessions.length === 0 ? styles.emptyContainer : undefined}
+        contentContainerStyle={sessions.length === 0 ? styles.emptyContainer : styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>No hay sesiones</Text>
@@ -118,15 +113,33 @@ export default function SessionsListPage() {
           </Pressable>
         )}
       />
-    </Screen>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    paddingTop: spacing.xl,
+  },
+  title: {
+    fontSize: typography.size['2xl'],
+    fontWeight: typography.weight.bold,
+    letterSpacing: -0.5,
+    color: colors.foreground,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  list: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
   error: {
     fontSize: typography.size.md,
     color: colors.destructive,
     textAlign: 'center',
+    marginBottom: spacing.md,
   },
   retryButton: {
     alignSelf: 'center',

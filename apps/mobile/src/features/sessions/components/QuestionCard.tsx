@@ -32,52 +32,56 @@ export function QuestionCard({ question, onAnswer }: QuestionCardProps) {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.content}>{question.content}</Text>
+    <>
+      <View style={styles.content}>
+        <Text style={styles.text}>{question.content}</Text>
 
-      {question.topics.length > 0 && (
-        <View style={styles.topics}>
-          {question.topics.map((t) => (
-            <Text key={t} style={styles.topic}>
-              {t}
-            </Text>
-          ))}
-        </View>
-      )}
-
-      <View style={styles.options}>
-        {question.options.map((opt) => {
-          const isSelected = selected.has(opt.id)
-          return (
-            <Pressable
-              key={opt.id}
-              style={[styles.option, isSelected && styles.optionSelected]}
-              onPress={() => toggleOption(opt.id)}
-            >
-              <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
-                {opt.content}
+        {question.topics.length > 0 && (
+          <View style={styles.topics}>
+            {question.topics.map((t) => (
+              <Text key={t} style={styles.topic}>
+                {t}
               </Text>
-            </Pressable>
-          )
-        })}
+            ))}
+          </View>
+        )}
+
+        <View style={styles.options}>
+          {question.options.map((opt) => {
+            const isSelected = selected.has(opt.id)
+            return (
+              <Pressable
+                key={opt.id}
+                style={[styles.option, isSelected && styles.optionSelected]}
+                onPress={() => toggleOption(opt.id)}
+              >
+                <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
+                  {opt.content}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
       </View>
 
-      <Pressable
-        style={[styles.submit, selected.size === 0 && styles.submitDisabled]}
-        onPress={handleSubmit}
-        disabled={selected.size === 0}
-      >
-        <Text style={styles.submitLabel}>Confirmar</Text>
-      </Pressable>
-    </View>
+      <View style={styles.footer}>
+        <Pressable
+          style={[styles.submit, selected.size === 0 && styles.submitDisabled]}
+          onPress={handleSubmit}
+          disabled={selected.size === 0}
+        >
+          <Text style={styles.submitLabel}>Confirmar</Text>
+        </Pressable>
+      </View>
+    </>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  content: {
     gap: spacing.lg,
   },
-  content: {
+  text: {
     fontSize: typography.size.lg,
     fontWeight: typography.weight.medium,
     color: colors.foreground,
@@ -118,6 +122,10 @@ const styles = StyleSheet.create({
   optionTextSelected: {
     color: colors.primary,
     fontWeight: typography.weight.medium,
+  },
+  footer: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
   },
   submit: {
     backgroundColor: colors.primary,
