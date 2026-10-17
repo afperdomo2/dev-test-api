@@ -24,3 +24,14 @@ type UpcomingItem struct {
 	Question questions.QuestionResponse `json:"question"`
 	Progress ProgressResponse           `json:"progress"`
 }
+
+// TopicMasteryItem es el dominio del usuario en un tema. `isWeak` se calcula
+// con la definición única de D-08 (accuracy < 60% y >= 5 respuestas).
+type TopicMasteryItem struct {
+	TopicID      uuid.UUID `json:"topicId"`
+	TopicName    string    `json:"topicName"`
+	Attempts     int       `json:"attempts"`
+	CorrectCount int       `json:"correctCount"`
+	Accuracy     float64   `json:"accuracy"`
+	IsWeak       bool      `json:"isWeak"`
+}

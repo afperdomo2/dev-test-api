@@ -18,11 +18,12 @@ import (
 func init() { gin.SetMode(gin.TestMode) }
 
 type mockProgressService struct {
-	answerFn     func(userID, questionID uuid.UUID, isCorrect bool) (*ProgressResponse, error)
-	getFn        func(userID, questionID uuid.UUID) (*ProgressResponse, error)
-	upcomingFn   func(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error)
-	savedFn      func(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error)
-	toggleSaveFn func(userID, questionID uuid.UUID) (*ProgressResponse, error)
+	answerFn       func(userID, questionID uuid.UUID, isCorrect bool) (*ProgressResponse, error)
+	getFn          func(userID, questionID uuid.UUID) (*ProgressResponse, error)
+	upcomingFn     func(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error)
+	savedFn        func(userID uuid.UUID, params common.PaginationParams) ([]UpcomingItem, int64, error)
+	toggleSaveFn   func(userID, questionID uuid.UUID) (*ProgressResponse, error)
+	topicMasteryFn func(userID uuid.UUID) ([]TopicMasteryItem, error)
 }
 
 func (m *mockProgressService) Answer(u, q uuid.UUID, c bool) (*ProgressResponse, error) {
@@ -39,6 +40,9 @@ func (m *mockProgressService) Saved(u uuid.UUID, p common.PaginationParams) ([]U
 }
 func (m *mockProgressService) ToggleSave(u, q uuid.UUID) (*ProgressResponse, error) {
 	return m.toggleSaveFn(u, q)
+}
+func (m *mockProgressService) TopicMastery(u uuid.UUID) ([]TopicMasteryItem, error) {
+	return m.topicMasteryFn(u)
 }
 
 func pClaims(uid uuid.UUID) *jwt.MapClaims {

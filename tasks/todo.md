@@ -14,22 +14,25 @@
   - Verify: `make check` + `make build`; contraste de la query contra la DB real con una transacción con rollback (`session_answers` sembrados), confirmando un caso con pregunta multi-tema
   - Files: `internal/models/session.go`, `internal/modules/progress/store.go`, `internal/modules/progress/service_test.go` (stub del mock: añadir un método a la interfaz `Store` obliga a implementarlo)
   - Hecho: `make check` ✅ · `make build` ✅ · `make test` ✅ · 7/7 comprobaciones contra Postgres real en transacción revertida (multi-tema, `in_progress` excluida, aislamiento entre usuarios, usuario sin respuestas)
-- [ ] **RM-2** — `TopicMastery` en el service
+- [x] **RM-2** — `TopicMastery` en el service
   - Acceptance: `weakAccuracyThreshold = 0.6` y `minAttempts = 5` como const del paquete; `accuracy` redondeada a 4 decimales; `isWeak = accuracy < 0.6 && attempts >= 5`; orden débil → accuracy asc → nombre; errores de store convertidos a `*apierr.APIError` con `instance` vacío
   - Verify: `make test`
-  - Files: `internal/modules/progress/service.go`
-- [ ] **RM-3** — DTO `TopicMasteryItem`
+  - Files: `internal/modules/progress/service.go`, `internal/modules/progress/service_test.go` (stub del mock de `Store`)
+  - Hecho: devuelve slice vacío (no `nil`) para que el envelope sea `{"data":[]}` · stub añadido a `fakeProgressAdapter` (`sessions`) y `mockProgressService` (`progress/handler_test.go`), que también implementan la interfaz · `make check` ✅ · `make test` ✅
+- [x] **RM-3** — DTO `TopicMasteryItem`
   - Acceptance: `TopicMasteryItem{TopicID, TopicName, Attempts, CorrectCount, Accuracy, IsWeak}` con JSON camelCase; **sin** wrapper `TopicMasteryResponse`; sin exponer `isMastered` del SRS
   - Verify: `make build`
   - Files: `internal/modules/progress/response.go`
+  - Hecho: necesario antes de RM-2 para poder compilar (el service lo devuelve)
 - [ ] **RM-4** — Endpoint + Swagger
   - Acceptance: `GET /api/v1/progress/topics-mastery` (protegido) responde `200 {"data":[...]}`; handler con `getUserID`, `e.Instance = c.Request.URL.Path` y `response.Problem`; anotaciones Swagger del estilo del módulo
   - Verify: `make swagger` + `make check`; `docs/swagger.yaml` contiene el path; llamada real contra la DB con un usuario sembrado
   - Files: `internal/modules/progress/handler.go`, `internal/modules/progress/routes.go`
-- [ ] **RM-5** — Tests backend
+- [x] **RM-5** — Tests backend
   - Acceptance: store mockeado; casos: lista vacía; redondeo; borde exacto de `isWeak` (5 resp./3 aciertos = 0.6 → **no** débil; 5/2 = 0.4 → débil; 4/0 → **no** débil por `attempts`); orden determinista; error de store → `apierr`
   - Verify: `make test`
   - Files: `internal/modules/progress/service_test.go`
+  - Hecho: ⏩ **adelantada antes de RM-4** — verifica justo la lógica que entrega RM-2, así que se escribió junto a él. 5 subtests en verde (vacío/no-`nil`, error de store, redondeo a 0.3333, tabla de 7 bordes de `isWeak`, orden `Zeta→Alfa→Delta→Gamma→Beta`)
 - [ ] **RM-6** — Shared + service + query
   - Acceptance: `TopicMasteryItem` en `packages/shared/src/types/progress.types.ts` + barrel; re-export fino en `apps/web/src/types/progress.types.ts`; `getTopicMastery()` desempaqueta `{ data }`; `topicMasteryOptions()` con `queryKey: ['progress','topics-mastery']` y `staleTime: 30s`
   - Verify: `pnpm --filter @devtest/shared typecheck` + `make fe-check`

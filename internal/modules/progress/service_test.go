@@ -276,3 +276,98 @@ func TestProgressUpcoming_Saved(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func TestProgressTopicMastery(t *testing.T) {
+	uid := uuid.New()
+
+	withRows := func(rows []TopicAccuracyRow) Service {
+		store := newProgressMock()
+		store.findTopicAccuracyFn = func(uuid.UUID) ([]TopicAccuracyRow, error) { return rows, nil }
+		return NewService(store, &fakeGamificationService{})
+	}
+
+	t.Run("sin respuestas devuelve lista vacía y no nil", func(t *testing.T) {
+		svc := withRows(nil)
+		items, err := svc.TopicMastery(uid)
+		require.NoError(t, err)
+		assert.NotNil(t, items, "debe ser [] para que el envelope sea {\"data\":[]}")
+		assert.Empty(t, items)
+	})
+
+	t.Run("error de store", func(t *testing.T) {
+		store := newProgressMock()
+		store.findTopicAccuracyFn = func(uuid.UUID) ([]TopicAccuracyRow, error) {
+			return nil, errors.New("db fail")
+		}
+		svc := NewService(store, &fakeGamificationService{})
+		_, err := svc.TopicMastery(uid)
+		require.Error(t, err)
+	})
+
+	t.Run("accuracy redondeada a 4 decimales", func(t *testing.T) {
+		svc := withRows([]TopicAccuracyRow{
+			{TopicID: uuid.New(), TopicName: "Tercios", Attempts: 3, CorrectCount: 1},
+		})
+		items, err := svc.TopicMastery(uid)
+		require.NoError(t, err)
+		require.Len(t, items, 1)
+		assert.Equal(t, 0.3333, items[0].Accuracy)
+	})
+
+	t.Run("bordes de isWeak", func(t *testing.T) {
+		cases := []struct {
+			name     string
+			attempts int
+			correct  int
+			weak     bool
+		}{
+			{"0 de 1", 1, 0, false},
+			{"0 de 4 (sin historial suficiente)", 4, 0, false},
+			{"0 de 5 (historial justo)", 5, 0, true},
+			{"2 de 5 (0.4)", 5, 2, true},
+			{"3 de 5 (0.6 exacto, no es menor)", 5, 3, false},
+			{"5 de 5", 5, 5, false},
+			{"3 de 6 (0.5)", 6, 3, true},
+		}
+
+		rows := make([]TopicAccuracyRow, 0, len(cases))
+		for _, c := range cases {
+			rows = append(rows, TopicAccuracyRow{
+				TopicID:      uuid.New(),
+				TopicName:    c.name,
+				Attempts:     c.attempts,
+				CorrectCount: c.correct,
+			})
+		}
+
+		items, err := withRows(rows).TopicMastery(uid)
+		require.NoError(t, err)
+		require.Len(t, items, len(cases))
+
+		got := map[string]bool{}
+		for _, it := range items {
+			got[it.TopicName] = it.IsWeak
+		}
+		for _, c := range cases {
+			assert.Equal(t, c.weak, got[c.name], "caso %q", c.name)
+		}
+	})
+
+	t.Run("orden: débiles, luego accuracy asc, luego nombre", func(t *testing.T) {
+		svc := withRows([]TopicAccuracyRow{
+			{TopicID: uuid.New(), TopicName: "Beta", Attempts: 5, CorrectCount: 3},    // 0.6, no débil
+			{TopicID: uuid.New(), TopicName: "Alfa", Attempts: 5, CorrectCount: 2},    // 0.4, débil
+			{TopicID: uuid.New(), TopicName: "Zeta", Attempts: 5, CorrectCount: 1},    // 0.2, débil
+			{TopicID: uuid.New(), TopicName: "Gamma", Attempts: 20, CorrectCount: 10}, // 0.5, no débil
+			{TopicID: uuid.New(), TopicName: "Delta", Attempts: 20, CorrectCount: 10}, // 0.5, no débil
+		})
+		items, err := svc.TopicMastery(uid)
+		require.NoError(t, err)
+
+		names := make([]string, 0, len(items))
+		for _, it := range items {
+			names = append(names, it.TopicName)
+		}
+		assert.Equal(t, []string{"Zeta", "Alfa", "Delta", "Gamma", "Beta"}, names)
+	})
+}

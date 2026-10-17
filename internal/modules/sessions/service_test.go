@@ -143,6 +143,9 @@ func (f *fakeProgressAdapter) Saved(a uuid.UUID, p common.PaginationParams) ([]p
 func (f *fakeProgressAdapter) ToggleSave(a, b uuid.UUID) (*progress.ProgressResponse, error) {
 	return nil, nil
 }
+func (f *fakeProgressAdapter) TopicMastery(a uuid.UUID) ([]progress.TopicMasteryItem, error) {
+	return nil, nil
+}
 
 /* ---------- tests ---------- */
 
