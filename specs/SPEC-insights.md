@@ -175,7 +175,7 @@ type Store interface {
 func (s *insightsService) Summary(userID uuid.UUID, period string) (*InsightSummaryResponse, error)
 ```
 
-- `progress.TopicMastery` y `gamification.GetOverview` son **independientes** entre sí y de las agregaciones → van en paralelo con `sync.WaitGroup` + `sync.Mutex` (D-13, patrón de `sessions/service.go:128-129`), **no** `errgroup`.
+- `progress.TopicMastery` y `gamification.GetOverview` son **independientes** entre sí y de las agregaciones → van en paralelo con `sync.WaitGroup` + `sync.Mutex` (D-13; patrón de referencia: `sessions/service.go` → `gatherDailyData()`), **no** `errgroup`.
 - Cualquier error de store → `*apierr.APIError` con mensaje en español.
 - Si no hay actividad: respuesta válida con ceros, `topTopics: []`, `weakTopics` según mastery, `dailyActivity` con la ventana completa en ceros.
 

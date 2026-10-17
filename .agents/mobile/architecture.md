@@ -15,12 +15,12 @@
 |------|---------|-----------|
 | `app/` | Expo Router — **only** route files and `_layout.tsx` (thin re-exports). Never co-locate components/types/utils here | Yes — add routes |
 | `app/_layout.tsx` | Root layout (Stack, headerShown false, theme) | Rarely |
-| `app/(tabs)/_layout.tsx` | `NativeTabs` — 4 triggers: Inicio, Temas, Progreso, Perfil | Yes |
-| `src/features/<domain>/` | Feature (domain) modules: `screens/`, `components/`, `hooks/` | Yes — add features here |
+| `app/(tabs)/_layout.tsx` | `NativeTabs` — 3 triggers: Inicio (`index`), Sesiones (`sesiones`), Perfil (`perfil`) | Yes |
+| `src/features/<domain>/` | Feature (domain) modules: `screens/`, `components/` (y `utils/` cuando aplique) | Yes — add features here |
 | `src/core/theme/tokens.ts` | Design tokens (colors, spacing, radii, typography) — mirror tipado de `.agents/mobile/design-system.md` | Yes — keep in sync with design-system.md |
 | `src/core/components/` | Shared UI primitives (e.g. `Screen.tsx`) | Yes |
 | `src/core/api/` | HTTP client + services (`client.ts`, `services/*.ts`) | Yes — add endpoints here |
-| `src/core/hooks/` | Shared hooks (color scheme, etc.) | Yes |
+| `src/core/auth/` | Almacenamiento del token (`expo-secure-store`) y estado de sesión | Yes |
 | `src/core/utils/` | Shared utilities | Yes |
 | `apps/mobile/package.json` | `"main": "expo-router/entry"` | Rarely |
 | `apps/mobile/app.json` | Expo config (plugins, scheme, userInterfaceStyle: "dark") | Yes |

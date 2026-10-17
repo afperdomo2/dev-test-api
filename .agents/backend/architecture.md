@@ -22,7 +22,7 @@
 | `auth` | Auth: `POST /auth/setup` (primer admin), `POST /auth/login`, `GET /auth/status` |
 | `users` | CRUD usuarios (admin) |
 | `topics` | CRUD temas |
-| `questions` | CRUD preguntas + importación + generación IA |
+| `questions` | CRUD preguntas + importación CSV (la generación con IA vive en `generation`) |
 | `sessions` | Sesiones de práctica (quiz) + sesión diaria `POST /sessions/daily` |
 | `progress` | Progreso SRS del usuario |
 | `tips` | Tips del día (admin CRUD + import CSV) + `GetTipOfTheDay` consumido por la sesión diaria |
@@ -141,58 +141,77 @@ defer cancel()
 srv.Shutdown(ctx)
 ```
 
-### Parallel independent queries (`golang.org/x/sync/errgroup`)
+### Parallel independent queries (`sync.WaitGroup` + `sync.Mutex`)
 
-When a service method makes **two or more store calls that don't depend on each other**, run them in parallel with `errgroup.Group`:
+When a service method makes **two or more store calls that don't depend on each other**, run them in parallel with `sync.WaitGroup` and collect results/errors under a `sync.Mutex`.
+
+**Do not use `golang.org/x/sync/errgroup`**: es una dependencia nueva y el repo la evita deliberadamente (ver `specs/DECISIONS.md` → D-13). El patrón válido es el de `sessions/service.go` → `gatherDailyData()`:
 
 ```go
-import "golang.org/x/sync/errgroup"
+type dailyData struct {
+	dueCount int64
+	tip      *tips.TipResponse
+	errs     []error
+}
 
-func (s *someService) DoWork(id uuid.UUID) (*Result, error) {
-    var itemA *models.ItemA
-    var itemB []models.ItemB
+func (s *someService) gatherData(userID uuid.UUID) dailyData {
+	var (
+		wg  sync.WaitGroup
+		mu  sync.Mutex
+		res dailyData
+	)
 
-    g := new(errgroup.Group)
+	// collect envuelve cada llamada: marca el WaitGroup y acumula el error.
+	collect := func(fn func() error) {
+		defer wg.Done()
+		if err := fn(); err != nil {
+			mu.Lock()
+			res.errs = append(res.errs, err)
+			mu.Unlock()
+		}
+	}
 
-    g.Go(func() error {
-        var err error
-        itemA, err = s.store.FindA(id)
-        if err != nil {
-            if err == gorm.ErrRecordNotFound {
-                return apierr.ErrNotFound("ItemA", "")
-            }
-            return apierr.ErrInternal("Error al obtener itemA", "")
-        }
-        return nil
-    })
+	wg.Add(2)
+	go collect(func() error {
+		n, err := s.store.CountDueReviews(userID)
+		mu.Lock()
+		res.dueCount = n
+		mu.Unlock()
+		return err
+	})
+	go collect(func() error {
+		tip, err := s.tipService.GetTipOfTheDay(userID)
+		if err != nil {
+			// Un 404 esperado no es un error.
+			var apiErr *apierr.APIError
+			if errors.As(err, &apiErr) && apiErr.Status == http.StatusNotFound {
+				return nil
+			}
+			return err
+		}
+		mu.Lock()
+		res.tip = tip
+		mu.Unlock()
+		return nil
+	})
+	wg.Wait()
 
-    g.Go(func() error {
-        var err error
-        itemB, err = s.store.FindB(id)
-        if err != nil {
-            return apierr.ErrInternal("Error al obtener itemB", "")
-        }
-        return nil
-    })
-
-    if err := g.Wait(); err != nil {
-        return nil, err
-    }
-
-    // Both itemA and itemB are ready — proceed with dependent logic.
+	return res
 }
 ```
 
 **Rules:**
-- Declare result variables outside the closures so they're visible after `g.Wait()`.
-- Convert GORM errors to `*apierr.APIError` inside each closure — the service must never return raw GORM errors.
-- `g.Wait()` returns the **first** error encountered. Subsequent goroutines are cancelled via the errgroup's internal context.
-- Only parallelize queries that are **truly independent** — if query B needs the result of query A, keep them sequential.
-- This pattern requires the connection pool configured above so goroutines can borrow separate connections.
+- `wg.Done()` siempre con `defer` dentro del closure `collect`.
+- **Toda** escritura en el struct compartido va bajo `mu.Lock()` / `mu.Unlock()` — incluidas las asignaciones de resultado, no solo los errores.
+- Los errores se acumulan en un slice (`errs []error`) y **el llamador** decide: `if len(res.errs) > 0 { return nil, apierr.ErrInternal(...) }`. No hay cancelación temprana: todas las goroutines terminan.
+- Convierte los errores GORM a `*apierr.APIError` antes de guardarlos — el service nunca devuelve errores GORM crudos.
+- Solo paraleliza llamadas **realmente independientes**; si la query B necesita el resultado de la A, van secuenciales.
+- El patrón requiere el connection pool configurado arriba para que las goroutines tomen conexiones distintas.
 
 **Where this already applies:**
-- `sessions/service.go` → `NextQuestion()` — `FindByID` and `FindAnsweredQuestionIDs` run in parallel.
-- `sessions/service.go` → `CreateDaily()` — 3 reads run in parallel: `CountDueReviews`, `CountWarmupCandidates`, and `tipService.GetTipOfTheDay` (el tip devuelve nil si no existe, sin error).
+- `sessions/service.go` → `gatherDailyData()` (lo usa `CreateDaily()`) — `CountDueReviews`, `CountWarmupCandidates` y `tipService.GetTipOfTheDay` corren en paralelo; un `404` del tip se traduce en `nil` sin error.
+
+> `NextQuestion()` es **secuencial**: sus lecturas van en serie. No lo "optimices" con concurrencia sin medir antes.
 
 ### Fire-and-forget (for non-critical side effects)
 
@@ -204,18 +223,18 @@ go func() {
 }()
 ```
 
-Do **not** use this for operations where the caller needs the result or error. Prefer `errgroup` when you need to wait for completion.
+Do **not** use this for operations where the caller needs the result or error. Cuando haya que esperar el resultado, usa el patrón `sync.WaitGroup` + `sync.Mutex` de arriba.
 
 ### Background worker pool (`internal/modules/generation/worker.go`)
 
-Patrón canónico para trabajo en segundo plano. **No** usa `errgroup`: son goroutines de larga vida, no un lote acotado.
+Patrón canónico para trabajo en segundo plano. **No** usa `errgroup`: son goroutines de larga vida, no un lote acotado (y `errgroup` está prohibido, D-13).
 
 - `Pool` con `N` goroutines `run()` + `sync.WaitGroup`; cada una hace su propio bucle `claim → process → sleep`.
 - Cancelación por `context`: cada iteración comprueba `ctx.Err()` y encola cualquier job que ya estaba reclamado para que el shutdown no lo deje huérfano en `running`.
 - **Concurrencia ajustable en caliente** desde `settings` (`ai.worker_concurrency`): cada iteración llama a `reconcile(ctx)`, que compara el objetivo con la actual y hace `spawn` o cierra el canal `quit` del worker sobrante.
 - Al arrancar, `recoverRunning` devuelve a `pending` los jobs que quedaron en `running` de un proceso anterior.
 - El pool se detiene **antes** que el HTTP server en `Run()` (`stopPool` + espera), para no perder trabajo a mitad de una llamada a la IA.
-- Cuando se implemente el scheduler del backlog B2.5, reutilizar este patrón (o extraerlo a un worker genérico) en lugar de inventar otro.
+- Cuando se implemente el scheduler de notificaciones (`specs/SPEC-notifications.md`, tarea `NT-5`), reutilizar este patrón (o extraerlo a un worker genérico) en lugar de inventar otro.
 
 ## Swagger
 

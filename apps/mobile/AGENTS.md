@@ -14,11 +14,11 @@ Stack: **React Native + Expo SDK 57** + **Expo Router** (file-based) + **NativeT
 
 ```
 app/            # Expo Router — SOLO rutas y _layout (thin re-exports)
-src/features/   # Dominios: home, sessions, profile (screens/, components/)
+src/features/   # Dominios: auth, home, sessions, profile (screens/, components/)
 src/core/       # theme (tokens), components (Screen, MarkdownText), api (client + services), auth, utils
 ```
 
-Rutas actuales: `app/(tabs)/` → Inicio (index), Sesiones (con sub-rutas), Perfil + `+not-found`.
+Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Inicio (index), Sesiones (con sub-rutas), Perfil, y `+not-found`.
 
 ## Key facts
 

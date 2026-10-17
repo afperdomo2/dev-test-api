@@ -6,7 +6,7 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 
 | Tabla | Propósito |
 |-------|-----------|
-| `users` | Usuarios + límites (isAdmin, dailyImportLimit, dailyAiLimit) |
+| `users` | Usuarios + límites (isAdmin, dailyImportLimit, dailyGoalXp) |
 | `topics` | Temas de estudio (slug, name, category, isSystem, createdBy) |
 | `questions` | Preguntas (type, content, difficulty, isPublic, source) |
 | `question_options` | Opciones de pregunta (content, isCorrect) |
@@ -18,8 +18,8 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 | `session_answers` | Respuestas de la sesión (isCorrect, aiFeedback, responseTimeMs) |
 | `tips` | Tips del día (content, source, topicId) |
 | `reports` | Reportes de moderación (targetType, targetId, reason, status) |
-| `user_xps` | XP total por usuario (xp, level) |
-| `user_streaks` | Racha (current, longest, freezesAvailable, lastActiveDay) |
+| `user_xps` | XP total por usuario (xp). El nivel se **deriva** del XP, no se guarda |
+| `user_streaks` | Racha (currentStreak, longestStreak, freezesAvailable, lastActivityAt, lastActivityDate, dailyXpToday, dailyXpDate) |
 | `user_topic_xps` | XP por usuario+tema (xp) |
 | `settings` | Clave/valor de configuración administrable (migración `00002_settings.sql`) |
 | `generation_jobs` | Lotes de preguntas generados con IA (estado, presupuesto, dueño) (migración `00003_generation_jobs.sql`) |
@@ -31,7 +31,7 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 - `question_difficulty` / `session_difficulty`: beginner, intermediate, advanced
 - `question_source`: ai_generated, manual, imported
 - `session_status`: in_progress, completed, cancelled
-- `session_mode`: generate, review, daily
+- `session_mode` (tipo decorativo del baseline): generate, review, daily. ⚠️ La **columna** `sessions.mode` tiene `CHECK (mode IN ('review','daily'))` desde la migración `00004`: `generate` ya no se acepta (D-20 — los enums son decorativos, la validación real es el `CHECK`/`binding`).
 - `report_status`: pending, reviewed
 - `tips.source` (columna sin enum): manual, imported
 - `reports.target_type` (columna sin enum): question, tip

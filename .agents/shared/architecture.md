@@ -19,20 +19,24 @@
 ```
 packages/shared/src/
 ├── types/        # DTOs + API types (mirrors docs/swagger.yaml)
-│   ├── api.types.ts        # ApiError, ApiResponse, PaginatedResponse
-│   ├── auth.types.ts       # LoginRequest, AuthResponse
-│   ├── user.types.ts       # User, CreateUserRequest
-│   ├── question.types.ts   # Question, QuestionType, QuestionStats
-│   ├── session.types.ts    # Session, SessionAnswer
-│   ├── topic.types.ts      # Topic, CreateTopicRequest
-│   ├── progress.types.ts   # Progress, UpcomingQuestion
-│   └── opencode.types.ts   # OpenCodeUsage
+│   ├── api.types.ts            # ApiError, ApiResponse, PaginatedResponse, PaginatedMeta
+│   ├── auth.types.ts           # LoginRequest, SetupRequest, StatusResponse, AuthResponse
+│   ├── user.types.ts           # User, CreateUserRequest, DEFAULT_DAILY_IMPORT_LIMIT
+│   ├── question.types.ts       # Question, QuestionType, QuestionStats, DTOs de import + maps de labels/iconos
+│   ├── session.types.ts        # Session, SessionAnswer, SessionDetail, DailySessionResponse
+│   ├── topic.types.ts          # Topic, CreateTopicRequest, TopicCategory
+│   ├── progress.types.ts       # Progress, ProgressItem
+│   ├── tip.types.ts            # Tip, CreateTipRequest
+│   ├── moderation.types.ts     # Report, CreateReportRequest, ReportStatus
+│   ├── gamification.types.ts   # Reward, OverviewResponse, StreakInfo, DailyGoalInfo
+│   ├── generation.types.ts     # GenerationJob, GenerationStats, Setting
+│   └── opencode.types.ts       # OpenCodeUsage
 ├── utils/
-│   ├── format.ts           # formatDateTime, formatScore, formatTimeUntil
-│   └── validators.ts       # isValidEmail, isRequired, isMinLength, isMaxLength
+│   ├── format.ts           # formatDateTime, formatDate, formatShortDateTime, formatScore, formatTimeUntil
+│   └── validators.ts       # isValidEmail, isValidPassword, isRequired, isMinLength, isMaxLength
 ├── constants/
 │   ├── index.ts            # ITEMS_PER_PAGE_OPTIONS, DEFAULT_PER_PAGE, REFRESH_COOLDOWN_MS
-│   └── questionImport.ts   # buildImportPrompt, IMPORT_CSV_HEADER
+│   └── questionImport.ts   # plantillas CSV + buildImportPrompt + buildTipsImportPrompt
 └── index.ts                # Barrel export (re-exports all)
 ```
 
@@ -57,7 +61,7 @@ import { formatDateTime, isValidEmail } from '@devtest/shared'
 
 ```ts
 // apps/web/src/types/user.types.ts
-export { DEFAULT_DAILY_IMPORT_LIMIT, DEFAULT_DAILY_AI_LIMIT } from '@devtest/shared'
+export { DEFAULT_DAILY_IMPORT_LIMIT } from '@devtest/shared'
 export type { User, CreateUserRequest, UpdateUserRequest } from '@devtest/shared'
 ```
 

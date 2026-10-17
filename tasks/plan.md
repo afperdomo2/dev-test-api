@@ -63,7 +63,7 @@
 | Job diario duplica notificaciones | Media | Alto | Idempotencia **en la DB** (índice único `(user_id, type, creation_day)`), no en el código; test de doble ejecución |
 | `xpGained` se desvía del XP real tras cambiar `sessionBonusXp`/`xpByDifficulty` | Media | Bajo | Helpers exportados en `gamification` (fuente única); comentario en el código; OQ-1 de insights documenta el límite |
 | Agregaciones lentas sin índice en `question_topics` | Baja | Medio | Medir con datos reales antes de crear migración; el índice va como "Ask first" en la spec |
-| `errgroup` reintroducido por copiar `.agents/backend/architecture.md` (que lo documenta y está desactualizado) | **Alta** | Medio | D-13 lo prohíbe explícitamente y señala el error del doc; las 3 specs que paralelizan dicen "`sync.WaitGroup`, no `errgroup`" |
+| `errgroup` reintroducido por copiar un doc desactualizado | Baja | Medio | D-13 lo prohíbe; `.agents/backend/architecture.md` quedó corregido (N-07) y documenta el patrón `sync.WaitGroup` + `sync.Mutex` real; las 3 specs que paralelizan dicen "`sync.WaitGroup`, no `errgroup`" |
 | Se "arregla" la asimetría `topTopics` (ventana) vs `weakTopics` (histórico) y se rompe D-08 | Media | Alto | Documentado en `SPEC-insights.md` con el porqué; test de consistencia `weakTopics == mastery.filter(isWeak)` |
 | Navegación/aparición del nav rompe `DefaultLayout.test.ts` | Alta | Bajo | Los tests de nav se actualizan en la tarea del módulo correspondiente (ya previsto en los specs) |
 | `tsc`/`vue-tsc` falla por tipos compartidos cruzados (`TopicMasteryItem` en `insight.types.ts`) | Media | Bajo | `TopicMasteryItem` se **importa**, no se re-exporta desde dos sitios (regla anti-duplicación) |

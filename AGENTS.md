@@ -75,7 +75,7 @@ Always run `make fe-format`, `make fe-check` and `make fe-lint` after any web ch
 - **Secrets** — never hardcode keys, passwords, or tokens. Use `.env` for Go, `VITE_*` env vars for web. Never commit `.env`.
 - **`internal/` is Go-private** — the compiler blocks external imports.
 - **DB schema is goose-migrated** — `internal/database/migrations/*.sql` is the source of truth (base `00001_init.sql`); migrations run on server start (embedded) and via `make migrate-*`. **Any schema/DDL change = new migration file**, never AutoMigrate. `goose` is a Go tool (`go tool goose`).
-- **`docs/` and `tmp/` are auto-generated and gitignored** — never edit them manually.
+- **`tmp/` is auto-generated and gitignored; `docs/` is auto-generated but IS versioned** — never edit either manually (`make swagger` regenera `docs/swagger.yaml|json|docs.go`).
 - **Air** and **Lefthook** are Go project tools in `go.mod` — invoke via `go tool air`, `go tool lefthook`, or their `make` targets.
 - **Pre-commit hooks** (lefthook): `gofmt -l` check + `go vet ./...` + `go test -short` (unit, no DB). Run `make setup` after clone.
 - **CI** (`.github/workflows/backend.yml` + `frontend.yml`): `gofmt -l`, `go vet ./...`, `go build ./...`, `go test -short ./...` on push/PR to `main`.
