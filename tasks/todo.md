@@ -24,10 +24,11 @@
   - Verify: `make build`
   - Files: `internal/modules/progress/response.go`
   - Hecho: necesario antes de RM-2 para poder compilar (el service lo devuelve)
-- [ ] **RM-4** — Endpoint + Swagger
+- [x] **RM-4** — Endpoint + Swagger
   - Acceptance: `GET /api/v1/progress/topics-mastery` (protegido) responde `200 {"data":[...]}`; handler con `getUserID`, `e.Instance = c.Request.URL.Path` y `response.Problem`; anotaciones Swagger del estilo del módulo
   - Verify: `make swagger` + `make check`; `docs/swagger.yaml` contiene el path; llamada real contra la DB con un usuario sembrado
-  - Files: `internal/modules/progress/handler.go`, `internal/modules/progress/routes.go`
+  - Files: `internal/modules/progress/handler.go`, `internal/modules/progress/routes.go`, `docs/` (generado)
+  - Hecho: ruta estática registrada **antes** de `/:question_id` (conviven sin conflicto en Gin 1.12) · `make swagger` ✅ (solo añadidos: 151 líneas, 0 borrados) · `make check` ✅ · verificación HTTP real con router + `middleware.Auth` + JWT firmado: 13/13 checks (401 sin token, 200 con token, envelope `{"data":[…]}` no `null`, claves camelCase sin `isMastered`, invariantes de accuracy/isWeak/orden, coincidencia con el service directo y `/:question_id` sin quedar tapada)
 - [x] **RM-5** — Tests backend
   - Acceptance: store mockeado; casos: lista vacía; redondeo; borde exacto de `isWeak` (5 resp./3 aciertos = 0.6 → **no** débil; 5/2 = 0.4 → débil; 4/0 → **no** débil por `attempts`); orden determinista; error de store → `apierr`
   - Verify: `make test`

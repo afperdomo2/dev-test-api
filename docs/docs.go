@@ -628,6 +628,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/progress/topics-mastery": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Accuracy agregado por tema sobre las respuestas de sesiones completadas, con detección de temas débiles. No paginado (el número de temas es acotado)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "progress"
+                ],
+                "summary": "Dominio por tema",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/progress.TopicMasteryItem"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/progress/upcoming": {
             "get": {
                 "security": [
@@ -3382,6 +3416,29 @@ const docTemplate = `{
                 },
                 "reward": {
                     "$ref": "#/definitions/gamification.Reward"
+                }
+            }
+        },
+        "progress.TopicMasteryItem": {
+            "type": "object",
+            "properties": {
+                "accuracy": {
+                    "type": "number"
+                },
+                "attempts": {
+                    "type": "integer"
+                },
+                "correctCount": {
+                    "type": "integer"
+                },
+                "isWeak": {
+                    "type": "boolean"
+                },
+                "topicId": {
+                    "type": "string"
+                },
+                "topicName": {
+                    "type": "string"
                 }
             }
         },

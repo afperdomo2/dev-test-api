@@ -227,6 +227,21 @@ definitions:
       reward:
         $ref: '#/definitions/gamification.Reward'
     type: object
+  progress.TopicMasteryItem:
+    properties:
+      accuracy:
+        type: number
+      attempts:
+        type: integer
+      correctCount:
+        type: integer
+      isWeak:
+        type: boolean
+      topicId:
+        type: string
+      topicName:
+        type: string
+    type: object
   questions.CategoryCount:
     properties:
       category:
@@ -1357,6 +1372,28 @@ paths:
       security:
       - BearerAuth: []
       summary: Preguntas guardadas (con paginación)
+      tags:
+      - progress
+  /api/v1/progress/topics-mastery:
+    get:
+      description: Accuracy agregado por tema sobre las respuestas de sesiones completadas,
+        con detección de temas débiles. No paginado (el número de temas es acotado)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/progress.TopicMasteryItem'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Dominio por tema
       tags:
       - progress
   /api/v1/progress/upcoming:

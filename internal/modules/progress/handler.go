@@ -207,6 +207,33 @@ func (h *Handler) ToggleSave(c *gin.Context) {
 	response.Success(c, http.StatusOK, resp)
 }
 
+// @Summary      Dominio por tema
+// @Description  Accuracy agregado por tema sobre las respuestas de sesiones completadas, con detección de temas débiles. No paginado (el número de temas es acotado)
+// @Tags         progress
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {array}   TopicMasteryItem
+// @Failure      401  {object}  apierr.APIError
+// @Router       /api/v1/progress/topics-mastery [get]
+func (h *Handler) TopicMastery(c *gin.Context) {
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	items, err := h.service.TopicMastery(userID)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, items)
+}
+
 func getUserID(c *gin.Context) (uuid.UUID, *apierr.APIError) {
 	claims, exists := c.Get("user_claims")
 	if !exists {
