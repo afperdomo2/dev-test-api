@@ -230,12 +230,14 @@ export default function SessionStudyPage() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {question && (
           <QuestionCard
+            key={question.id}
             question={question}
             mode={phase === 'result' ? 'result' : 'answer'}
             selectedOptions={selectedOptions}
             lastResult={lastResult}
             onAnswer={handleAnswer}
             onNext={handleNext}
+            submitting={phase === 'loading'}
           />
         )}
       </ScrollView>

@@ -65,8 +65,17 @@ const markdownStyles = {
   },
 }
 
-export function MarkdownText({ children }: MarkdownTextProps) {
+export function MarkdownText({ children, style }: MarkdownTextProps) {
   return (
-    <Markdown style={markdownStyles as never}>{children}</Markdown>
+    <Markdown
+      style={
+        {
+          ...markdownStyles,
+          body: { ...markdownStyles.body, ...style },
+        } as never
+      }
+    >
+      {children}
+    </Markdown>
   )
 }

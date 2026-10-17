@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { NextQuestionItem, SessionAnswer } from '@devtest/shared'
@@ -17,6 +17,7 @@ type QuestionCardProps = {
   lastResult: SessionAnswer | null
   onAnswer: (selectedOptions: string[]) => void
   onNext: () => void
+  submitting?: boolean
 }
 
 export function QuestionCard({
@@ -26,10 +27,15 @@ export function QuestionCard({
   lastResult,
   onAnswer,
   onNext,
+  submitting = false,
 }: QuestionCardProps) {
   const [localSelected, setLocalSelected] = useState<Set<string>>(new Set())
   const isMultiple = question.type === 'multiple_choice'
   const isResult = mode === 'result'
+
+  useEffect(() => {
+    setLocalSelected(new Set())
+  }, [question.id])
 
   const toggleOption = (id: string) => {
     if (isResult) return
@@ -75,14 +81,20 @@ export function QuestionCard({
           const letter = LETTERS[idx] ?? String(idx + 1)
 
           return (
-            <View
+            <Pressable
               key={opt.id}
-              style={[
+              onPress={() => toggleOption(opt.id)}
+              disabled={isResult}
+              style={({ pressed }) => [
                 styles.option,
                 isSelected && !isResult && styles.optionSelected,
                 showCorrectHighlight && styles.optionCorrect,
                 showWrongHighlight && styles.optionWrong,
+                pressed && !isResult && styles.optionPressed,
               ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected, disabled: isResult }}
+              accessibilityLabel={opt.content}
             >
               {isResult ? (
                 <MaterialCommunityIcons
@@ -100,7 +112,7 @@ export function QuestionCard({
               <MarkdownText style={styles.optionText}>
                 {opt.content}
               </MarkdownText>
-            </View>
+            </Pressable>
           )
         })}
       </View>
@@ -129,11 +141,11 @@ export function QuestionCard({
         <Pressable
           style={({ pressed }) => [
             styles.submit,
-            activeSelection.size === 0 && styles.submitDisabled,
+            (activeSelection.size === 0 || submitting) && styles.submitDisabled,
             pressed && styles.submitPressed,
           ]}
           onPress={() => handleSubmit()}
-          disabled={activeSelection.size === 0}
+          disabled={activeSelection.size === 0 || submitting}
           accessibilityRole="button"
           accessibilityLabel="Confirmar respuesta"
         >
@@ -186,6 +198,9 @@ const styles = StyleSheet.create({
   optionSelected: {
     borderColor: colors.primary,
     backgroundColor: `${colors.primary}15`,
+  },
+  optionPressed: {
+    opacity: 0.85,
   },
   optionCorrect: {
     borderColor: colors.primary,
