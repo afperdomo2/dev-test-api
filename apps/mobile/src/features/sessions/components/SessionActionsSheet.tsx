@@ -1,10 +1,18 @@
-import { forwardRef, useCallback, useMemo } from 'react'
+import { forwardRef, useCallback } from 'react'
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import BottomSheet, { BottomSheetBackdrop, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetView,
+  type BottomSheetBackdropProps,
+} from '@gorhom/bottom-sheet'
 import type { Session } from '@devtest/shared'
+import { SESSION_MODE_LABELS, SESSION_STATUS_LABELS } from '@devtest/shared'
 
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
+
+const DELETE_WINDOW_MS = 24 * 60 * 60 * 1000
 
 type SessionActionsSheetProps = {
   session: Session | null
@@ -14,9 +22,11 @@ type SessionActionsSheetProps = {
   onDelete: (id: string) => void
 }
 
-export const SessionActionsSheet = forwardRef<BottomSheet, SessionActionsSheetProps>(
+export const SessionActionsSheet = forwardRef<BottomSheetModal, SessionActionsSheetProps>(
   ({ session, onContinue, onFinish, onReview, onDelete }, ref) => {
-    const snapPoints = useMemo(() => ['25%', '40%'], [])
+    const dismiss = useCallback(() => {
+      ;(ref as React.RefObject<BottomSheetModal>).current?.dismiss()
+    }, [ref])
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
@@ -25,16 +35,22 @@ export const SessionActionsSheet = forwardRef<BottomSheet, SessionActionsSheetPr
       [],
     )
 
+    const handleFinish = useCallback(() => {
+      if (!session) return
+      dismiss()
+      Alert.alert(
+        'Finalizar sesion',
+        'Al finalizar se cerrara la sesion y podras ver tu resumen de respuestas.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Finalizar', onPress: () => onFinish(session.id) },
+        ],
+      )
+    }, [session, dismiss, onFinish])
+
     const handleDelete = useCallback(() => {
       if (!session) return
-      if (session.answerCount > 0) {
-        Alert.alert(
-          'No se puede eliminar',
-          'Esta sesion tiene respuestas. Finalizala en su lugar.',
-          [{ text: 'OK' }],
-        )
-        return
-      }
+      dismiss()
       Alert.alert(
         'Eliminar sesion',
         'Esta accion no se puede deshacer. La sesion se borrara permanentemente.',
@@ -47,114 +63,140 @@ export const SessionActionsSheet = forwardRef<BottomSheet, SessionActionsSheetPr
           },
         ],
       )
-    }, [session, onDelete])
+    }, [session, dismiss, onDelete])
 
-    if (!session) return null
+    const isInProgress = session?.status === 'in_progress'
+    const hasResult = session?.status === 'completed' || session?.status === 'cancelled'
 
-    const isInProgress = session.status === 'in_progress'
-    const isCompleted = session.status === 'completed'
+    const deleteBlockedReason = getDeleteBlockedReason(session)
 
     return (
-      <BottomSheet
+      <BottomSheetModal
         ref={ref}
-        index={-1}
-        snapPoints={snapPoints}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.background}
         handleIndicatorStyle={styles.handle}
         handleStyle={styles.handleContainer}
       >
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.title} numberOfLines={1}>
-              {session.name}
-            </Text>
-            <Text style={styles.subtitle}>
-              {session.status === 'in_progress'
-                ? 'En progreso'
-                : session.status === 'completed'
-                  ? 'Completada'
-                  : 'Cancelada'}
-            </Text>
-          </View>
+        {session && (
+          <BottomSheetView style={styles.content}>
+            <View style={styles.header}>
+              <Text style={styles.title} numberOfLines={1}>
+                {session.name}
+              </Text>
+              <Text style={styles.subtitle}>
+                {SESSION_STATUS_LABELS[session.status]} · {SESSION_MODE_LABELS[session.mode]}
+              </Text>
+            </View>
 
-          <View style={styles.actions}>
-            {isInProgress && (
-              <>
+            <View style={styles.actions}>
+              {isInProgress && (
+                <>
+                  <ActionRow
+                    icon="play"
+                    label="Continuar sesion"
+                    onPress={() => {
+                      dismiss()
+                      onContinue(session.id)
+                    }}
+                  />
+                  <ActionRow
+                    icon="stop"
+                    label="Finalizar sesion"
+                    onPress={handleFinish}
+                  />
+                </>
+              )}
+
+              {hasResult && (
                 <ActionRow
-                  icon="play"
-                  label="Continuar sesion"
+                  icon="file-document-outline"
+                  label="Ver resumen"
                   onPress={() => {
-                    ;(ref as React.RefObject<BottomSheet>).current?.close()
-                    onContinue(session.id)
+                    dismiss()
+                    onReview(session.id)
                   }}
                 />
-                <ActionRow
-                  icon="stop"
-                  label="Finalizar sesion"
-                  onPress={() => {
-                    ;(ref as React.RefObject<BottomSheet>).current?.close()
-                    onFinish(session.id)
-                  }}
-                />
-              </>
-            )}
+              )}
 
-            {(isCompleted || session.status === 'cancelled') && (
+              <View style={styles.separator} />
+
               <ActionRow
-                icon="file-document-outline"
-                label="Ver resumen"
-                onPress={() => {
-                  ;(ref as React.RefObject<BottomSheet>).current?.close()
-                  onReview(session.id)
-                }}
+                icon="delete-outline"
+                label="Eliminar sesion"
+                destructive
+                disabled={deleteBlockedReason !== null}
+                hint={deleteBlockedReason ?? undefined}
+                onPress={handleDelete}
               />
-            )}
-
-            <View style={styles.separator} />
-
-            <ActionRow
-              icon="delete-outline"
-              label="Eliminar"
-              destructive
-              onPress={() => {
-                ;(ref as React.RefObject<BottomSheet>).current?.close()
-                handleDelete()
-              }}
-            />
-          </View>
-        </View>
-      </BottomSheet>
+            </View>
+          </BottomSheetView>
+        )}
+      </BottomSheetModal>
     )
   },
 )
 
 SessionActionsSheet.displayName = 'SessionActionsSheet'
 
+function getDeleteBlockedReason(session: Session | null): string | null {
+  if (!session) return null
+  if (session.answerCount > 0) return 'No disponible: la sesion tiene respuestas'
+  const createdAt = new Date(session.createdAt).getTime()
+  if (Number.isNaN(createdAt) || Date.now() - createdAt > DELETE_WINDOW_MS) {
+    return 'Solo dentro de las primeras 24 horas'
+  }
+  return null
+}
+
 function ActionRow({
   icon,
   label,
+  hint,
   destructive,
+  disabled,
   onPress,
 }: {
   icon: keyof typeof MaterialCommunityIcons.glyphMap
   label: string
+  hint?: string
   destructive?: boolean
+  disabled?: boolean
   onPress: () => void
 }) {
-  const iconColor = destructive ? colors.destructive : colors.foreground
+  const iconColor = disabled
+    ? colors.mutedForeground
+    : destructive
+      ? colors.destructive
+      : colors.foreground
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
+      style={({ pressed }) => [
+        styles.actionRow,
+        pressed && !disabled && styles.actionRowPressed,
+        disabled && styles.actionRowDisabled,
+      ]}
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={hint ? `${label}. ${hint}` : label}
+      accessibilityState={{ disabled: Boolean(disabled) }}
     >
       <MaterialCommunityIcons name={icon} size={20} color={iconColor} />
-      <Text style={[styles.actionLabel, destructive && styles.actionLabelDestructive]}>
-        {label}
-      </Text>
+      <View style={styles.actionTexts}>
+        <Text
+          style={[
+            styles.actionLabel,
+            destructive && !disabled && styles.actionLabelDestructive,
+            disabled && styles.actionLabelDisabled,
+          ]}
+        >
+          {label}
+        </Text>
+        {hint && <Text style={styles.actionHint}>{hint}</Text>}
+      </View>
     </Pressable>
   )
 }
@@ -171,8 +213,8 @@ const styles = StyleSheet.create({
     top: 0,
   },
   content: {
-    flex: 1,
     paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   header: {
     paddingBottom: spacing.md,
@@ -209,11 +251,25 @@ const styles = StyleSheet.create({
   actionRowPressed: {
     backgroundColor: `${colors.foreground}08`,
   },
+  actionRowDisabled: {
+    opacity: 0.5,
+  },
+  actionTexts: {
+    flex: 1,
+    gap: 2,
+  },
   actionLabel: {
     fontSize: typography.size.md,
     color: colors.foreground,
   },
   actionLabelDestructive: {
     color: colors.destructive,
+  },
+  actionLabelDisabled: {
+    color: colors.mutedForeground,
+  },
+  actionHint: {
+    fontSize: typography.size.xs,
+    color: colors.mutedForeground,
   },
 })

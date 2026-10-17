@@ -2,6 +2,8 @@ import { DarkTheme, SplashScreen, Stack, ThemeProvider, useRouter, useSegments }
 import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 
 import { useAuthStore } from '@/core/auth/auth.store'
 import { API_BASE_URL } from '@/core/config'
@@ -62,14 +64,21 @@ function AuthGate() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider value={DarkTheme}>
-      <StatusBar style="light" />
-      <AuthGate />
-    </ThemeProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <ThemeProvider value={DarkTheme}>
+        <StatusBar style="light" />
+        <BottomSheetModalProvider>
+          <AuthGate />
+        </BottomSheetModalProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   )
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   retry: {
     flex: 1,
     backgroundColor: colors.background,
