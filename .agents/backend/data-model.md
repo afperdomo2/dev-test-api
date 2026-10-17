@@ -56,7 +56,7 @@ Un registro = una llamada a la IA que produce hasta 10 preguntas. `quantity` es 
 - Índices: btree en `requested_by`, `created_at` y `status`, más **idx_generation_jobs_pending** (btree en `created_at` `WHERE status = 'pending'`) que soporta el claim FIFO.
 - `generation_job_topics`: PK compuesta `(job_id, topic_id)`, ambas FK con `ON DELETE CASCADE` en el job, índice btree en `topic_id`.
 - Presupuesto diario **global** (no por usuario): `SUM(quantity)` de jobs **no fallidos** con `created_at` en el día **UTC** en curso; la reserva y el insert ocurren en la misma transacción bajo `pg_advisory_xact_lock`, y el claim toma un `pending` con `FOR UPDATE SKIP LOCKED`.
-- Las preguntas resultantes se guardan en `questions` con `source = 'ai_generated'`, `is_public = true` y `created_by = requested_by`.
+- Las preguntas resultantes se guardan en `questions` con `source = 'ai_generated'`, `is_public = true` y `user_id = requested_by` (la tabla `questions` **no** tiene columna `created_by`).
 
 ## Índices / trigger del baseline (`00001_init.sql`)
 

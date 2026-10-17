@@ -18,6 +18,7 @@ type mockProgressStore struct {
 	upsertFn                func(p *models.UserQuestionProgress) error
 	findUpcomingFn          func(userID uuid.UUID, params common.PaginationParams) ([]models.UserQuestionProgress, int64, error)
 	findSavedFn             func(userID uuid.UUID, params common.PaginationParams) ([]models.UserQuestionProgress, int64, error)
+	findTopicAccuracyFn     func(userID uuid.UUID) ([]TopicAccuracyRow, error)
 }
 
 func (m *mockProgressStore) FindByUserAndQuestion(uID, qID uuid.UUID) (*models.UserQuestionProgress, error) {
@@ -29,6 +30,9 @@ func (m *mockProgressStore) FindUpcoming(uID uuid.UUID, p common.PaginationParam
 }
 func (m *mockProgressStore) FindSaved(uID uuid.UUID, p common.PaginationParams) ([]models.UserQuestionProgress, int64, error) {
 	return m.findSavedFn(uID, p)
+}
+func (m *mockProgressStore) FindTopicAccuracy(uID uuid.UUID) ([]TopicAccuracyRow, error) {
+	return m.findTopicAccuracyFn(uID)
 }
 
 type fakeGamificationService struct {
@@ -66,6 +70,9 @@ func newProgressMock() *mockProgressStore {
 		},
 		findSavedFn: func(uuid.UUID, common.PaginationParams) ([]models.UserQuestionProgress, int64, error) {
 			return nil, 0, nil
+		},
+		findTopicAccuracyFn: func(uuid.UUID) ([]TopicAccuracyRow, error) {
+			return nil, nil
 		},
 	}
 }

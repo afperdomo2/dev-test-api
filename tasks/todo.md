@@ -9,10 +9,11 @@
 
 ## Módulo `review-mastery` — `specs/SPEC-review-mastery.md`
 
-- [ ] **RM-1** — Constantes de estado de sesión + agregación por tema
+- [x] **RM-1** — Constantes de estado de sesión + agregación por tema
   - Acceptance: `models.SessionStatusInProgress/Completed/Cancelled` definidas en `internal/models/session.go` y usadas en el código nuevo (N-05, D-21); `Store.FindTopicAccuracy(userID)` devuelve `TopicAccuracyRow{TopicID, TopicName, Attempts, CorrectCount}` agregando `session_answers` (sesión `completed`) ⋈ `question_topics` ⋈ `topics`; los temas sin respuestas no aparecen
   - Verify: `make check` + `make build`; contraste de la query contra la DB real con una transacción con rollback (`session_answers` sembrados), confirmando un caso con pregunta multi-tema
-  - Files: `internal/models/session.go`, `internal/modules/progress/store.go`
+  - Files: `internal/models/session.go`, `internal/modules/progress/store.go`, `internal/modules/progress/service_test.go` (stub del mock: añadir un método a la interfaz `Store` obliga a implementarlo)
+  - Hecho: `make check` ✅ · `make build` ✅ · `make test` ✅ · 7/7 comprobaciones contra Postgres real en transacción revertida (multi-tema, `in_progress` excluida, aislamiento entre usuarios, usuario sin respuestas)
 - [ ] **RM-2** — `TopicMastery` en el service
   - Acceptance: `weakAccuracyThreshold = 0.6` y `minAttempts = 5` como const del paquete; `accuracy` redondeada a 4 decimales; `isWeak = accuracy < 0.6 && attempts >= 5`; orden débil → accuracy asc → nombre; errores de store convertidos a `*apierr.APIError` con `instance` vacío
   - Verify: `make test`

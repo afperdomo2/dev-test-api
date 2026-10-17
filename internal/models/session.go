@@ -7,6 +7,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// Estados de sesión (D-21: valor string + constante Go, sin literales mágicos).
+const (
+	SessionStatusInProgress = "in_progress"
+	SessionStatusCompleted  = "completed"
+	SessionStatusCancelled  = "cancelled"
+)
+
 type Session struct {
 	ID            uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID        uuid.UUID  `gorm:"type:uuid;not null;index" json:"userId"`
