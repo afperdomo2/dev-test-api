@@ -302,7 +302,11 @@ make fe-test       # pnpm test:run
 make fe-test-cover # pnpm test:cover
 ```
 
-CI: `.github/workflows/frontend.yml` runs `pnpm test:run --coverage` after type-check. Pre-commit: `lefthook.yml` `fe-test: cd apps/web && pnpm test:run`.
+CI: `.github/workflows/frontend.yml` runs `pnpm test:run --coverage` after type-check.
+
+Hooks (`lefthook.yml`), ambos filtrados por `glob` (no corren si no cambió `apps/web/**` ni `packages/shared/**/*.ts`):
+- Pre-commit (`root: apps/web/`): `pnpm vitest related {staged_files}` → solo los tests que importan los archivos staged.
+- Pre-push: `pnpm test:run` (suite completo).
 
 ### Conventions
 

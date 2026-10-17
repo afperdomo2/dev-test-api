@@ -1,4 +1,13 @@
+min_version: 2.0.0
 glob_matcher: doublestar
+
+# Estrategia de filtrado:
+#   - Cada job declara `glob` (y `root` cuando aplica) para que lefthook lo salte
+#     si no hay archivos de ese stack. Sin glob, un job corre SIEMPRE.
+#   - pre-commit filtra sobre {staged_files} (git diff --cached, --diff-filter=ACMR).
+#   - pre-push filtra sobre {push_files} (git diff HEAD @{push}).
+#   - Los globs se evalúan siempre desde la raíz del repo, aunque haya `root`.
+#     `root` solo cambia el CWD y hace las rutas relativas a ese directorio.
 
 pre-commit:
   parallel: true
@@ -17,6 +26,12 @@ pre-commit:
       glob: "**/*.go"
       run: bash scripts/go-test-affected.sh {staged_files}
       fail_text: "❌ unit tests failed"
+
+    - name: shared-typecheck
+      glob: ["packages/shared/**/*.ts", "packages/shared/package.json"]
+      root: packages/shared/
+      run: pnpm typecheck
+      fail_text: "❌ shared type-check failed"
 
     - name: fe-format
       glob: "apps/web/**/*.{ts,vue,tsx,js,scss,css,json}"
@@ -42,41 +57,64 @@ pre-commit:
       run: pnpm vitest related {staged_files}
       fail_text: "❌ frontend unit tests failed"
 
+    - name: mobile-test
+      glob: "apps/mobile/**/*.{ts,tsx}"
+      root: apps/mobile/
+      run: pnpm test:related {staged_files}
+      fail_text: "❌ mobile unit tests failed"
+
 pre-push:
   parallel: true
   jobs:
+    # --- backend: solo si se empujan cambios Go ---
     - name: go-fmt
+      glob: ["**/*.go", "go.mod", "go.sum"]
       run: bash scripts/check-fmt.sh
       fail_text: "❌ go fmt failed — ejecuta make fmt"
 
     - name: go-vet
+      glob: ["**/*.go", "go.mod", "go.sum"]
       run: go vet ./...
       fail_text: "❌ go vet failed"
 
     - name: go-build
+      glob: ["**/*.go", "go.mod", "go.sum"]
       run: go build ./...
       fail_text: "❌ go build failed"
 
     - name: go-test
+      glob: ["**/*.go", "go.mod", "go.sum"]
       run: go test -short -count=1 -timeout 60s ./...
       fail_text: "❌ unit tests failed"
 
+    # --- frontend: solo si se empujan cambios de web o de shared ---
     - name: fe-format-check
+      glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
       run: cd apps/web && pnpm prettier --check src/
       fail_text: "❌ frontend format failed — ejecuta pnpm format"
 
     - name: fe-lint
+      glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
       run: cd apps/web && pnpm eslint . --ext .vue,.ts,.tsx
       fail_text: "❌ frontend lint failed"
 
     - name: fe-type-check
+      glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
       run: cd apps/web && pnpm type-check
       fail_text: "❌ frontend type-check failed"
 
     - name: fe-test
+      glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
       run: cd apps/web && pnpm test:run
       fail_text: "❌ frontend unit tests failed"
 
     - name: fe-build
+      glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
       run: cd apps/web && pnpm build-only
       fail_text: "❌ frontend build failed"
+
+    # --- mobile: solo unit tests (decisión de alcance: sin typecheck/lint) ---
+    - name: mobile-test
+      glob: ["apps/mobile/**/*.{ts,tsx}", "apps/mobile/package.json", "packages/shared/**/*.ts"]
+      run: pnpm --filter mobile test:run
+      fail_text: "❌ mobile unit tests failed"

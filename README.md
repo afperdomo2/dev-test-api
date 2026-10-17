@@ -213,7 +213,10 @@ Pruebas con Vitest + Vue Test Utils + Testing Library.
 pnpm --filter dev-test-frontend test:run
 ```
 
-Hooks pre-commit (`lefthook.yml`) ejecutan `go vet` + `go test` automáticamente.
+Hooks de git (`lefthook.yml`) — todos los jobs se filtran por `glob`, así que un cambio que solo toca docs/markdown no ejecuta nada:
+
+- **pre-commit** (rápido, solo archivos staged): `gofmt` + `go vet` + `go test` **en los paquetes Go afectados**, `shared-typecheck`, web (prettier, eslint, vue-tsc, `vitest related`) y mobile (`jest --findRelatedTests`).
+- **pre-push** (completo, solo archivos empujados): backend (fmt/vet/build/test), web (format/lint/type/test/build) y mobile (`test:run`).
 
 ## 🧪 Primer uso
 

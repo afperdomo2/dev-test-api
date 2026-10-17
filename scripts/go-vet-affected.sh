@@ -19,8 +19,14 @@ GO_BIN="$(resolve_go)"
 
 files=()
 for f in "$@"; do
-  if [[ "$f" == *.go && -f "$f" ]]; then
-    files+=("$(dirname -- "$f")")
+  [[ "$f" == *.go ]] || continue
+
+  dir="$(dirname -- "$f")"
+
+  # El archivo staged puede no existir en disco (borrado o renombrado): el paquete
+  # sigue siendo relevante mientras el directorio exista y conserve algún .go.
+  if compgen -G "$dir/*.go" > /dev/null; then
+    files+=("$dir")
   fi
 done
 

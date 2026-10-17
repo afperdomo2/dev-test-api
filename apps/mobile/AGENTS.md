@@ -8,6 +8,7 @@ Stack: **React Native + Expo SDK 57** + **Expo Router** (file-based) + **NativeT
 |---------|--------|
 | `pnpm --filter mobile start` | Expo dev server |
 | `pnpm --filter mobile typecheck` | `tsc --noEmit` (corre tras cada cambio) |
+| `pnpm --filter mobile test:run` | Unit tests (`jest-expo`, co-located `*.test.ts`) |
 | `pnpm --filter mobile android` / `ios` | Abrir en dispositivo |
 
 ## Structure
