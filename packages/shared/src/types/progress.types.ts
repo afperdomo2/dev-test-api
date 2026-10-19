@@ -15,3 +15,16 @@ export interface ProgressItem {
   question: Question
   progress: Progress
 }
+
+/**
+ * Dominio del usuario en un tema. `isWeak` aplica la definición única del
+ * backend (accuracy < 60% y al menos 5 respuestas).
+ */
+export interface TopicMasteryItem {
+  topicId: string
+  topicName: string
+  attempts: number
+  correctCount: number
+  accuracy: number
+  isWeak: boolean
+}

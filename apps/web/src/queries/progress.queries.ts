@@ -25,6 +25,18 @@ export function savedQuestionsOptions(page: () => number, perPage: () => number)
   })
 }
 
+/**
+ * Dominio por tema. No se invalida al responder: el backend lo recalcula y
+ * `staleTime` de 30 s evita refetch innecesario al cambiar de pestaña.
+ */
+export function topicMasteryOptions() {
+  return queryOptions({
+    queryKey: ['progress', 'topics-mastery'],
+    queryFn: () => progressService.getTopicMastery(),
+    staleTime: 30 * 1000,
+  })
+}
+
 export function submitProgressAnswerMutation() {
   return {
     mutationKey: ['progress', 'answer'],

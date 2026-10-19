@@ -1,1 +1,1 @@
-export type { Progress, ProgressItem } from '@devtest/shared'
+export type { Progress, ProgressItem, TopicMasteryItem } from '@devtest/shared'

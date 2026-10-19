@@ -1,5 +1,5 @@
 import apiClient from '@/api/client'
-import type { Progress, ProgressItem } from '@/types/progress.types'
+import type { Progress, ProgressItem, TopicMasteryItem } from '@/types/progress.types'
 import type { PaginatedResponse } from '@/types/api.types'
 
 export async function submitProgressAnswer(questionId: string, isCorrect: boolean): Promise<void> {
@@ -33,5 +33,14 @@ export async function getSavedQuestions(
 
 export async function toggleSaveQuestion(questionId: string): Promise<Progress> {
   const res = await apiClient.post<Progress>(`/api/v1/progress/${questionId}/toggle-save`)
+  return res.data
+}
+
+/**
+ * Dominio por tema (no paginado: el número de temas es acotado).
+ * El interceptor ya desempaqueta el envelope `{ data }`.
+ */
+export async function getTopicMastery(): Promise<Array<TopicMasteryItem>> {
+  const res = await apiClient.get<Array<TopicMasteryItem>>('/api/v1/progress/topics-mastery')
   return res.data
 }

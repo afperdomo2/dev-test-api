@@ -34,10 +34,12 @@
   - Verify: `make test`
   - Files: `internal/modules/progress/service_test.go`
   - Hecho: ⏩ **adelantada antes de RM-4** — verifica justo la lógica que entrega RM-2, así que se escribió junto a él. 5 subtests en verde (vacío/no-`nil`, error de store, redondeo a 0.3333, tabla de 7 bordes de `isWeak`, orden `Zeta→Alfa→Delta→Gamma→Beta`)
-- [ ] **RM-6** — Shared + service + query
+- [x] **RM-6** — Shared + service + query
   - Acceptance: `TopicMasteryItem` en `packages/shared/src/types/progress.types.ts` + barrel; re-export fino en `apps/web/src/types/progress.types.ts`; `getTopicMastery()` desempaqueta `{ data }`; `topicMasteryOptions()` con `queryKey: ['progress','topics-mastery']` y `staleTime: 30s`
   - Verify: `pnpm --filter @devtest/shared typecheck` + `make fe-check`
   - Files: `packages/shared/src/types/progress.types.ts`, `packages/shared/src/index.ts`, `apps/web/src/types/progress.types.ts`, `apps/web/src/api/services/progress.service.ts`, `apps/web/src/queries/progress.queries.ts`
+  - Hecho: el barrel **no** necesitó cambios (`export * from './types/progress.types'`) · `pnpm --filter @devtest/shared typecheck` ✅ · `make fe-check` ✅ · `pnpm --filter mobile typecheck` ✅ · tests existentes de `progress` (10) ✅
+  - ⚠️ **Incidente de entorno** (no del código): `pnpm --filter @devtest/shared typecheck` fallaba con `TS2688: Cannot find type definition file for 'react'`. Causa: `node_modules/@types/react` era un directorio huérfano del 2026-09-29 (solo `ts5.0/`, sin `package.json`), que TypeScript descubría como type library implícita. El paquete real vive en `.pnpm/@types+react@19.2.18` y `apps/mobile` resuelve por junction ahí. Se eliminó el directorio huérfano (solo `node_modules`, reversible con `pnpm install`). Si reaparece, el diagnóstico es el mismo.
 - [ ] **RM-7** — Pestaña "Temas"
   - Acceptance: `activeTab` incluye `'topics'`; `TopicMasteryList.vue` es presentacional (props + emits, sin queries) con `v-progress-linear`, texto `correct/total`, `v-chip` "Débil" con texto (no solo color), `aria-label` con el porcentaje y estado vacío
   - Verify: manual en `make fe-dev` + `make fe-check`
