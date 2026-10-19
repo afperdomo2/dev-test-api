@@ -40,10 +40,13 @@
   - Files: `packages/shared/src/types/progress.types.ts`, `packages/shared/src/index.ts`, `apps/web/src/types/progress.types.ts`, `apps/web/src/api/services/progress.service.ts`, `apps/web/src/queries/progress.queries.ts`
   - Hecho: el barrel **no** necesitó cambios (`export * from './types/progress.types'`) · `pnpm --filter @devtest/shared typecheck` ✅ · `make fe-check` ✅ · `pnpm --filter mobile typecheck` ✅ · tests existentes de `progress` (10) ✅
   - ⚠️ **Incidente de entorno** (no del código): `pnpm --filter @devtest/shared typecheck` fallaba con `TS2688: Cannot find type definition file for 'react'`. Causa: `node_modules/@types/react` era un directorio huérfano del 2026-09-29 (solo `ts5.0/`, sin `package.json`), que TypeScript descubría como type library implícita. El paquete real vive en `.pnpm/@types+react@19.2.18` y `apps/mobile` resuelve por junction ahí. Se eliminó el directorio huérfano (solo `node_modules`, reversible con `pnpm install`). Si reaparece, el diagnóstico es el mismo.
-- [ ] **RM-7** — Pestaña "Temas"
-  - Acceptance: `activeTab` incluye `'topics'`; `TopicMasteryList.vue` es presentacional (props + emits, sin queries) con `v-progress-linear`, texto `correct/total`, `v-chip` "Débil" con texto (no solo color), `aria-label` con el porcentaje y estado vacío
+- [x] **RM-7** — Pestaña "Temas"
+  - Acceptance: `activeTab` incluye `'topics'`; `TopicMasteryList.vue` es presentacional (props, sin queries) con `v-progress-linear`, texto `correct/total`, `v-chip` "Débil" con texto (no solo color), `aria-label` con el porcentaje y estado vacío
   - Verify: manual en `make fe-dev` + `make fe-check`
   - Files: `apps/web/src/features/progress/components/TopicMasteryList.vue` (nuevo), `apps/web/src/features/progress/pages/ProgressPage.vue`
+  - Hecho: 4ª pestaña **Temas** con rama `v-else-if` **antes** de la tarjeta de preguntas (si no, caería en la rejilla paginada) · `handleRefresh` invalida también `['progress','topics-mastery']` · el componente recibe `items` + `loading` (skeleton dentro de la tarjeta) · chip "Débil" con **texto + icono** (nunca solo color) y barra con `role="progressbar"` + `aria-label`/`aria-valuenow` · sin emojis estructurales (`mdi-*`)
+  - ⚠️ **Desviación del spec**: no emite `select`. `SPEC-review-mastery.md` mencionaba "emite `select`" pero no existe acción definida para un tema (no hay drill-down ni filtro). Emitir sin consumidor sería código muerto; queda para cuando exista la acción.
+  - Verificado: `make fe-format` ✅ · `make fe-check` ✅ · `make fe-lint` ✅ · `make fe-test` ✅ **291 tests / 49 archivos**. La comprobación visual real (barras, chip, vacío) la cubre el test montado de RM-8 — no la sustituye una revisión a ojo.
 - [ ] **RM-8** — Tests web + checks
   - Acceptance: tests de service, query y página (render, badge Débil, vacío); los 3 checks y la suite en verde
   - Verify: `make fe-format` → `make fe-check` → `make fe-lint` → `make fe-test`

@@ -231,7 +231,7 @@ export function topicMasteryOptions() {
 }
 ```
 
-**UI**: `ProgressPage.vue` extiende `activeTab` a `'upcoming' | 'saved' | 'gamification' | 'topics'` y añade la pestaña **Temas** con `TopicMasteryList.vue` (presentacional: recibe `items` por props, emite `select`). Nunca importa queries. Cada fila: nombre del tema, `v-progress-linear` con `accuracy * 100`, texto `correctCount/attempts`, y `v-chip` "Débil" cuando `isWeak`. Estado vacío con `v-alert` cuando `items.length === 0`.
+**UI**: `ProgressPage.vue` extiende `activeTab` a `'upcoming' | 'saved' | 'gamification' | 'topics'` y añade la pestaña **Temas** con `TopicMasteryList.vue` (presentacional: recibe `items` por props; **no emite eventos** — no hay acción definida para un tema). Nunca importa queries. Cada fila: nombre del tema, `v-progress-linear` con `accuracy * 100`, texto `correctCount/attempts`, y `v-chip` "Débil" cuando `isWeak`. Estado vacío con `v-alert` cuando `items.length === 0`.
 
 **Accesibilidad (skill `ui-ux-pro-max`)**: el chip "Débil" no puede ser solo color — lleva texto; `aria-label` en la barra con el porcentaje; sin emojis como icono estructural.
 

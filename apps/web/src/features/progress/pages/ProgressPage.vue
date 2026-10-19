@@ -5,21 +5,23 @@ import {
   upcomingQuestionsOptions,
   savedQuestionsOptions,
   toggleSaveMutation,
+  topicMasteryOptions,
 } from '@/queries/progress.queries'
 import { useAppStore } from '@/stores/app.store'
 import { usePagination } from '@/composables/usePagination'
 import ListPageHeader from '@/components/ListPageHeader.vue'
 import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import ProgressCard from '../components/ProgressCard.vue'
+import TopicMasteryList from '../components/TopicMasteryList.vue'
 import GamificationPanel from '@/features/gamification/components/GamificationPanel.vue'
 import QuestionDetailDialog from '@/features/questions/components/QuestionDetailDialog.vue'
-import type { ProgressItem } from '@/types/progress.types'
+import type { ProgressItem, TopicMasteryItem } from '@/types/progress.types'
 
 const appStore = useAppStore()
 const queryClient = useQueryClient()
 const { page, perPage, reset: resetPagination } = usePagination()
 
-const activeTab = ref<'upcoming' | 'saved' | 'gamification'>('upcoming')
+const activeTab = ref<'upcoming' | 'saved' | 'gamification' | 'topics'>('upcoming')
 
 const { data: upcomingData, isLoading: upcomingLoading } = useQuery(
   upcomingQuestionsOptions(
@@ -35,6 +37,9 @@ const { data: savedData, isLoading: savedLoading } = useQuery(
   ),
 )
 
+// Dominio por tema: sin parámetros y sin paginación (el set de temas es acotado).
+const { data: masteryData, isLoading: masteryLoading } = useQuery(topicMasteryOptions())
+
 const toggleMut = useMutation(toggleSaveMutation())
 const togglingId = ref<string | null>(null)
 
@@ -45,6 +50,8 @@ const upcomingList = computed<Array<ProgressItem>>(() => {
 const savedList = computed<Array<ProgressItem>>(() => {
   return savedData.value?.data ?? []
 })
+
+const masteryItems = computed<Array<TopicMasteryItem>>(() => masteryData.value ?? [])
 
 const currentList = computed<Array<ProgressItem>>(() => {
   return activeTab.value === 'upcoming' ? upcomingList.value : savedList.value
@@ -59,7 +66,7 @@ const currentTotal = computed(() => {
   return d?.meta?.total ?? 0
 })
 
-function switchTab(tab: 'upcoming' | 'saved' | 'gamification') {
+function switchTab(tab: 'upcoming' | 'saved' | 'gamification' | 'topics') {
   activeTab.value = tab
   resetPagination()
 }
@@ -68,6 +75,7 @@ function handleRefresh() {
   resetPagination()
   queryClient.invalidateQueries({ queryKey: ['progress', 'upcoming'] })
   queryClient.invalidateQueries({ queryKey: ['progress', 'saved'] })
+  queryClient.invalidateQueries({ queryKey: ['progress', 'topics-mastery'] })
 }
 
 async function handleToggle(questionId: string) {
@@ -114,9 +122,16 @@ function handleSelect(item: ProgressItem) {
       <v-tab value="upcoming"> Pendientes de repaso </v-tab>
       <v-tab value="saved"> Guardadas </v-tab>
       <v-tab value="gamification"> Gamificación </v-tab>
+      <v-tab value="topics"> Temas </v-tab>
     </v-tabs>
 
     <GamificationPanel v-if="activeTab === 'gamification'" />
+
+    <TopicMasteryList
+      v-else-if="activeTab === 'topics'"
+      :items="masteryItems"
+      :loading="masteryLoading"
+    />
 
     <v-card v-else variant="flat" border>
       <v-row v-if="isLoading" class="ma-0">
