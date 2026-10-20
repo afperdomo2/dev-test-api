@@ -24,9 +24,11 @@ interface NavSection {
 const navSections: Array<NavSection> = [
   { items: [{ title: 'Inicio', to: '/', icon: 'mdi-home' }] },
   {
+    title: 'Estudio',
     items: [
       { title: 'Sesiones', to: '/sessions', icon: 'mdi-play-circle', userOnly: true },
       { title: 'Progreso', to: '/progress', icon: 'mdi-chart-line', userOnly: true },
+      { title: 'Informes', to: '/insights', icon: 'mdi-file-chart', userOnly: true },
     ],
   },
   {

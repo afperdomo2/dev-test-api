@@ -140,6 +140,58 @@ definitions:
     - difficulty
     - topicIds
     type: object
+  insights.DailyActivityItem:
+    properties:
+      date:
+        description: YYYY-MM-DD (UTC)
+        type: string
+      questionsAnswered:
+        type: integer
+    type: object
+  insights.InsightSummaryResponse:
+    properties:
+      accuracy:
+        type: number
+      dailyActivity:
+        items:
+          $ref: '#/definitions/insights.DailyActivityItem'
+        type: array
+      from:
+        type: string
+      period:
+        type: string
+      questionsAnswered:
+        type: integer
+      sessions:
+        type: integer
+      streakDays:
+        type: integer
+      timeSpentMs:
+        type: integer
+      to:
+        type: string
+      topTopics:
+        items:
+          $ref: '#/definitions/insights.TopicInsightItem'
+        type: array
+      weakTopics:
+        items:
+          $ref: '#/definitions/progress.TopicMasteryItem'
+        type: array
+      xpGained:
+        type: integer
+    type: object
+  insights.TopicInsightItem:
+    properties:
+      accuracy:
+        type: number
+      attempts:
+        type: integer
+      topicId:
+        type: string
+      topicName:
+        type: string
+    type: object
   moderation.CreateReportRequest:
     properties:
       reason:
@@ -1189,6 +1241,35 @@ paths:
       summary: Estadísticas de generación con IA
       tags:
       - generation
+  /api/v1/insights/summary:
+    get:
+      description: 'KPIs del periodo (ventana móvil de 7 o 30 días): sesiones, preguntas,
+        acierto, tiempo, temas, XP, racha y actividad diaria'
+      parameters:
+      - description: 'Periodo: week (default) o month'
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/insights.InsightSummaryResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Resumen de actividad
+      tags:
+      - insights
   /api/v1/opencode/usage:
     get:
       description: Consulta el endpoint oficial de OpenCode Go y devuelve el consumo

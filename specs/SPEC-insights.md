@@ -76,7 +76,7 @@ GET /api/v1/insights/summary?period=week|month     (protected — requiere JWT)
 
 - `period` opcional, `binding:"omitempty,oneof=week month"`, default **`week`**.
 - `week` = últimos **7** días (hoy incluido); `month` = últimos **30** días. **Ventana móvil**, no semana/mes natural: evita bordes de calendario y no necesita configurar el primer día de la semana.
-- TZ: la del servidor para el cálculo de días; el detalle se serializa en RFC 3339.
+- TZ: **UTC** para el cálculo de días (`from` = medianoche UTC del primer día de la ventana); `from`/`to` se serializan en RFC 3339.
 
 ### Response
 
@@ -126,6 +126,13 @@ type InsightSummaryResponse struct {
 | `DailyActivity` | un punto por día de la ventana, **con ceros**, en orden ascendente |
 
 La ventana filtra por `created_at` (no `finished_at`) en ambas tablas: es un valor no nulo y evita asimetrías de medianoche.
+
+### Notas de implementación (2026-10-19)
+
+- **UTC, no TZ del servidor**: `from` es medianoche UTC y `dailyActivity[].date` son días UTC (`to_char(created_at AT TIME ZONE 'UTC', ...)`). Es determinista y no depende de la `TimeZone` de la sesión de Postgres.
+- **`CountCompletedSessions` no existe**: `CountSessions` devuelve el mismo dato y se reutiliza para el bonus de XP (`sessions × 20`).
+- **`topTopics` ordena en SQL**: `attempts DESC`, luego `accuracy DESC`, luego `t.name ASC` (el cliente no reordena).
+- **8 consultas en paralelo** (`sync.WaitGroup`; el mutex protege solo el slice de errores). La racha (`gamification.GetOverview`) es **no fatal**: si falla, el informe sale con `streakDays: 0`.
 
 ### Fuente única del XP (evita duplicar la tabla de XP)
 

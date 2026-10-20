@@ -81,6 +81,12 @@ export const routes: Array<RouteRecordRaw> = [
         meta: { requiresNotAdmin: true },
       },
       {
+        path: 'insights',
+        name: 'Insights',
+        component: () => import('@/features/insights/pages/InsightsPage.vue'),
+        meta: { requiresNotAdmin: true },
+      },
+      {
         path: 'stats',
         name: 'QuestionStats',
         component: () => import('@/features/stats/pages/QuestionStatsPage.vue'),

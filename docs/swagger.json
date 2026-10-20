@@ -482,6 +482,51 @@
                 }
             }
         },
+        "/api/v1/insights/summary": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "KPIs del periodo (ventana móvil de 7 o 30 días): sesiones, preguntas, acierto, tiempo, temas, XP, racha y actividad diaria",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "insights"
+                ],
+                "summary": "Resumen de actividad",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Periodo: week (default) o month",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/insights.InsightSummaryResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/opencode/usage": {
             "get": {
                 "security": [
@@ -3281,6 +3326,85 @@
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "insights.DailyActivityItem": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "description": "YYYY-MM-DD (UTC)",
+                    "type": "string"
+                },
+                "questionsAnswered": {
+                    "type": "integer"
+                }
+            }
+        },
+        "insights.InsightSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "accuracy": {
+                    "type": "number"
+                },
+                "dailyActivity": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/insights.DailyActivityItem"
+                    }
+                },
+                "from": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "questionsAnswered": {
+                    "type": "integer"
+                },
+                "sessions": {
+                    "type": "integer"
+                },
+                "streakDays": {
+                    "type": "integer"
+                },
+                "timeSpentMs": {
+                    "type": "integer"
+                },
+                "to": {
+                    "type": "string"
+                },
+                "topTopics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/insights.TopicInsightItem"
+                    }
+                },
+                "weakTopics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/progress.TopicMasteryItem"
+                    }
+                },
+                "xpGained": {
+                    "type": "integer"
+                }
+            }
+        },
+        "insights.TopicInsightItem": {
+            "type": "object",
+            "properties": {
+                "accuracy": {
+                    "type": "number"
+                },
+                "attempts": {
+                    "type": "integer"
+                },
+                "topicId": {
+                    "type": "string"
+                },
+                "topicName": {
+                    "type": "string"
                 }
             }
         },

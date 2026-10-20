@@ -23,6 +23,17 @@ var xpByDifficulty = map[string]int{
 	"advanced":     15,
 }
 
+// XpForDifficulty expone el XP por respuesta correcta según la dificultad.
+// Es la fuente única: `insights` la usa para derivar el XP de un periodo.
+func XpForDifficulty(difficulty string) int {
+	return xpByDifficulty[difficulty]
+}
+
+// SessionBonusXp expone el bonus fijo por sesión terminada.
+func SessionBonusXp() int {
+	return sessionBonusXp
+}
+
 type Service interface {
 	RegisterAnswer(userID, questionID uuid.UUID, isCorrect bool) (*Reward, error)
 	CompleteSession(userID uuid.UUID) (*Reward, error)

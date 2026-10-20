@@ -10,6 +10,7 @@ export * from './types/moderation.types'
 export * from './types/gamification.types'
 export * from './types/opencode.types'
 export * from './types/generation.types'
+export * from './types/insight.types'
 
 export * from './utils/format'
 export * from './utils/validators'

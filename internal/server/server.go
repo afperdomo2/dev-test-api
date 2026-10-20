@@ -14,6 +14,7 @@ import (
 	"github.com/felipe/dev-test-api/internal/modules/auth"
 	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/generation"
+	"github.com/felipe/dev-test-api/internal/modules/insights"
 	"github.com/felipe/dev-test-api/internal/modules/moderation"
 	opencodeModule "github.com/felipe/dev-test-api/internal/modules/opencode"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
@@ -60,6 +61,10 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	progressStore := progress.NewStore(db)
 	progressService := progress.NewService(progressStore, gamificationService)
 	progressHandler := progress.NewHandler(progressService)
+
+	insightsStore := insights.NewStore(db)
+	insightsService := insights.NewService(insightsStore, progressService, gamificationService)
+	insightsHandler := insights.NewHandler(insightsService)
 
 	sessionStore := sessions.NewStore(db)
 
@@ -120,6 +125,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		sessions.RegisterRoutes(protected, sessionHandler)
 		moderation.RegisterRoutes(protected, moderationHandler)
 		gamification.RegisterRoutes(protected, gamificationHandler)
+		insights.RegisterRoutes(protected, insightsHandler)
 
 		admin := protected.Group("")
 		admin.Use(middleware.AdminOnly())

@@ -54,6 +54,7 @@ describe('DefaultLayout', () => {
     expect(titles).toContain('Sesiones')
     expect(titles).not.toContain('Usuarios')
     expect(titles).toContain('Tips')
+    expect(titles).toContain('Informes')
     expect(titles).not.toContain('Moderación')
   })
 
@@ -69,6 +70,7 @@ describe('DefaultLayout', () => {
     expect(titles).toContain('Temas')
     expect(titles).not.toContain('Sesiones')
     expect(titles).not.toContain('Progreso')
+    expect(titles).not.toContain('Informes')
   })
 
   it('exposes Moderación as admin-only item in Administración, and Tips in Contenido', () => {
@@ -90,12 +92,17 @@ describe('DefaultLayout', () => {
   it('groups nav into sections with correct titles', () => {
     const { wrapper } = mountLayout(false)
     const vm = wrapper.vm as unknown as {
-      filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
+      filteredSections: Array<{ title?: string; items: Array<{ title: string; to: string }> }>
     }
     const sectionTitles = vm.filteredSections.map((s) => s.title)
-    // Top section has no title (Inicio), Estudio section has no title, then Contenido
+    expect(sectionTitles).toContain('Estudio')
     expect(sectionTitles).toContain('Contenido')
     expect(sectionTitles).not.toContain('Administración')
+
+    const estudioSection = vm.filteredSections.find((s) => s.title === 'Estudio')
+    expect(estudioSection?.items.map((i) => i.title)).toEqual(['Sesiones', 'Progreso', 'Informes'])
+    expect(estudioSection?.items.find((i) => i.title === 'Informes')?.to).toBe('/insights')
+
     const contenidoSection = vm.filteredSections.find((s) => s.title === 'Contenido')
     expect(contenidoSection?.items.map((i) => i.title)).toEqual(
       expect.arrayContaining(['Preguntas', 'Importar', 'Temas', 'Estadísticas']),

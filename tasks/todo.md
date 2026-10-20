@@ -99,38 +99,46 @@
 
 ## Módulo `insights` — `specs/SPEC-insights.md`
 
-- [ ] **IN-1** — Helpers de XP en `gamification` + esqueleto del módulo
+- [x] **IN-1** — Helpers de XP en `gamification` + esqueleto del módulo
   - Acceptance: `gamification.XpForDifficulty(difficulty) int` y `gamification.SessionBonusXp() int` exportados y usados internamente por `gamification` (una sola fuente del XP, N-01); módulo `insights` creado con la anatomía estándar
   - Verify: `make check` + `make test` (los tests existentes de gamification siguen verdes)
   - Files: `internal/modules/gamification/service.go`, `internal/modules/insights/{request,response,store,service,handler,routes}.go`
-- [ ] **IN-2** — Agregaciones del store + `Summary`
+  - Hecho: helpers exportados + `xp_test.go` (5/10/15, desconocida → 0, bonus 20)
+- [x] **IN-2** — Agregaciones del store + `Summary`
   - Acceptance: `CountSessions`, `CountAnswers` (total y correctas), `SumResponseTimeMs`, `TopTopics(limit)`, `DailyActivity`, `CountCorrectByDifficulty`, `CountCompletedSessions`; filtran por `created_at` en la ventana y sesión `completed` (`models.SessionStatusCompleted`); el service rellena los días sin actividad con ceros; `accuracy` a 4 decimales y sin división por cero; `weakTopics` viene de `progress.Service.TopicMastery` filtrado por `IsWeak`; `xpGained` con los helpers de IN-1; `progress` y `gamification` se consultan en paralelo con `sync.WaitGroup` + `sync.Mutex` (**no** `errgroup`, D-13)
   - Verify: `make test`; contraste de los agregados contra la DB real con transacción con rollback
   - Files: `internal/modules/insights/store.go`, `internal/modules/insights/service.go`
-- [ ] **IN-3** — Endpoint + Swagger + wiring
+  - Hecho: **8 consultas en paralelo** (`WaitGroup` + mutex solo para `errs`; cada goroutine escribe su propia variable) · `CountCompletedSessions` **no se implementó**: `CountSessions` ya devuelve el mismo dato y se usa para el bonus de XP · ventana y días en **UTC** (determinista, sin depender de la TZ de Postgres) · `topTopics` desempata por accuracy en SQL
+- [x] **IN-3** — Endpoint + Swagger + wiring
   - Acceptance: `GET /api/v1/insights/summary?period=week|month` (default `week`, `oneof`), registrado en `protected` y cableado en `server.go` después de `progress` y `gamification`
   - Verify: `make swagger` + `make check`; `period=year` → `422` RFC 9457; `docs/swagger.yaml` con el path y el parámetro
   - Files: `internal/modules/insights/handler.go`, `internal/modules/insights/routes.go`, `internal/server/server.go`
-- [ ] **IN-4** — Tests backend
+  - Hecho: handler con `getUserID` del módulo, `e.Instance` y `response.Problem` · `make swagger` OK · wiring tras `progress`
+- [x] **IN-4** — Tests backend
   - Acceptance: ventana 7 vs 30 días; usuario sin actividad → ceros con `dailyActivity` completo; `xpGained` = correctas×dificultad + 20×sesiones; `weakTopics` filtrado desde el mock de `progress`; error de store → `apierr`; `XpForDifficulty` (3 dificultades + desconocida → 0) y `SessionBonusXp() == 20`
   - Verify: `make test`
   - Files: `internal/modules/insights/service_test.go`, `internal/modules/gamification/service_test.go`
-- [ ] **IN-5** — Shared + service + query
+  - Hecho: 8 subtests de service (ventana, accuracy 0.6667, XP 75, weak, zero-fill, racha, gamification caída no rompe, error de store) + 4 de handler (200/422/401/500) + helpers de XP
+- [x] **IN-5** — Shared + service + query
   - Acceptance: `insight.types.ts` (`InsightPeriod`, `TopicInsightItem`, `DailyActivityItem`, `InsightSummary`, `PERIOD_OPTIONS`) + barrel; `TopicMasteryItem` **importado** de `progress.types.ts` (no re-exportado desde dos sitios); re-export fino; `getInsightSummary(period)`; `insightSummaryOptions(period)` con el periodo en la queryKey
   - Verify: `pnpm --filter @devtest/shared typecheck` + `make fe-check`
   - Files: `packages/shared/src/types/insight.types.ts`, `packages/shared/src/index.ts`, `apps/web/src/types/insight.types.ts`, `apps/web/src/api/services/insights.service.ts`, `apps/web/src/queries/insights.queries.ts`
-- [ ] **IN-6** — Página Informes + ruta
+  - Hecho: `TopicMasteryItem` se importa (no se re-exporta) · barrel con `export *`
+- [x] **IN-6** — Página Informes + ruta
   - Acceptance: selector semana/mes; KPI cards (sesiones, preguntas, acierto, tiempo legible, XP, racha); listas "Más practicados" y "Temas débiles" con barras y badge con texto; actividad diaria con barras; **sin** librería de gráficas; ruta `/insights` con `requiresNotAdmin`
   - Verify: manual en `make fe-dev` + `make fe-check`
   - Files: `apps/web/src/features/insights/pages/InsightsPage.vue`, `apps/web/src/features/insights/components/*.vue`, `apps/web/src/router/routes.ts`
-- [ ] **IN-7** — Nav (título "Estudio" + item Informes)
+  - Hecho: una sola página (sin componentes extra) con `v-btn-toggle`, KPIs, barras y actividad diaria en divs · sin librería de gráficas · ruta `/insights` (`requiresNotAdmin`)
+- [x] **IN-7** — Nav (título "Estudio" + item Informes)
   - Acceptance: la sección del nav que agrupa Sesiones/Progreso pasa a titularse **Estudio** (⚠️ hoy está sin título, `DefaultLayout.vue:26-31`) y contiene `{ title: 'Informes', to: '/insights', icon: 'mdi-file-chart', userOnly: true }`
   - Verify: `make fe-check` + `make fe-test` con `DefaultLayout.test.ts` actualizado
   - Files: `apps/web/src/layouts/DefaultLayout.vue`, `apps/web/src/layouts/DefaultLayout.test.ts`
-- [ ] **IN-8** — Tests web + checks
+  - Hecho: sección **Estudio** con Sesiones, Progreso e Informes · tests actualizados (Informes visible para usuario, oculto para admin; orden de la sección)
+- [x] **IN-8** — Tests web + checks
   - Acceptance: tests de service, query y página (cambio de periodo re-consulta, KPIs, listas vacías, barras); checks y suite en verde
   - Verify: `make fe-format` → `make fe-check` → `make fe-lint` → `make fe-test`
   - Files: `apps/web/src/api/services/insights.service.test.ts`, `apps/web/src/queries/insights.queries.test.ts`, test de `InsightsPage`
+  - Hecho: 8 tests nuevos (service 1, query 1, página 6) → suite **311 tests / 54 archivos** · `fe-format`/`fe-check`/`fe-lint`/`fe-test` = 0 · backend `make check` + `make test` = 0
 
 ---
 
