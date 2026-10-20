@@ -261,6 +261,33 @@ definitions:
       unpublish:
         type: boolean
     type: object
+  notifications.MarkAllReadResponse:
+    properties:
+      updated:
+        type: integer
+    type: object
+  notifications.NotificationResponse:
+    properties:
+      body:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      isRead:
+        type: boolean
+      title:
+        type: string
+      type:
+        type: string
+      userId:
+        type: string
+    type: object
+  notifications.UnreadCountResponse:
+    properties:
+      count:
+        type: integer
+    type: object
   opencode.UsageResponse:
     properties:
       monthly:
@@ -1323,6 +1350,108 @@ paths:
       summary: Resumen de actividad
       tags:
       - insights
+  /api/v1/notifications:
+    get:
+      description: Lista paginada de las notificaciones del usuario autenticado, ordenadas
+        por fecha descendente.
+      parameters:
+      - description: 'Número de página (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Elementos por página (default: 20, max: 100)'
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de notificaciones (con paginación)
+          schema:
+            $ref: '#/definitions/response.Meta'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Listar notificaciones
+      tags:
+      - notifications
+  /api/v1/notifications/{id}/read:
+    post:
+      description: Marca una notificación propia como leída. Idempotente; una notificación
+        ajena o inexistente devuelve 404.
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notifications.NotificationResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Marcar notificación como leída
+      tags:
+      - notifications
+  /api/v1/notifications/read-all:
+    post:
+      description: Marca como leídas todas las notificaciones no leídas del usuario
+        autenticado.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notifications.MarkAllReadResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Marcar todas como leídas
+      tags:
+      - notifications
+  /api/v1/notifications/unread-count:
+    get:
+      description: Devuelve cuántas notificaciones sin leer tiene el usuario autenticado.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notifications.UnreadCountResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Contar no leídas
+      tags:
+      - notifications
   /api/v1/opencode/usage:
     get:
       description: Consulta el endpoint oficial de OpenCode Go y devuelve el consumo

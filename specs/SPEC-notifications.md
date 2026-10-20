@@ -369,6 +369,15 @@ Store mockeado. Sin DB en tests.
 9. `docs/swagger.yaml` incluye los 4 paths nuevos.
 10. No se añadió ninguna dependencia a `go.mod`.
 
+## Notas de implementación (2026-10-20)
+
+- **Columna generada aceptada**: `creation_day date GENERATED ALWAYS AS ((created_at AT TIME ZONE 'UTC')::date) STORED` funciona en el Postgres del proyecto; **no** hizo falta el fallback de escribirla desde Go. Verificado con `migrate-up`/`down` y con el índice único contra la DB real.
+- **`InsertBatch` devuelve las filas nuevas** (`[]models.Notification`), no un `int64`: usa `OnConflict{DoNothing}` + `clause.Returning{}` para que el job pueda pasar exactamente lo insertado a `Pusher` (si es reintento, no hay push). El push sigue siendo best-effort.
+- **`markReadMutation` recibe `{ id }`** (variables tipadas). Las mutaciones invalidan `['notifications']` desde la página (mismo patrón que users/tips).
+- **UI**: `NotificationBell.vue` separado del layout para testearlo; badge oculto en 0, sondeo 60 s + foco. La página usa fecha relativa (`Intl.RelativeTimeFormat`), chip "Sin leer" con icono + texto y estados de carga/error/vacío.
+- Tests: backend **21 subtests** + `Start` (cancelación); web **16 tests** → suite **332 tests / 58 archivos**. `make check`/`test`, `shared typecheck`, `fe-format`/`check`/`lint`/`test` en verde.
+- ⚠️ La parada **graceful** del servidor (Ctrl+C) no se pudo ejecutar en este entorno Windows; el log de cierre está implementado y `Start` retorna al cancelar (test). El patrón es idéntico al del pool de generación.
+
 ## Open Questions
 
 | # | Pregunta | Propuesta por defecto |

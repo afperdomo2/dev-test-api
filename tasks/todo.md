@@ -58,42 +58,52 @@
 
 ## Módulo `notifications` — `specs/SPEC-notifications.md`
 
-- [ ] **NT-1** — Modelo + migración `00007_notifications.sql`
+- [x] **NT-1** — Modelo + migración `00007_notifications.sql`
   - Acceptance: tabla con `creation_day` generada, índice único `(user_id, type, creation_day)`, índices de listado y no-leídas, `COMMENT ON` de tabla y de **todas** las columnas (D-23); `Down` con `DROP TABLE`
   - Verify: `make migrate-up` → `make migrate-status` → `make migrate-down` (la columna generada debe ser aceptada por Postgres; si no, aplicar el fallback documentado en la spec); comprobar el índice único intentando insertar un duplicado
   - Files: `internal/database/migrations/00007_notifications.sql`, `internal/models/notification.go`
-- [ ] **NT-2** — Store + service (CRUD)
+  - Hecho: la columna generada `(created_at AT TIME ZONE 'UTC')::date` **es aceptada** por Postgres, sin fallback · `up` → `status` → `down` → `up` limpios · índice único probado contra la DB real (segundo `InsertBatch` del mismo día → 0 filas) · `COMMENT ON` de tabla y de las 8 columnas
+- [x] **NT-2** — Store + service (CRUD)
   - Acceptance: `Store` con listado paginado (`created_at DESC`), `FindByIDAndUser`, `MarkRead`, `MarkAllRead`, `CountUnread`, `InsertBatch` (`OnConflict{DoNothing:true}`); service con `apierr` y `404` para id ajeno; `mapper.ToNotificationResponse` exportado
   - Verify: `make check` + `make test`
   - Files: `internal/modules/notifications/{request,response,mapper,store,service}.go`
-- [ ] **NT-3** — Handler + rutas + Swagger
+  - Hecho: `InsertBatch` usa `OnConflict{DoNothing}` + `Returning{}` y devuelve **solo las filas nuevas** (no `int64`): el job necesita los avisos insertados para pasárselos a `Pusher` · `MarkRead` idempotente · `404` para id ajeno/inexistente · listado sin `sortBy` (`created_at DESC` fijo) · `Pusher` opcional (`nil` en web-only)
+- [x] **NT-3** — Handler + rutas + Swagger
   - Acceptance: los 4 endpoints (`GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/:id/read`, `POST /notifications/read-all`) registrados en `protected`; hermanos static+param sin conflicto (ya verificado en Gin 1.12); anotaciones Swagger
   - Verify: `make swagger` + `make check`; arranque real del servidor sin pánico de rutas; `docs/swagger.yaml` con los 4 paths
   - Files: `internal/modules/notifications/handler.go`, `internal/modules/notifications/routes.go`
-- [ ] **NT-4** — Job diario (fan-out idempotente)
+  - Hecho: 4 rutas registradas dentro de `protected` (estáticas antes de la paramétrica) · arranque real sin pánico · las 4 responden **401 sin token** · `docs/swagger.yaml` con los 4 paths y los DTOs
+- [x] **NT-4** — Job diario (fan-out idempotente)
   - Acceptance: `DueReviewCounts()` reutiliza la definición de repaso vencido (D-09); `RunDailyJob` no inserta para usuarios con `n = 0`; el texto es `Tienes N preguntas para repasar`; la idempotencia la garantiza el índice único
   - Verify: `make test`; doble ejecución real contra la DB → segunda vez inserta `0`
   - Files: `internal/modules/notifications/store.go`, `internal/modules/notifications/service.go`
-- [ ] **NT-5** — Scheduler + wiring
+  - Hecho: `DueReviewCounts` = `next_review_at <= now() AND is_mastered = false` agrupado por usuario (misma definición que `sessions.CountDueReviews`) · doble ejecución real en transacción con rollback: 1ª inserta 1, 2ª inserta 0; usuario sin repasos no recibe fila · texto verificado con `N` real · el push es best-effort y **no** rompe el job
+- [x] **NT-5** — Scheduler + wiring
   - Acceptance: `Scheduler` con `time.Timer` + `nextRun` a las 08:00 locales, sin dependencias nuevas (D-17); arranca en su goroutine antes del HTTP server y se detiene **antes** de cerrarlo, con espera acotada (patrón de `server.go:144-168`); logs con emoji
   - Verify: `make build`; arrancar y parar el servidor dos veces → sin goroutines colgadas ni pánico; el log de cierre aparece
   - Files: `internal/modules/notifications/scheduler.go`, `internal/server/server.go`
-- [ ] **NT-6** — Tests backend
+  - Hecho: `time.Timer` + `nextRun` (08:00 local, mañana si ya pasó) · arranca en goroutine tras el pool y se detiene antes de `srv.Shutdown` con espera de 5 s · logs `🚀`/`🛑`/`❌`/`✅` · arranque real verificado (`Scheduler de notificaciones iniciado`) · `Start` retorna al cancelar (test)
+  - ⚠️ **Pendiente**: la parada graceful real (Ctrl+C) no se pudo ejecutar en este entorno Windows; la cobertura es el test de `Start` + el patrón idéntico al pool
+- [x] **NT-6** — Tests backend
   - Acceptance: `RunDailyJob` (0 usuarios / N usuarios / error de store); `nextRun` (antes y después de las 08:00, cambio de día); `Start` retorna al cancelar el context; `mark read` idempotente; `404` en id ajeno
   - Verify: `make test`
   - Files: `internal/modules/notifications/service_test.go`, `internal/modules/notifications/scheduler_test.go`
-- [ ] **NT-7** — Shared + service + queries
+  - Hecho: **21 subtests** (job 5, listado 3, contador 2, mark read 4, mark all 2, `nextRun` 5) + test de `Start` · `make test` verde
+- [x] **NT-7** — Shared + service + queries
   - Acceptance: `notification.types.ts` (`NotificationType`, `Notification`, `UnreadCount`) + barrel; re-export fino; 4 funciones de servicio; `unreadCountOptions()` con `refetchInterval: 60s` y `refetchOnWindowFocus`; mutaciones que invalidan `['notifications']`
   - Verify: `pnpm --filter @devtest/shared typecheck` + `make fe-check`
   - Files: `packages/shared/src/types/notification.types.ts`, `packages/shared/src/index.ts`, `apps/web/src/types/notification.types.ts`, `apps/web/src/api/services/notifications.service.ts`, `apps/web/src/queries/notifications.queries.ts`
-- [ ] **NT-8** — Campana + página + ruta
+  - Hecho: shared + `MarkAllReadResult` · 4 funciones de servicio · `unreadCountOptions` con sondeo 60 s + foco · `markReadMutation` recibe `{ id }` para tipar las variables · la página invalida `['notifications']` tras cada mutación
+- [x] **NT-8** — Campana + página + ruta
   - Acceptance: campana en `v-app-bar` con `v-badge` (oculto en 0) y `aria-label`; `NotificationsPage` con lista paginada, "marcar todas como leídas", no-leído con texto+color, estado vacío; ruta `/notifications` (`requiresAuth`)
   - Verify: manual en `make fe-dev` + `make fe-check`
   - Files: `apps/web/src/features/notifications/pages/NotificationsPage.vue`, `apps/web/src/layouts/DefaultLayout.vue`, `apps/web/src/router/routes.ts`
-- [ ] **NT-9** — Tests web + checks
+  - Hecho: `NotificationBell.vue` entre tema y menú con `aria-label="Notificaciones"` y badge oculto en 0 · página con `ListPageHeader`, skeleton, alerta + Reintentar, estado vacío, chip "Sin leer" (texto + color + icono), "Marcar leída" por item, "Marcar todas como leídas" y `PaginatedFooter` · fecha relativa con `Intl.RelativeTimeFormat` · ruta `/notifications` con `requiresAuth`
+- [x] **NT-9** — Tests web + checks
   - Acceptance: tests de service, queries, campana en `DefaultLayout` y página; checks y suite en verde
   - Verify: `make fe-format` → `make fe-check` → `make fe-lint` → `make fe-test`
   - Files: `apps/web/src/api/services/notifications.service.test.ts`, `apps/web/src/queries/notifications.queries.test.ts`, `apps/web/src/layouts/DefaultLayout.test.ts`, test de `NotificationsPage`
+  - Hecho: **16 tests nuevos** (servicio 4, queries 4, página 5, layout 3) → suite web **332 tests / 58 archivos** · `fe-format`/`fe-check`/`fe-lint`/`fe-test` en verde · `shared typecheck` ✅
 
 ---
 

@@ -16,6 +16,7 @@ import (
 	"github.com/felipe/dev-test-api/internal/modules/generation"
 	"github.com/felipe/dev-test-api/internal/modules/insights"
 	"github.com/felipe/dev-test-api/internal/modules/moderation"
+	"github.com/felipe/dev-test-api/internal/modules/notifications"
 	opencodeModule "github.com/felipe/dev-test-api/internal/modules/opencode"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
@@ -99,6 +100,12 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	authService := auth.NewService(userStore, cfg.JWT.SecretBytes(), cfg.JWT.ExpiryHrs)
 	authHandler := auth.NewHandler(authService)
 
+	// pusher nil en web-only; push lo inyecta en su ola (D-28).
+	notificationStore := notifications.NewStore(db)
+	notificationService := notifications.NewService(notificationStore, nil)
+	notificationHandler := notifications.NewHandler(notificationService)
+	notificationScheduler := notifications.NewScheduler(notificationService)
+
 	opencodeClient := opencodeService.NewClient(cfg.AI, cfg.OpenCode)
 	opencodeSvc := opencodeModule.NewService(opencodeClient)
 	opencodeHandler := opencodeModule.NewHandler(opencodeSvc)
@@ -126,6 +133,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		moderation.RegisterRoutes(protected, moderationHandler)
 		gamification.RegisterRoutes(protected, gamificationHandler)
 		insights.RegisterRoutes(protected, insightsHandler)
+		notifications.RegisterRoutes(protected, notificationHandler)
 
 		admin := protected.Group("")
 		admin.Use(middleware.AdminOnly())
@@ -154,6 +162,13 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		generationWorker.Start(poolCtx)
 	}()
 
+	schedCtx, stopScheduler := context.WithCancel(context.Background())
+	schedDone := make(chan struct{})
+	go func() {
+		defer close(schedDone)
+		notificationScheduler.Start(schedCtx)
+	}()
+
 	go func() {
 		log.Println("🚀 Server starting on :" + cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -171,6 +186,14 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	case <-poolDone:
 	case <-time.After(15 * time.Second):
 		log.Println("⚠️ El pool de generación no terminó a tiempo")
+	}
+
+	// El scheduler se detiene antes de cerrar el HTTP server.
+	stopScheduler()
+	select {
+	case <-schedDone:
+	case <-time.After(5 * time.Second):
+		log.Println("⚠️ El scheduler de notificaciones no terminó a tiempo")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

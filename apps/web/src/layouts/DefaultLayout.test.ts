@@ -1,13 +1,22 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import DefaultLayout from './DefaultLayout.vue'
 import { useAuthStore } from '@/stores/auth.store'
+import { getUnreadCount } from '@/api/services/notifications.service'
 
 vi.mock('@/utils/storage', () => ({
   getToken: vi.fn(() => null),
   setToken: vi.fn(),
   removeToken: vi.fn(),
+}))
+
+vi.mock('@/api/services/notifications.service', () => ({
+  getUnreadCount: vi.fn(() => Promise.resolve({ count: 0 })),
+  getNotifications: vi.fn(),
+  markNotificationRead: vi.fn(),
+  markAllNotificationsRead: vi.fn(),
 }))
 
 function mountLayout(isAdmin = false) {
@@ -23,12 +32,17 @@ function mountLayout(isAdmin = false) {
       { path: '/login', component: { template: '<div>login</div>' } },
       { path: '/generation', component: { template: '<div>generation</div>' } },
       { path: '/generation/settings', component: { template: '<div>settings</div>' } },
+      { path: '/notifications', component: { template: '<div>notifications</div>' } },
     ],
+  })
+
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
   })
 
   const wrapper = mount(DefaultLayout, {
     global: {
-      plugins: [router],
+      plugins: [router, [VueQueryPlugin, { queryClient }]],
       stubs: {
         RouterView: { template: '<div><slot /></div>' },
         'router-view': { template: '<div><slot /></div>' },
@@ -39,9 +53,35 @@ function mountLayout(isAdmin = false) {
 }
 
 describe('DefaultLayout', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(getUnreadCount).mockResolvedValue({ count: 0 })
+  })
+
   it('renders DevTest branding', () => {
     const { wrapper } = mountLayout()
     expect(wrapper.text()).toContain('DevTest')
+  })
+
+  it('muestra la campana de notificaciones', () => {
+    const { wrapper } = mountLayout()
+    expect(wrapper.find('[aria-label="Notificaciones"]').exists()).toBe(true)
+  })
+
+  it('muestra el badge con el número de no leídas', async () => {
+    vi.mocked(getUnreadCount).mockResolvedValue({ count: 3 })
+    const { wrapper } = mountLayout()
+    await flushPromises()
+
+    expect(wrapper.find('.v-badge__badge').text()).toBe('3')
+  })
+
+  it('oculta el badge cuando no hay no leídas', async () => {
+    const { wrapper } = mountLayout()
+    await flushPromises()
+
+    const badge = wrapper.find('.v-badge__badge')
+    expect(badge.exists() ? badge.isVisible() : false).toBe(false)
   })
 
   it('filters nav for non-admin (no Usuarios, shows Preguntas)', () => {

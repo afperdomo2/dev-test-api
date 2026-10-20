@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import { useRouter } from 'vue-router'
+import NotificationBell from '@/features/notifications/components/NotificationBell.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -122,6 +123,8 @@ function logout() {
         variant="text"
         @click="appStore.toggleTheme"
       />
+
+      <NotificationBell />
 
       <v-menu>
         <template #activator="{ props }">

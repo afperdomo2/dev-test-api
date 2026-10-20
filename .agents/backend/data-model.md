@@ -16,6 +16,7 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 | `sessions` | Sesión de práctica (status, mode, difficulty, score, tipId) |
 | `session_topics` | Join N:M Session ↔ Topic |
 | `session_answers` | Respuestas de la sesión (isCorrect, aiFeedback, responseTimeMs, clientAnswerId) |
+| `notifications` | Avisos in-app por usuario (type, title, body, isRead, creationDay generado) — migración `00007_notifications.sql` |
 | `tips` | Tips del día (content, source, topicId) |
 | `reports` | Reportes de moderación (targetType, targetId, reason, status) |
 | `user_xps` | XP total por usuario (xp). El nivel se **deriva** del XP, no se guarda |
@@ -66,4 +67,5 @@ Un registro = una llamada a la IA que produce hasta 10 preguntas. `quantity` es 
 - `user_question_progress (user_id, next_review_at)` y `(user_id, is_mastered)`
 - `sessions (user_id, status)` y `(user_id, started_at DESC)`
 - `session_answers (session_id)` · único `(session_id, client_answer_id)` para reintentos idempotentes
+- `notifications (user_id, created_at DESC)` · único `(user_id, type, creation_day)` (idempotencia diaria) · parcial `(user_id) WHERE is_read = false`
 - Trigger `calc_session_score()` → calcula `sessions.score` al pasar a `completed`

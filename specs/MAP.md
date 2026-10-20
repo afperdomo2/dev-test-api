@@ -9,7 +9,7 @@
 | Module id | Responsabilidad | Depende de | IDs originales | Estado |
 |---|---|---|---|---|
 | `review-mastery` | Dominio (accuracy) **por tema** y detección de temas débiles | `progress` (existente), `sessions` (existente) | B1.1–B1.8 | `done` |
-| `notifications` | Notificaciones in-app + job diario de repaso | `sessions` (due count ya existente) | B2.1–B2.9 | `ready` |
+| `notifications` | Notificaciones in-app + job diario de repaso | `sessions` (due count ya existente) | B2.1–B2.9 | `done` |
 | `insights` | Agregados de actividad (semana/mes): KPIs, temas, racha, XP | `review-mastery`, `gamification`, `sessions` | B3.1–B3.8 | `done` |
 | `badges` | Catálogo de logros `const`, evaluados on-the-fly | `gamification`, `review-mastery`, `insights` | B4.1–B4.5 | `done` |
 | `e2e` | Flujo E2E con Playwright | todos los entregados | B5.1 | `done` |
