@@ -13,6 +13,7 @@ export default function ProgressLayout() {
     >
       <Stack.Screen name="index" options={{ title: 'Progreso' }} />
       <Stack.Screen name="temas" options={{ title: 'Temas' }} />
+      <Stack.Screen name="semana" options={{ title: 'Mi semana' }} />
     </Stack>
   )
 }

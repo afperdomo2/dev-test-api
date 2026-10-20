@@ -23,6 +23,12 @@ export default function ProgressHubScreen() {
           subtitle="Tu porcentaje de acierto en cada tema"
           onPress={() => router.push('/(tabs)/progreso/temas')}
         />
+        <ProgressHubRow
+          icon="calendar-week"
+          title="Mi semana"
+          subtitle="Tu actividad de los últimos 7 o 30 días"
+          onPress={() => router.push('/(tabs)/progreso/semana')}
+        />
       </View>
     </ScrollView>
   )

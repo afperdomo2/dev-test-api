@@ -99,7 +99,14 @@ export default function TopicMasteryScreen() {
       ) : (
         <View style={styles.list}>
           {list.map((item) => (
-            <TopicMasteryRow key={item.topicId} item={item} />
+            <TopicMasteryRow
+              key={item.topicId}
+              topicName={item.topicName}
+              attempts={item.attempts}
+              accuracy={item.accuracy}
+              isWeak={item.isWeak}
+              correctCount={item.correctCount}
+            />
           ))}
         </View>
       )}

@@ -277,18 +277,21 @@
 
 ## Módulo `mobile-weekly` — `specs/SPEC-mobile-weekly.md`
 
-- [ ] **MWEEK-1** — Servicio de insights
+- [x] **MWEEK-1** — Servicio de insights
   - Acceptance: `getInsightSummary(period)` con `params.period`; tipos de shared
   - Verify: `pnpm --filter mobile test:run` + `typecheck`
   - Files: `apps/mobile/src/core/api/services/insights.service.ts`, `.test.ts`
-- [ ] **MWEEK-2** — Pantalla "Mi semana" + fila en el hub
+  - Hecho: función + test (URL y `period`)
+- [x] **MWEEK-2** — Pantalla "Mi semana" + fila en el hub
   - Acceptance: selector Semana/Mes, 6 KPIs, más practicados, temas débiles (o sección oculta), actividad diaria en barras, estados vacío/error
   - Verify: `typecheck` + `lint` + prueba manual con datos reales
   - Files: `apps/mobile/app/(tabs)/progreso/semana.tsx`, `features/progress/screens/WeeklySummaryScreen.tsx`, `components/{KpiCard,PeriodToggle,DailyActivityBar}.tsx`, `ProgressHubScreen.tsx`
-- [ ] **MWEEK-3** — Tests de la pantalla
+  - Hecho: ruta `semana` con header "Mi semana" · fila nueva en el hub · `TopicMasteryRow` se **generalizó** (recibe campos, no el DTO) para reutilizarla en informes sin `correctCount` ni chip · barras diarias con altura proporcional y `accessibilityLabel` por día · estados vacío/error/reintento
+- [x] **MWEEK-3** — Tests de la pantalla
   - Acceptance: pinta KPIs, cambia de periodo y re-consulta, vacío, error con reintento, oculta temas débiles vacíos; `DailyActivityBar` con altura y a11y correctas
   - Verify: `pnpm --filter mobile test:run`
   - Files: `apps/mobile/src/features/progress/screens/WeeklySummaryScreen.test.tsx`, `components/*.test.tsx`
+  - Hecho: **11 tests** nuevos (pantalla 4, toggle 1, barra 3, hub +2, servicio 1) → suite mobile **95 tests / 23 archivos** · `typecheck` + `lint` + `pnpm -r typecheck` en verde
 
 ---
 

@@ -14,6 +14,7 @@ describe('ProgressHubScreen', () => {
 
     expect(screen.getByText('Temas')).toBeOnTheScreen()
     expect(screen.getByLabelText('Temas')).toBeOnTheScreen()
+    expect(screen.getByText('Mi semana')).toBeOnTheScreen()
   })
 
   it('al pulsar Temas navega a la pantalla de temas', async () => {
@@ -22,5 +23,13 @@ describe('ProgressHubScreen', () => {
     await fireEvent.press(screen.getByLabelText('Temas'))
 
     expect(routerMock.push).toHaveBeenCalledWith('/(tabs)/progreso/temas')
+  })
+
+  it('al pulsar Mi semana navega al informe', async () => {
+    await render(<ProgressHubScreen />)
+
+    await fireEvent.press(screen.getByLabelText('Mi semana'))
+
+    expect(routerMock.push).toHaveBeenCalledWith('/(tabs)/progreso/semana')
   })
 })

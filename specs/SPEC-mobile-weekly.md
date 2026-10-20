@@ -69,6 +69,7 @@ Tipos: `InsightPeriod`, `InsightSummary`, `TopicInsightItem`, `DailyActivityItem
 - **6 KPI cards** (`KpiCard`), en 2 columnas:
   `Sesiones` · `Preguntas` · `Acierto` (% redondeado) · `Tiempo` (`Xh Ym` o `Y min`) · `XP ganado` · `Racha` (días).
 - **Más practicados**: `topTopics`, reutilizando `TopicMasteryRow` de `mobile-progress` (misma barra y a11y).
+  > Nota de implementación: `TopicMasteryRow` se generalizó para recibir **campos** (`topicName`, `attempts`, `accuracy`) en vez del DTO completo, porque `TopicInsightItem` no trae `correctCount` ni `isWeak`. Así sirve a las dos pantallas sin inventar datos.
 - **Temas débiles**: `weakTopics` (mismos items que `TopicMasteryItem`); si viene vacío, se oculta la sección (no un bloque vacío).
 - **Actividad diaria**: una barra por día (`DailyActivityBar`), altura proporcional al máximo del periodo; etiqueta accesible `"lun 12: 8 preguntas"`.
 - Fechas: el backend manda `YYYY-MM-DD`; se muestran como día de la semana abreviado + número.

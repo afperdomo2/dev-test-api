@@ -1,11 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { StyleSheet, Text, View } from 'react-native'
-import type { TopicMasteryItem } from '@devtest/shared'
 
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
 type TopicMasteryRowProps = {
-  item: TopicMasteryItem
+  topicName: string
+  attempts: number
+  accuracy: number
+  /** Solo en la pantalla de Temas; en informes no se pinta el chip. */
+  isWeak?: boolean
+  /** Si se omite, no se pinta la línea "x/y aciertos". */
+  correctCount?: number
 }
 
 /** `accuracy` llega como 0..1; la barra trabaja en porcentaje entero. */
@@ -13,15 +18,20 @@ function percent(accuracy: number): number {
   return Math.round(accuracy * 100)
 }
 
-export function TopicMasteryRow({ item }: TopicMasteryRowProps) {
-  const value = percent(item.accuracy)
-  const isWeak = item.isWeak
+export function TopicMasteryRow({
+  topicName,
+  attempts,
+  accuracy,
+  isWeak = false,
+  correctCount,
+}: TopicMasteryRowProps) {
+  const value = percent(accuracy)
 
   return (
     <View style={styles.row}>
       <View style={styles.header}>
         <Text style={styles.name} numberOfLines={1}>
-          {item.topicName}
+          {topicName}
         </Text>
 
         {isWeak ? (
@@ -35,7 +45,7 @@ export function TopicMasteryRow({ item }: TopicMasteryRowProps) {
       <View
         accessible
         accessibilityRole="progressbar"
-        accessibilityLabel={`${item.topicName}: ${value}% de acierto`}
+        accessibilityLabel={`${topicName}: ${value}% de acierto`}
         accessibilityValue={{ min: 0, max: 100, now: value }}
         style={styles.track}
       >
@@ -47,9 +57,11 @@ export function TopicMasteryRow({ item }: TopicMasteryRowProps) {
         />
       </View>
 
-      <Text style={styles.counts}>
-        {item.correctCount}/{item.attempts} aciertos
-      </Text>
+      {correctCount !== undefined ? (
+        <Text style={styles.counts}>
+          {correctCount}/{attempts} aciertos
+        </Text>
+      ) : null}
     </View>
   )
 }
