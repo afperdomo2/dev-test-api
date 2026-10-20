@@ -1,4 +1,9 @@
-import type { OverviewResponse, Reward, DailyGoalRequest } from '@devtest/shared'
+import type {
+  BadgesResponse,
+  DailyGoalRequest,
+  OverviewResponse,
+  Reward,
+} from '@devtest/shared'
 
 import { apiClient } from '@/core/api/client'
 
@@ -12,4 +17,9 @@ export async function setDailyGoal(data: DailyGoalRequest): Promise<Reward> {
 
 export async function freezeStreak(): Promise<Reward> {
   return apiClient.post('/api/v1/gamification/streak/freeze')
+}
+
+/** Catálogo de logros con su estado, calculado al vuelo por el backend. */
+export async function getBadges(): Promise<BadgesResponse> {
+  return apiClient.get('/api/v1/gamification/badges')
 }

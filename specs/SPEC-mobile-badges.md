@@ -108,6 +108,14 @@ Si el nombre no existe en la fuente, el icono cae a un fallback (`trophy-outline
 5. No se muestra ninguna fecha de consecución.
 6. `typecheck`, `test:run` y `lint` en verde.
 
+## Notas de implementación (2026-10-20)
+
+- **Fallback de icono real**: `toMcIcon()` quita el prefijo `mdi-` y valida contra `MaterialCommunityIcons.glyphMap`; si el nombre no existe cae a `trophy-outline`. El mock de `@expo/vector-icons` en `jest.setup.ts` expone el glyphmap real para poder probar ambos casos.
+- **Carga con skeletons** (4 tarjetas + cabecera) en vez del spinner usado en otras pantallas, según esta spec.
+- **Cabecera oculta si el catálogo viene vacío**: evita un "0 de 0 logros" sin sentido; el estado vacío ocupa su lugar.
+- **Sin duplicar el catálogo**: nombres, descripciones e iconos vienen del backend; mobile solo mapea el prefijo del icono.
+- Tests: **8 nuevos** → suite mobile **103 tests / 25 archivos**; `typecheck`, `test:run` y `lint` (0 errores) en verde.
+
 ## Open Questions
 
 | # | Pregunta | Propuesta por defecto |

@@ -276,7 +276,7 @@
   - Acceptance: 4 pestañas correctas, navegación hub→Temas con back, datos reales coinciden con la web, touch targets ≥ 44 pt
   - Verify: manual en dev build/dispositivo; `typecheck` + `test:run` + `lint`
   - Files: — (verificación)
-  - ⚠️ **Pendiente**: requiere dispositivo/emulador. El código y los tests están verdes; falta la pasada visual (barra inferior con 4 tabs y header nativo con atrás).
+  - ⚠️ **Pendiente**: requiere dispositivo/emulador. El código y los tests están verdes; falta la pasada visual (barra inferior con 4 tabs y header nativo con atrás). Aprovechar la misma pasada para revisar **Logros** (mobile-badges): cuadrícula de 2 columnas, contador y estados conseguido/pendiente.
 
 ---
 
@@ -302,18 +302,22 @@
 
 ## Módulo `mobile-badges` — `specs/SPEC-mobile-badges.md`
 
-- [ ] **MBADGE-1** — Servicio `getBadges`
+- [x] **MBADGE-1** — Servicio `getBadges`
   - Acceptance: llama `GET /gamification/badges`; tipos `Badge`/`BadgesResponse` de shared
   - Verify: `pnpm --filter mobile test:run` + `typecheck`
   - Files: `apps/mobile/src/core/api/services/gamification.service.ts`, `.test.ts`
-- [ ] **MBADGE-2** — Pantalla de Logros + fila en el hub
+  - Hecho: `getBadges()` devuelve `BadgesResponse` de `@devtest/shared` · test de URL + respuesta
+- [x] **MBADGE-2** — Pantalla de Logros + fila en el hub
   - Acceptance: contador `earned/total`, cuadrícula de 2 columnas, conseguido = icono + "Conseguido", pendiente = `current/target` + barra, sin `earnedAt`, estados vacío/error
   - Verify: `typecheck` + `lint` + prueba manual
   - Files: `apps/mobile/app/(tabs)/progreso/logros.tsx`, `features/progress/screens/AchievementsScreen.tsx`, `components/BadgeCard.tsx`, `ProgressHubScreen.tsx`
-- [ ] **MBADGE-3** — Tests
+  - Hecho: `FlatList numColumns={2}` · cabecera `earned de total` + barra global con `accessibilityRole="progressbar"` · tarjeta agrupada con `accessibilityLabel` (`"Primera sesión. Conseguido"` / `"100 respuestas. 12 de 100"`) · conseguido = icono + texto, nunca solo color · skeleton de 4 tarjetas en carga · vacío y error con "Reintentar" · fila "Logros" en el hub y `Stack.Screen` con header nativo
+- [x] **MBADGE-3** — Tests
   - Acceptance: 8 badges, contador, ambos estados, a11y del `BadgeCard`, mapeo de icono con fallback
   - Verify: `pnpm --filter mobile test:run`
   - Files: `apps/mobile/src/features/progress/screens/AchievementsScreen.test.tsx`, `components/BadgeCard.test.tsx`
+  - Hecho: **8 tests nuevos** (servicio 1, `BadgeCard` 2, pantalla 3, hub 2) → suite mobile **103 tests / 25 archivos** · `typecheck` + `test:run` + `lint` (0 errores) en verde
+  - Notas: el fallback de icono consulta `MaterialCommunityIcons.glyphMap`; el mock central de `jest.setup.ts` ahora expone el glyphmap real para poder probarlo · el header global se oculta si el catálogo viene vacío (no se pinta "0 de 0")
 
 ---
 

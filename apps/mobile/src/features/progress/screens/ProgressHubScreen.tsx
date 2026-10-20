@@ -29,6 +29,12 @@ export default function ProgressHubScreen() {
           subtitle="Tu actividad de los últimos 7 o 30 días"
           onPress={() => router.push('/(tabs)/progreso/semana')}
         />
+        <ProgressHubRow
+          icon="trophy-outline"
+          title="Logros"
+          subtitle="Lo que ya has conseguido y lo que te falta"
+          onPress={() => router.push('/(tabs)/progreso/logros')}
+        />
       </View>
     </ScrollView>
   )

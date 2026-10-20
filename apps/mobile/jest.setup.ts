@@ -34,6 +34,8 @@ jest.mock('@expo/vector-icons', () => {
   const React = require('react')
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Text } = require('react-native')
+  const glyphMap = require('@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/MaterialCommunityIcons.json')
   const Icon = ({ name }: { name?: string }) => React.createElement(Text, null, name ?? '')
+  Icon.glyphMap = glyphMap
   return { MaterialCommunityIcons: Icon, Ionicons: Icon, FontAwesome: Icon }
 })
