@@ -1,11 +1,12 @@
 import { Alert } from 'react-native'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
-import type { OverviewResponse } from '@devtest/shared'
+import type { OverviewResponse, Tip } from '@devtest/shared'
 
 import HomeScreen from './HomeScreen'
 import { useAuthStore } from '@/core/auth/auth.store'
 import { freezeStreak, getOverview } from '@/core/api/services/gamification.service'
 import { createDailySession } from '@/core/api/services/sessions.service'
+import { clearPendingTip, getPendingTip } from '@/features/sessions/dailyTipStore'
 import { resetRouterMock, routerMock } from '@/__tests__/router'
 
 jest.mock('@/core/api/services/gamification.service', () => ({
@@ -30,6 +31,7 @@ describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     resetRouterMock()
+    clearPendingTip()
     useAuthStore.setState({
       user: { id: 'u1', email: 'ana@test.com', isAdmin: false } as never,
       token: 't',
@@ -57,6 +59,27 @@ describe('HomeScreen', () => {
 
     await waitFor(() => expect(createDailySession).toHaveBeenCalledTimes(1))
     expect(routerMock.push).toHaveBeenCalledWith('/(tabs)/sesiones/s1')
+  })
+
+  it('guarda el tip del día para la sesión creada', async () => {
+    const tip: Tip = {
+      id: 'tip1',
+      userId: 'u1',
+      topicId: 't1',
+      topic: 'Go',
+      content: 'Usa defer',
+      source: 'manual',
+      createdAt: '2026-10-19T00:00:00Z',
+      updatedAt: '2026-10-19T00:00:00Z',
+    }
+    jest.mocked(createDailySession).mockResolvedValue({ session: { id: 's1' }, tip } as never)
+
+    await render(<HomeScreen />)
+    await screen.findByText('Hola, ana')
+
+    await fireEvent.press(screen.getByLabelText('Repasar hoy'))
+
+    await waitFor(() => expect(getPendingTip('s1')).toEqual(tip))
   })
 
   it('si falla la sesión diaria muestra el detalle', async () => {

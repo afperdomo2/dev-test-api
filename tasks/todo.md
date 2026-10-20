@@ -224,18 +224,21 @@
 
 ## Módulo `mobile-daily-tip` — `specs/SPEC-mobile-daily-tip.md`
 
-- [ ] **MTIP-1** — Store en memoria del tip
+- [x] **MTIP-1** — Store en memoria del tip
   - Acceptance: `setPendingTip`, `getPendingTip` (no consume), `clearPendingTip`; otra sesión devuelve `null`
   - Verify: `pnpm --filter mobile test:run`
   - Files: `apps/mobile/src/features/sessions/dailyTipStore.ts`, `dailyTipStore.test.ts`
-- [ ] **MTIP-2** — `DailyTipCard`
+  - Hecho: 5 tests (guardar/leer, otra sesión, no consume, sin tip, clear)
+- [x] **MTIP-2** — `DailyTipCard`
   - Acceptance: título, tema, contenido con `MarkdownText`, cerrar con `accessibilityLabel`, solo tokens de diseño
   - Verify: `pnpm --filter mobile test:run` + `lint`
   - Files: `apps/mobile/src/features/sessions/components/DailyTipCard.tsx`, `.test.tsx`
-- [ ] **MTIP-3** — Integrar en Home y en la sesión diaria
+  - Hecho: botón de cerrar de 44×44 pt con `accessibilityLabel="Cerrar tip del día"` · icono + color del tema (`colors.accent`), sin hex
+- [x] **MTIP-3** — Integrar en Home y en la sesión diaria
   - Acceptance: `handleDailySession` guarda `res.tip`; la pantalla de sesión pinta la tarjeta solo en fase `question`; se limpia al salir
   - Verify: tests de `HomeScreen` y `SessionStudyPage` + prueba manual con sesión diaria
   - Files: `apps/mobile/src/features/home/screens/HomeScreen.tsx`, `apps/mobile/src/features/sessions/screens/SessionStudyPage.tsx` (+ tests)
+  - Hecho: `setPendingTip` antes de navegar · la tarjeta solo se pinta en la **primera** pregunta (`questionNumber === 1`), no en `result`/`finished`/`error` · `clearPendingTip()` al desmontar · tests: se guarda en Home (1), se muestra/oculta/cierra/no aparece sin tip (4)
 
 ---
 

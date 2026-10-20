@@ -16,6 +16,7 @@ import { useAuthStore } from '@/core/auth/auth.store'
 import { getOverview, freezeStreak } from '@/core/api/services/gamification.service'
 import { createDailySession } from '@/core/api/services/sessions.service'
 import { getErrorDetail } from '@/core/utils/errors'
+import { setPendingTip } from '@/features/sessions/dailyTipStore'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
 function getLevelProgress(totalXp: number, level: number): number {
@@ -59,6 +60,7 @@ export default function HomeScreen() {
     setDailyError(null)
     try {
       const res = await createDailySession()
+      setPendingTip(res.session.id, res.tip)
       router.push(`/(tabs)/sesiones/${res.session.id}`)
     } catch (err) {
       setDailyError(getErrorDetail(err, 'No se pudo crear la sesion diaria'))

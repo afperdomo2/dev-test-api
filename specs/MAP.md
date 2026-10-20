@@ -15,7 +15,7 @@
 | `e2e` | Flujo E2E con Playwright | todos los entregados | B5.1 | `ready` |
 | `push` | Entrega push: tokens de dispositivo + Expo Push API | `notifications` | nuevo (mobile) | `ready` |
 | `mobile-tooling` | ESLint + tests del código mobile existente y nuevo | — | nuevo (mobile) | `done` |
-| `mobile-daily-tip` | Mostrar el tip del día al empezar la sesión diaria | — (el backend ya lo envía) | nuevo (mobile) | `ready` |
+| `mobile-daily-tip` | Mostrar el tip del día al empezar la sesión diaria | — (el backend ya lo envía) | nuevo (mobile) | `done` |
 | `mobile-progress` | 4ª pestaña **Progreso** + pantalla de Temas | `review-mastery` ✅ | nuevo (mobile) | `done` |
 | `mobile-weekly` | "Mi semana": KPIs del periodo dentro de Progreso | `insights` | nuevo (mobile) | `ready` |
 | `mobile-badges` | Logros dentro de Progreso | `badges` (backend) | nuevo (mobile) | `ready` |
