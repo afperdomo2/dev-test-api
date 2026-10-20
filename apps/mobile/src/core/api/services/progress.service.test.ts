@@ -1,5 +1,5 @@
 import { apiClient } from '@/core/api/client'
-import { getSavedQuestions, getUpcomingReviews, toggleSaveQuestion } from './progress.service'
+import { getSavedQuestions, getTopicMastery, getUpcomingReviews, toggleSaveQuestion } from './progress.service'
 
 jest.mock('@/core/api/client', () => ({
   apiClient: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
@@ -40,5 +40,13 @@ describe('progress.service', () => {
       isSaved: true,
     })
     expect(mocked.post).toHaveBeenCalledWith('/api/v1/progress/q1/toggle-save')
+  })
+
+  it('getTopicMastery', async () => {
+    const items = [{ topicId: 't1', topicName: 'Go', attempts: 5, correctCount: 2, accuracy: 0.4, isWeak: true }]
+    mocked.get.mockResolvedValue(items)
+
+    await expect(getTopicMastery()).resolves.toEqual(items)
+    expect(mocked.get).toHaveBeenCalledWith('/api/v1/progress/topics-mastery')
   })
 })

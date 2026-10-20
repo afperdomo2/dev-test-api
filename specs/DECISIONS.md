@@ -45,6 +45,7 @@
 | D-33 | Bloqueada | **Navegación mobile**: `NativeTabs` pasa a **4 pestañas** — Inicio, Sesiones, **Progreso**, Perfil. Dentro de Progreso viven **Temas**, **Mi semana** y **Logros**. |
 | D-34 | Bloqueada | **`mobile-tooling` incluye tests retroactivos**: además de lint, se cubren con tests el código **ya existente** (cliente HTTP, servicios y pantallas críticas), no solo lo nuevo. Objetivo: que los cambios futuros rompan menos. |
 | D-35 | Bloqueada | **Idempotencia de respuestas**: `POST /sessions/{id}/answer` acepta un `clientAnswerId` opcional (UUID generado por el cliente) con índice único `(session_id, client_answer_id)`. Reintentar por falta de red —o un doble toque— devuelve la respuesta ya guardada **sin** duplicar la fila, el XP ni el SRS. Sin el campo, el comportamiento es el actual (retrocompatible). Requisito de `mobile-offline`. |
+| D-36 | Bloqueada | **Priorización: notificaciones y push al final.** `notifications` → `push` → `mobile-push` se ejecutan después del resto del backlog (Temas, tip, insights/weekly, badges, offline, e2e). Consecuencia asumida: el aviso diario en el teléfono llega más tarde; nada más depende de ellos. |
 
 ## Convenciones del repo rescatadas (no estaban en `.agents/`)
 

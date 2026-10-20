@@ -241,22 +241,26 @@
 
 ## Módulo `mobile-progress` — `specs/SPEC-mobile-progress.md`
 
-- [ ] **MPROG-1** — Servicio `getTopicMastery`
+- [x] **MPROG-1** — Servicio `getTopicMastery`
   - Acceptance: llama `GET /progress/topics-mastery` y devuelve `TopicMasteryItem[]` (tipo de shared)
   - Verify: `pnpm --filter mobile test:run` + `typecheck`
   - Files: `apps/mobile/src/core/api/services/progress.service.ts`, `progress.service.test.ts`
-- [ ] **MPROG-2** — 4ª pestaña + hub
+  - Hecho: función añadida + test (72 tests en total tras el módulo)
+- [x] **MPROG-2** — 4ª pestaña + hub
   - Acceptance: `NativeTabs` con 4 triggers (Inicio, Sesiones, Progreso, Perfil); `progreso/_layout.tsx` con Stack; hub con la fila **Temas** (las otras dos llegan en sus olas)
   - Verify: prueba manual en dispositivo (iOS/Android): las 3 pestañas previas siguen funcionando
   - Files: `apps/mobile/app/(tabs)/_layout.tsx`, `apps/mobile/app/(tabs)/progreso/{_layout,index}.tsx`, `apps/mobile/src/features/progress/screens/ProgressHubScreen.tsx`
-- [ ] **MPROG-3** — Pantalla de Temas
+  - Hecho: 4 triggers · Stack con headers nativos por pantalla (`index` = "Progreso", `temas` = "Temas", así hay botón atrás) · hub con `ProgressHubRow` (touch target 64 pt, `accessibilityRole="button"`)
+- [x] **MPROG-3** — Pantalla de Temas
   - Acceptance: lista con barra (`View` + %), `correctCount/attempts`, chip "Débil" con texto, `accessibilityLabel` con el porcentaje, estados vacío/error/carga, pull-to-refresh
   - Verify: tests de pantalla + `lint` + prueba manual contra el backend real
   - Files: `apps/mobile/app/(tabs)/progreso/temas.tsx`, `apps/mobile/src/features/progress/screens/TopicMasteryScreen.tsx`, `components/{TopicMasteryRow,ProgressHubRow}.tsx` (+ tests)
+  - Hecho: barra con `accessibilityRole="progressbar"` + `accessibilityValue {min,max,now}` (en vez de `aria-*`) · chip "Débil" con icono + texto · estado vacío, error con "Reintentar" y `RefreshControl` · tests de hub, fila y pantalla (incluido el reintento)
 - [ ] **MPROG-4** — Verificación en dispositivo
   - Acceptance: 4 pestañas correctas, navegación hub→Temas con back, datos reales coinciden con la web, touch targets ≥ 44 pt
   - Verify: manual en dev build/dispositivo; `typecheck` + `test:run` + `lint`
   - Files: — (verificación)
+  - ⚠️ **Pendiente**: requiere dispositivo/emulador. El código y los tests están verdes; falta la pasada visual (barra inferior con 4 tabs y header nativo con atrás).
 
 ---
 

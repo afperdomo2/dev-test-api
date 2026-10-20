@@ -22,12 +22,12 @@ notifications ──► push ──► mobile-push
 
 | Ola | Módulos | Por qué |
 |---|---|---|
-| 0 | `review-mastery` ✅ | Hecho. Deja listo el endpoint de temas |
-| 1 | `notifications` · `mobile-tooling` · `mobile-daily-tip` · `mobile-progress` | `notifications` desbloquea push; `mobile-tooling` da red antes de tocar mobile; las otras dos son baratas y sin backend |
-| 2 | `insights` → `mobile-weekly` | El backend primero; la pantalla después |
+| 0 | `review-mastery` ✅ · `mobile-tooling` ✅ · `mobile-progress` ✅ | Hechos. El endpoint de temas y la pestaña Progreso ya existen |
+| 1 | `mobile-daily-tip` | Barato y cierra un hueco: el tip se descarta hoy |
+| 2 | `insights` → `mobile-weekly` | Backend primero; la pantalla después |
 | 3 | `badges` (backend → web) → `mobile-badges` | Igual: endpoint antes que cliente |
-| 4 | `push` → `mobile-push` | Push necesita `notifications`; el cliente necesita el endpoint de tokens |
-| 5 | `mobile-offline` · `e2e` | Cierran deuda de robustez y verificación |
+| 4 | `mobile-offline` · `e2e` | Robustez y verificación |
+| 5 | `notifications` → `push` → `mobile-push` | **Al final por priorización (D-36)**. `push` cuelga de `notifications` (D-28) |
 
 **Paralelizable dentro de cada ola**: en la Ola 1 se puede trabajar `notifications` (backend) mientras `mobile-tooling` y `mobile-daily-tip` van por otro lado; solo comparten `server.go`/`DefaultLayout` en puntos triviales.
 

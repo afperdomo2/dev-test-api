@@ -14,9 +14,9 @@
 | `badges` | Catálogo de logros `const`, evaluados on-the-fly | `gamification`, `review-mastery`, `insights` | B4.1–B4.5 | `ready` |
 | `e2e` | Flujo E2E con Playwright | todos los entregados | B5.1 | `ready` |
 | `push` | Entrega push: tokens de dispositivo + Expo Push API | `notifications` | nuevo (mobile) | `ready` |
-| `mobile-tooling` | ESLint + tests del código mobile existente y nuevo | — | nuevo (mobile) | `ready` |
+| `mobile-tooling` | ESLint + tests del código mobile existente y nuevo | — | nuevo (mobile) | `done` |
 | `mobile-daily-tip` | Mostrar el tip del día al empezar la sesión diaria | — (el backend ya lo envía) | nuevo (mobile) | `ready` |
-| `mobile-progress` | 4ª pestaña **Progreso** + pantalla de Temas | `review-mastery` ✅ | nuevo (mobile) | `ready` |
+| `mobile-progress` | 4ª pestaña **Progreso** + pantalla de Temas | `review-mastery` ✅ | nuevo (mobile) | `done` |
 | `mobile-weekly` | "Mi semana": KPIs del periodo dentro de Progreso | `insights` | nuevo (mobile) | `ready` |
 | `mobile-badges` | Logros dentro de Progreso | `badges` (backend) | nuevo (mobile) | `ready` |
 | `mobile-push` | Registrar el dispositivo y recibir/abrir push | `push` | nuevo (mobile) | `ready` |
@@ -25,15 +25,15 @@
 **Build order** (olas por dependencia; lo que no bloquea va en paralelo):
 
 ```
-Ola 0  review-mastery ✅ (hecho)
-Ola 1  notifications  ·  mobile-tooling  ·  mobile-daily-tip  ·  mobile-progress
+Ola 0  review-mastery ✅ · mobile-tooling ✅ · mobile-progress ✅
+Ola 1  mobile-daily-tip
 Ola 2  insights  →  mobile-weekly
 Ola 3  badges (backend → web)  →  mobile-badges
-Ola 4  push  →  mobile-push
-Ola 5  mobile-offline  ·  e2e
+Ola 4  mobile-offline  ·  e2e
+Ola 5  notifications  →  push  →  mobile-push   (al final: priorización del producto, D-36)
 ```
 
-Sin ciclos. `mobile-progress` crea la pestaña que `mobile-weekly` y `mobile-badges` reutilizan, por eso va antes. `push` cuelga de `notifications` (D-28): la tabla de avisos es la fuente y el dispatcher solo entrega.
+Sin ciclos. `mobile-progress` crea la pestaña que `mobile-weekly` y `mobile-badges` reutilizan. `push` cuelga de `notifications` (D-28): la tabla de avisos es la fuente y el dispatcher solo entrega; por eso ambos quedan al final junto con `mobile-push`.
 
 ## Interfaces en las fronteras
 

@@ -13,6 +13,10 @@ export default function TabLayout() {
         <NativeTabs.Trigger.Icon sf="list.bullet" md="format_list_bulleted" />
         <NativeTabs.Trigger.Label>Sesiones</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="progreso">
+        <NativeTabs.Trigger.Icon sf="chart.line.uptrend.xyaxis" md="insights" />
+        <NativeTabs.Trigger.Label>Progreso</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="perfil">
         <NativeTabs.Trigger.Icon sf="person.crop.circle.fill" md="person" />
         <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
