@@ -104,6 +104,9 @@ func (f *fakeGamification) SetDailyGoal(uuid.UUID, int) (*gamification.Reward, e
 	return nil, nil
 }
 func (f *fakeGamification) Freeze(uuid.UUID) (*gamification.Reward, error) { return nil, nil }
+func (f *fakeGamification) GetBadges(uuid.UUID) (*gamification.BadgesResponse, error) {
+	return &gamification.BadgesResponse{}, nil
+}
 
 /* ---------- tests ---------- */
 

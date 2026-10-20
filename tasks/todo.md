@@ -146,26 +146,31 @@
 
 > ⚠️ No empezar sin go-ahead explícito del usuario.
 
-- [ ] **BD-1** — Catálogo `const`
+- [x] **BD-1** — Catálogo `const`
   - Acceptance: `BadgeID` + `badgeCatalog` con los 8 logros (id, nombre, descripción, icono `mdi-*`, `Target`); sin lógica; sin tabla
   - Verify: `make check` + `make test`
   - Files: `internal/modules/gamification/catalog.go`
-- [ ] **BD-2** — Evaluación de criterios
+  - Hecho: 8 definiciones en orden estable; iconos `mdi-*` (web los usa tal cual, mobile quita el prefijo)
+- [x] **BD-2** — Evaluación de criterios
   - Acceptance: cada badge con su criterio (tabla de `SPEC-badges.md`), incluido `topics_mastered_5` según OQ-1; umbrales en el borde exacto; agregaciones en paralelo con `sync.WaitGroup` (**no** `errgroup`); ≤ 6 queries; `earned` y `current/target`
   - Verify: `make test` (tabla por badge, incluidos los bordes)
   - Files: `internal/modules/gamification/badges.go`, `internal/modules/gamification/store.go`
-- [ ] **BD-3** — Endpoint `GET /gamification/badges`
+  - Hecho: 6 agregaciones en paralelo · `topics_mastered_5` = temas con ≥3 preguntas respondidas y **todas** `is_mastered` (OQ-1) · `fast_solver` exige media ≤10 s con `NULLIF(response_time_ms, 0)` (sin tiempos reales **no** se concede) · `current` acotado al objetivo
+- [x] **BD-3** — Endpoint `GET /gamification/badges`
   - Acceptance: `Service.GetBadges()` en la interface; respuesta `{ badges, earned, total }` con orden estable y **sin** `earnedAt`; ruta registrada en `Protected` existente
   - Verify: `make swagger` + `make check`; `docs/swagger.yaml` con el path
   - Files: `internal/modules/gamification/{service,response,handler,routes}.go`
-- [ ] **BD-4** — Página de logros
+  - Hecho: `BadgesResponse` sin `earnedAt` (D-16) · handler con 401 · swagger regenerado
+- [x] **BD-4** — Página de logros
   - Acceptance: grid ganados/bloqueados con icono + texto (nunca solo color), barras `current/target` en los bloqueados, estado vacío; ruta `/achievements` (`requiresNotAdmin`); nav "Logros" (`userOnly`) en la sección Estudio
   - Verify: `make fe-check` + `make fe-test`
   - Files: `apps/web/src/features/gamification/pages/AchievementsPage.vue`, `apps/web/src/router/routes.ts`, `apps/web/src/layouts/DefaultLayout.vue`, `packages/shared/src/types/gamification.types.ts`, `apps/web/src/api/services/gamification.service.ts`, `apps/web/src/queries/gamification.queries.ts`
-- [ ] **BD-5** — Tests + checks
+  - Hecho: contador global `earned/total` + barra · tarjetas atenuadas para pendientes · "Conseguido" con icono + texto · ruta y nav añadidos · `BadgeId`/`Badge`/`BadgesResponse` en shared
+- [x] **BD-5** — Tests + checks
   - Acceptance: umbrales en el borde (99/100 respuestas, `Longest` 2/3, sesión de 4 respuestas no cuenta, media 10 001 ms no cumple); tests web de service/query/página; checks verdes
   - Verify: `make test` + `make fe-format` → `make fe-check` → `make fe-lint` → `make fe-test`
   - Files: `internal/modules/gamification/badges_test.go`, `apps/web/src/features/gamification/pages/AchievementsPage.test.ts`
+  - Hecho: backend **10 subtests** (5 de evaluación de criterios + 3 de `GetBadges` + 2 de handler) · web **5 tests** → suite **316 tests / 55 archivos** · `make check`/`test`/`fe-*` = 0
 
 ---
 

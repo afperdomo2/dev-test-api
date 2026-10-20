@@ -41,6 +41,7 @@ type Service interface {
 	GetDailyGoal(userID uuid.UUID) (int, error)
 	SetDailyGoal(userID uuid.UUID, dailyGoal int) (*Reward, error)
 	Freeze(userID uuid.UUID) (*Reward, error)
+	GetBadges(userID uuid.UUID) (*BadgesResponse, error)
 }
 
 type gamificationService struct {

@@ -22,6 +22,12 @@ type mockGamificationStore struct {
 	upsertTopicXpFn    func(xp *models.UserTopicXp) error
 	getQuestionMetaFn  func(questionID uuid.UUID) (string, []uuid.UUID, error)
 	getTopicXpOvFn     func(userID uuid.UUID) ([]TopicXpItem, error)
+
+	countSessionsFn  func(userID uuid.UUID) (int, error)
+	countAnswersFn   func(userID uuid.UUID) (int, error)
+	hasPerfectFn     func(userID uuid.UUID) (bool, error)
+	hasFastFn        func(userID uuid.UUID) (bool, error)
+	masteredTopicsFn func(userID uuid.UUID) (int, error)
 }
 
 func newGamificationMock() *mockGamificationStore {
@@ -43,7 +49,14 @@ func newGamificationMock() *mockGamificationStore {
 		getQuestionMetaFn: func(uuid.UUID) (string, []uuid.UUID, error) {
 			return "beginner", []uuid.UUID{uuid.New()}, nil
 		},
-		getTopicXpOvFn: func(uuid.UUID) ([]TopicXpItem, error) { return []TopicXpItem{}, nil },
+		getTopicXpOvFn:  func(uuid.UUID) ([]TopicXpItem, error) { return []TopicXpItem{}, nil },
+		countSessionsFn: func(uuid.UUID) (int, error) { return 0, nil },
+		countAnswersFn:  func(uuid.UUID) (int, error) { return 0, nil },
+		hasPerfectFn:    func(uuid.UUID) (bool, error) { return false, nil },
+		hasFastFn:       func(uuid.UUID) (bool, error) { return false, nil },
+		masteredTopicsFn: func(uuid.UUID) (int, error) {
+			return 0, nil
+		},
 	}
 }
 
@@ -70,6 +83,21 @@ func (m *mockGamificationStore) GetQuestionMeta(q uuid.UUID) (string, []uuid.UUI
 }
 func (m *mockGamificationStore) GetTopicXpOverview(u uuid.UUID) ([]TopicXpItem, error) {
 	return m.getTopicXpOvFn(u)
+}
+func (m *mockGamificationStore) CountCompletedSessions(u uuid.UUID) (int, error) {
+	return m.countSessionsFn(u)
+}
+func (m *mockGamificationStore) CountAnswers(u uuid.UUID) (int, error) {
+	return m.countAnswersFn(u)
+}
+func (m *mockGamificationStore) HasPerfectSession(u uuid.UUID) (bool, error) {
+	return m.hasPerfectFn(u)
+}
+func (m *mockGamificationStore) HasFastSession(u uuid.UUID) (bool, error) {
+	return m.hasFastFn(u)
+}
+func (m *mockGamificationStore) CountMasteredTopics(u uuid.UUID) (int, error) {
+	return m.masteredTopicsFn(u)
 }
 
 func TestRegisterAnswer(t *testing.T) {

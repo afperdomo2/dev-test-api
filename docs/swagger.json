@@ -132,6 +132,37 @@
                 }
             }
         },
+        "/api/v1/gamification/badges": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Catálogo de logros con su estado (conseguido o progreso), evaluado al vuelo. Sin tabla de logros.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gamification"
+                ],
+                "summary": "Ver logros",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gamification.BadgesResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/gamification/daily-goal": {
             "put": {
                 "security": [
@@ -3189,6 +3220,49 @@
             "properties": {
                 "initialized": {
                     "type": "boolean"
+                }
+            }
+        },
+        "gamification.BadgeItem": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "earned": {
+                    "type": "boolean"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gamification.BadgesResponse": {
+            "type": "object",
+            "properties": {
+                "badges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gamification.BadgeItem"
+                    }
+                },
+                "earned": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },

@@ -102,6 +102,14 @@ var badgeCatalog = []BadgeDefinition{
 
 Se usa `Longest` (no `Current`): un logro es "lo has conseguido alguna vez", no "lo tienes hoy".
 
+### Notas de implementación (2026-10-19)
+
+- **OQ-1 resuelta**: `topics_mastered_5` cuenta temas con **≥ 3 preguntas respondidas y todas `is_mastered`** (SRS). No se introduce un umbral de accuracy nuevo.
+- **`fast_solver` ignora tiempos no medidos**: usa `AVG(NULLIF(response_time_ms, 0))`. Como los clientes antiguos envían `0`, sin esto cualquier sesión perfecta habría desbloqueado el logro. Si no hay ningún tiempo real, `AVG` es `NULL` y no se concede.
+- **`current` se acota al objetivo**: un usuario con 150 respuestas ve `100/100`, no `150/100`.
+- **Iconos**: el catálogo guarda `mdi-*`; Vuetify los usa tal cual y mobile quita el prefijo para `MaterialCommunityIcons`.
+- **Sin `earnedAt`** (D-16): no hay persistencia, así que no se promete fecha de consecución.
+
 ### Endpoint
 
 ```

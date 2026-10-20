@@ -5,4 +5,7 @@ export type {
   TopicXpItem,
   OverviewResponse,
   DailyGoalRequest,
+  BadgeId,
+  Badge,
+  BadgesResponse,
 } from '@devtest/shared'

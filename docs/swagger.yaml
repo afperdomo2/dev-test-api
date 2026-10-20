@@ -48,6 +48,34 @@ definitions:
       initialized:
         type: boolean
     type: object
+  gamification.BadgeItem:
+    properties:
+      current:
+        type: integer
+      description:
+        type: string
+      earned:
+        type: boolean
+      icon:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      target:
+        type: integer
+    type: object
+  gamification.BadgesResponse:
+    properties:
+      badges:
+        items:
+          $ref: '#/definitions/gamification.BadgeItem'
+        type: array
+      earned:
+        type: integer
+      total:
+        type: integer
+    type: object
   gamification.DailyGoalInfo:
     properties:
       current:
@@ -1012,6 +1040,26 @@ paths:
       summary: Estado del sistema
       tags:
       - auth
+  /api/v1/gamification/badges:
+    get:
+      description: Catálogo de logros con su estado (conseguido o progreso), evaluado
+        al vuelo. Sin tabla de logros.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gamification.BadgesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Ver logros
+      tags:
+      - gamification
   /api/v1/gamification/daily-goal:
     put:
       consumes:

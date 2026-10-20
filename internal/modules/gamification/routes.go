@@ -8,5 +8,6 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler) {
 		g.GET("/overview", h.Overview)
 		g.PUT("/daily-goal", h.SetDailyGoal)
 		g.POST("/streak/freeze", h.Freeze)
+		g.GET("/badges", h.Badges)
 	}
 }

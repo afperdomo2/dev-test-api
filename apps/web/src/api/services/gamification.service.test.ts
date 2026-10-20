@@ -1,4 +1,4 @@
-import { getOverview, setDailyGoal, freezeStreak } from './gamification.service'
+import { getOverview, setDailyGoal, freezeStreak, getBadges } from './gamification.service'
 import apiClient from '@/api/client'
 
 vi.mock('@/api/client', () => ({
@@ -38,5 +38,15 @@ describe('gamification.service', () => {
     const res = await freezeStreak()
     expect(mockedPost).toHaveBeenCalledWith('/api/v1/gamification/streak/freeze')
     expect(res).toEqual(reward)
+  })
+
+  it('getBadges', async () => {
+    const badges = { badges: [{ id: 'first_session' }], earned: 1, total: 8 }
+    mockedGet.mockResolvedValue({ data: badges })
+
+    const res = await getBadges()
+
+    expect(mockedGet).toHaveBeenCalledWith('/api/v1/gamification/badges')
+    expect(res).toEqual(badges)
   })
 })

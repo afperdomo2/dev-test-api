@@ -36,3 +36,21 @@ type OverviewResponse struct {
 	DailyGoal DailyGoalInfo `json:"dailyGoal"`
 	TopicXp   []TopicXpItem `json:"topicXp"`
 }
+
+// BadgeItem es un logro con su estado actual.
+type BadgeItem struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Icon        string `json:"icon"`
+	Earned      bool   `json:"earned"`
+	Current     int    `json:"current"`
+	Target      int    `json:"target"`
+}
+
+// BadgesResponse es el catálogo completo con el contador de conseguidos.
+type BadgesResponse struct {
+	Badges []BadgeItem `json:"badges"`
+	Earned int         `json:"earned"`
+	Total  int         `json:"total"`
+}

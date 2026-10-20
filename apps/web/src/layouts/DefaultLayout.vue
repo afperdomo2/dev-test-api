@@ -29,6 +29,7 @@ const navSections: Array<NavSection> = [
       { title: 'Sesiones', to: '/sessions', icon: 'mdi-play-circle', userOnly: true },
       { title: 'Progreso', to: '/progress', icon: 'mdi-chart-line', userOnly: true },
       { title: 'Informes', to: '/insights', icon: 'mdi-file-chart', userOnly: true },
+      { title: 'Logros', to: '/achievements', icon: 'mdi-trophy-outline', userOnly: true },
     ],
   },
   {

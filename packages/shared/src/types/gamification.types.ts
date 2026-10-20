@@ -38,3 +38,30 @@ export interface OverviewResponse {
 export interface DailyGoalRequest {
   dailyGoalXp: number
 }
+
+export type BadgeId =
+  | 'first_session'
+  | 'streak_3'
+  | 'streak_7'
+  | 'streak_30'
+  | 'perfect_session'
+  | 'answers_100'
+  | 'topics_mastered_5'
+  | 'fast_solver'
+
+export interface Badge {
+  id: BadgeId
+  name: string
+  description: string
+  /** Nombre de MaterialCommunityIcons con prefijo `mdi-`. */
+  icon: string
+  earned: boolean
+  current: number
+  target: number
+}
+
+export interface BadgesResponse {
+  badges: Array<Badge>
+  earned: number
+  total: number
+}

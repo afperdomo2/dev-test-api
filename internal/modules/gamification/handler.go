@@ -110,6 +110,33 @@ func (h *Handler) Freeze(c *gin.Context) {
 	response.Success(c, http.StatusOK, reward)
 }
 
+// @Summary      Ver logros
+// @Description  Catálogo de logros con su estado (conseguido o progreso), evaluado al vuelo. Sin tabla de logros.
+// @Tags         gamification
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  BadgesResponse
+// @Failure      401  {object}  apierr.APIError
+// @Router       /api/v1/gamification/badges [get]
+func (h *Handler) Badges(c *gin.Context) {
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	badges, err := h.service.GetBadges(userID)
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, badges)
+}
+
 func getUserID(c *gin.Context) (uuid.UUID, *apierr.APIError) {
 	claims, exists := c.Get("user_claims")
 	if !exists {

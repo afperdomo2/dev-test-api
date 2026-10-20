@@ -23,6 +23,7 @@ type mockGamificationService struct {
 	getDailyGoalFn    func(userID uuid.UUID) (int, error)
 	setDailyGoalFn    func(userID uuid.UUID, dailyGoal int) (*Reward, error)
 	freezeFn          func(userID uuid.UUID) (*Reward, error)
+	getBadgesFn       func(userID uuid.UUID) (*BadgesResponse, error)
 }
 
 func (m *mockGamificationService) RegisterAnswer(u, q uuid.UUID, c bool) (*Reward, error) {
@@ -39,6 +40,9 @@ func (m *mockGamificationService) SetDailyGoal(u uuid.UUID, g int) (*Reward, err
 	return m.setDailyGoalFn(u, g)
 }
 func (m *mockGamificationService) Freeze(u uuid.UUID) (*Reward, error) { return m.freezeFn(u) }
+func (m *mockGamificationService) GetBadges(u uuid.UUID) (*BadgesResponse, error) {
+	return m.getBadgesFn(u)
+}
 
 func mClaims(uid uuid.UUID) *jwt.MapClaims {
 	c := jwt.MapClaims{"sub": uid.String()}

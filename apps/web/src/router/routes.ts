@@ -87,6 +87,12 @@ export const routes: Array<RouteRecordRaw> = [
         meta: { requiresNotAdmin: true },
       },
       {
+        path: 'achievements',
+        name: 'Achievements',
+        component: () => import('@/features/gamification/pages/AchievementsPage.vue'),
+        meta: { requiresNotAdmin: true },
+      },
+      {
         path: 'stats',
         name: 'QuestionStats',
         component: () => import('@/features/stats/pages/QuestionStatsPage.vue'),

@@ -17,6 +17,13 @@ type Store interface {
 	UpsertTopicXp(xp *models.UserTopicXp) error
 	GetQuestionMeta(questionID uuid.UUID) (difficulty string, topicIDs []uuid.UUID, err error)
 	GetTopicXpOverview(userID uuid.UUID) ([]TopicXpItem, error)
+
+	// Agregaciones para evaluar logros (D-16: sin tabla).
+	CountCompletedSessions(userID uuid.UUID) (int, error)
+	CountAnswers(userID uuid.UUID) (int, error)
+	HasPerfectSession(userID uuid.UUID) (bool, error)
+	HasFastSession(userID uuid.UUID) (bool, error)
+	CountMasteredTopics(userID uuid.UUID) (int, error)
 }
 
 type gormStore struct {
@@ -108,4 +115,79 @@ func (s *gormStore) GetTopicXpOverview(userID uuid.UUID) ([]TopicXpItem, error) 
 		rows = []TopicXpItem{}
 	}
 	return rows, nil
+}
+
+func (s *gormStore) CountCompletedSessions(userID uuid.UUID) (int, error) {
+	var n int64
+	err := s.db.Model(&models.Session{}).
+		Where("user_id = ? AND status = ?", userID, models.SessionStatusCompleted).
+		Count(&n).Error
+	return int(n), err
+}
+
+func (s *gormStore) CountAnswers(userID uuid.UUID) (int, error) {
+	var n int64
+	err := s.db.Model(&models.SessionAnswer{}).
+		Where("user_id = ?", userID).
+		Count(&n).Error
+	return int(n), err
+}
+
+// HasPerfectSession busca una sesión completada con al menos `minPerfectAnswers`
+// respuestas y ninguna incorrecta.
+func (s *gormStore) HasPerfectSession(userID uuid.UUID) (bool, error) {
+	var exists bool
+	err := s.db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM sessions s
+			WHERE s.user_id = ? AND s.status = ?
+			  AND (SELECT COUNT(*) FROM session_answers a WHERE a.session_id = s.id) >= ?
+			  AND NOT EXISTS (
+				SELECT 1 FROM session_answers a
+				WHERE a.session_id = s.id AND a.is_correct = false
+			  )
+		)`, userID, models.SessionStatusCompleted, minPerfectAnswers).Scan(&exists).Error
+	return exists, err
+}
+
+// HasFastSession exige además que la media de `response_time_ms` sea <= 10 s.
+// `NULLIF(..., 0)` ignora respuestas sin tiempo medido (clientes antiguos):
+// si no hay ningún tiempo real, AVG es NULL y el logro no se concede.
+func (s *gormStore) HasFastSession(userID uuid.UUID) (bool, error) {
+	var exists bool
+	err := s.db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM sessions s
+			WHERE s.user_id = ? AND s.status = ?
+			  AND (SELECT COUNT(*) FROM session_answers a WHERE a.session_id = s.id) >= ?
+			  AND NOT EXISTS (
+				SELECT 1 FROM session_answers a
+				WHERE a.session_id = s.id AND a.is_correct = false
+			  )
+			  AND (
+				SELECT AVG(NULLIF(a.response_time_ms, 0))
+				FROM session_answers a
+				WHERE a.session_id = s.id
+			  ) <= ?
+		)`, userID, models.SessionStatusCompleted, minPerfectAnswers, fastSolverMaxAvgMs).Scan(&exists).Error
+	return exists, err
+}
+
+// CountMasteredTopics cuenta temas donde el usuario tiene al menos
+// `minMasteredQuestions` preguntas respondidas y todas están dominadas (SRS).
+func (s *gormStore) CountMasteredTopics(userID uuid.UUID) (int, error) {
+	var n int64
+	err := s.db.Raw(`
+		SELECT COUNT(*)
+		FROM (
+			SELECT qt.topic_id
+			FROM user_question_progress p
+			JOIN question_topics qt ON qt.question_id = p.question_id
+			WHERE p.user_id = ?
+			GROUP BY qt.topic_id
+			HAVING COUNT(*) >= ? AND BOOL_AND(p.is_mastered)
+		) t`, userID, minMasteredQuestions).Scan(&n).Error
+	return int(n), err
 }

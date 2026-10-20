@@ -55,6 +55,7 @@ describe('DefaultLayout', () => {
     expect(titles).not.toContain('Usuarios')
     expect(titles).toContain('Tips')
     expect(titles).toContain('Informes')
+    expect(titles).toContain('Logros')
     expect(titles).not.toContain('Moderación')
   })
 
@@ -71,6 +72,7 @@ describe('DefaultLayout', () => {
     expect(titles).not.toContain('Sesiones')
     expect(titles).not.toContain('Progreso')
     expect(titles).not.toContain('Informes')
+    expect(titles).not.toContain('Logros')
   })
 
   it('exposes Moderación as admin-only item in Administración, and Tips in Contenido', () => {
@@ -100,8 +102,14 @@ describe('DefaultLayout', () => {
     expect(sectionTitles).not.toContain('Administración')
 
     const estudioSection = vm.filteredSections.find((s) => s.title === 'Estudio')
-    expect(estudioSection?.items.map((i) => i.title)).toEqual(['Sesiones', 'Progreso', 'Informes'])
+    expect(estudioSection?.items.map((i) => i.title)).toEqual([
+      'Sesiones',
+      'Progreso',
+      'Informes',
+      'Logros',
+    ])
     expect(estudioSection?.items.find((i) => i.title === 'Informes')?.to).toBe('/insights')
+    expect(estudioSection?.items.find((i) => i.title === 'Logros')?.to).toBe('/achievements')
 
     const contenidoSection = vm.filteredSections.find((s) => s.title === 'Contenido')
     expect(contenidoSection?.items.map((i) => i.title)).toEqual(

@@ -58,6 +58,9 @@ func (f *fakeGamificationService) SetDailyGoal(userID uuid.UUID, goal int) (*gam
 func (f *fakeGamificationService) Freeze(userID uuid.UUID) (*gamification.Reward, error) {
 	return nil, nil
 }
+func (f *fakeGamificationService) GetBadges(userID uuid.UUID) (*gamification.BadgesResponse, error) {
+	return &gamification.BadgesResponse{}, nil
+}
 
 func newProgressMock() *mockProgressStore {
 	return &mockProgressStore{
