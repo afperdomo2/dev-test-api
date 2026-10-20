@@ -146,6 +146,11 @@ dist/
 coverage.out
 *.tsbuildinfo
 
+# Playwright (E2E)
+apps/web/e2e/.auth/
+apps/web/playwright-report/
+apps/web/test-results/
+
 # IA
 .agents/skills/
 .kiro/

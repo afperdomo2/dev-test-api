@@ -178,10 +178,12 @@
 
 > ⚠️ No empezar sin go-ahead explícito del usuario. Requiere el gate de `.agents/web/dependencies.md`.
 
-- [ ] **E2-1** — Suite Playwright del camino crítico
+- [x] **E2-1** — Suite Playwright del camino crítico
   - Acceptance: `@playwright/test` como devDependency (gate de dependencias documentado); `playwright.config.ts` con `workers: 1`, `webServer` para Vite y `baseURL :3000`; `critical-flow.spec.ts` recorre `status → setup → login → dashboard → sessions`; sin `waitForTimeout`; selectores por rol/texto; targets `make e2e` / `e2e-ui` / `e2e-report`; `e2e/.auth/` gitignored; el E2E **no** entra en `make fe-test`
   - Verify: `make e2e` verde desde una DB limpia (`DB_NAME=devtest_e2e make migrate-up` + `make run`); falla con mensaje claro sin backend o con DB ya configurada
   - Files: `apps/web/playwright.config.ts`, `apps/web/e2e/critical-flow.spec.ts`, `apps/web/e2e/fixtures.ts`, `apps/web/package.json`, `Makefile`, `.gitignore`
+  - Hecho: **`make e2e` verde** (1 test, 25.3 s de test / 48.5 s total) arrancando Vite desde cero y con `devtest_e2e` recién migrada · `@playwright/test@^1.64.1` (Microsoft, MIT, sin advisories propios; `pnpm audit` mantiene los 18 hallazgos preexistentes del árbol) + Chromium 1248 instalado · el flujo crea un **usuario no-admin desde Usuarios** porque `/sessions` tiene `requiresNotAdmin` (el admin habría sido redirigido) · aserciones transversales: sin `pageerror`, sin errores de consola y sin `/api/**` ≥ 400 · JWT sobrevive al reload · `e2e/.auth/`, `playwright-report/` y `test-results/` en `.gitignore` · scripts `test:e2e*` y targets en el `Makefile` · `fe-test`/`fe-check` no lo ejecutan (Vitest solo incluye `src/**`)
+  - Notas: `beforeAll` hace un **warm-up** del grafo de módulos de Vite (GET a cada `src/**/*.vue|ts`). Sin él, la primera visita a una página lazy descubre componentes Vuetify nuevos, Vite reoptimiza y recarga la página, perdiendo el click. `timeout: 120 s` y `expect.timeout: 30 s` cubren el arranque en frío. La DB se prepara a mano (OQ-1): recrearla con `DROP`/`CREATE DATABASE devtest_e2e` + `migrate-up`.
 
 ---
 

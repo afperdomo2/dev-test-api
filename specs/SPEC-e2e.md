@@ -139,6 +139,16 @@ El E2E **no** busca cobertura: cubre **un** camino crítico. No se duplican aqu�
 6. `@playwright/test` es **devDependency** del web y el gate de `dependencies.md` quedó documentado.
 7. `e2e/.auth/` está en `.gitignore` y no se commitea estado de sesión.
 
+## Notas de implementación (2026-10-20)
+
+- **Dependencia**: `@playwright/test@^1.64.1` (Microsoft, MIT) como devDependency + Chromium 1248 (`playwright install chromium`, una vez por máquina). Gate de `.agents/web/dependencies.md`: sin advisories propios; `pnpm audit` conserva los 18 hallazgos preexistentes del workspace.
+- **Flujo ajustado a los guards reales**: el admin creado en `setup` no puede entrar a `/sessions` (`requiresNotAdmin`). Tras el dashboard admin, la suite crea un **usuario normal desde la UI de Usuarios**, cierra sesión y valida Sesiones con él (estado vacío contra el backend real).
+- **Warm-up de Vite** (`beforeAll`): pide cada `src/**/*.vue|ts` al dev server antes de abrir el navegador. Sin esto la primera visita a una página lazy descubre componentes Vuetify (`vuetify/components/VDataTable`, …), Vite reoptimiza y recarga la página en mitad de la navegación, perdiendo el click. No se cambia `pnpm dev` (contrato de esta spec).
+- **Timeouts**: test `120 s` y `expect` `30 s`; el arranque en frío de Vite+Vuetify supera los 30 s por defecto.
+- **DB vacía a mano** (OQ-1): recrear con `DROP DATABASE devtest_e2e; CREATE DATABASE devtest_e2e;` + `DB_NAME=devtest_e2e make migrate-up`. Si ya hay admin, el spec falla con ese comando.
+- **Artefactos**: `apps/web/e2e/.auth/`, `playwright-report/` y `test-results/` gitignored. `make fe-test`/`fe-check` no ejecutan Playwright (Vitest solo incluye `src/**`).
+- **Evidencia**: `make e2e` verde (1 test, 25.3 s) con Vite arrancado por Playwright y `devtest_e2e` recién migrada.
+
 ## Open Questions
 
 | # | Pregunta | Propuesta por defecto |

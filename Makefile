@@ -1,6 +1,7 @@
 .PHONY: install dev build swagger clean run fmt fmt-check vet check setup test test-cover db-seed \
         migrate-up migrate-down migrate-status migrate-create \
         fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover \
+        e2e e2e-ui e2e-report \
         mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint
 
 # ── Backend ──────────────────────────────────────────────
@@ -150,6 +151,24 @@ fe-test-cover:
 	@echo "🧪 Running frontend tests with coverage..."
 	cd apps/web && pnpm test:cover
 	@echo "✅ Frontend coverage report"
+
+# ── E2E (Playwright) ───────────────────────────────────
+# Requiere DB dedicada y limpia + backend corriendo:
+#   DB_NAME=devtest_e2e make migrate-up
+#   DB_NAME=devtest_e2e make run
+# El web lo levanta Playwright (o reutiliza make fe-dev).
+
+e2e:
+	@echo "🧪 Running E2E (Playwright)..."
+	@pnpm --filter dev-test-frontend test:e2e
+
+e2e-ui:
+	@echo "🎭 Opening Playwright UI..."
+	@pnpm --filter dev-test-frontend test:e2e:ui
+
+e2e-report:
+	@echo "📊 Opening Playwright report..."
+	@pnpm --filter dev-test-frontend test:e2e:report
 
 # ── Mobile (apps/mobile/) ──────────────────────────────
 

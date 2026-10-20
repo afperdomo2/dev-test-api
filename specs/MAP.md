@@ -12,7 +12,7 @@
 | `notifications` | Notificaciones in-app + job diario de repaso | `sessions` (due count ya existente) | B2.1–B2.9 | `ready` |
 | `insights` | Agregados de actividad (semana/mes): KPIs, temas, racha, XP | `review-mastery`, `gamification`, `sessions` | B3.1–B3.8 | `done` |
 | `badges` | Catálogo de logros `const`, evaluados on-the-fly | `gamification`, `review-mastery`, `insights` | B4.1–B4.5 | `done` |
-| `e2e` | Flujo E2E con Playwright | todos los entregados | B5.1 | `ready` |
+| `e2e` | Flujo E2E con Playwright | todos los entregados | B5.1 | `done` |
 | `push` | Entrega push: tokens de dispositivo + Expo Push API | `notifications` | nuevo (mobile) | `ready` |
 | `mobile-tooling` | ESLint + tests del código mobile existente y nuevo | — | nuevo (mobile) | `done` |
 | `mobile-daily-tip` | Mostrar el tip del día al empezar la sesión diaria | — (el backend ya lo envía) | nuevo (mobile) | `done` |

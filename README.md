@@ -127,6 +127,9 @@ cp .env.example .env
 | `make fe-build` | Build de producción |
 | `make fe-lint` | ESLint |
 | `make fe-check` | TypeScript check |
+| `make e2e` | E2E Playwright (requiere DB dedicada + backend) |
+| `make e2e-ui` | Playwright en modo UI |
+| `make e2e-report` | Abre el reporte del último run |
 
 ### Mobile (apps/mobile/)
 
@@ -212,6 +215,27 @@ Pruebas con Vitest + Vue Test Utils + Testing Library.
 ```bash
 pnpm --filter dev-test-frontend test:run
 ```
+
+#### E2E (Playwright)
+
+Un único camino crítico (`status → setup → login → dashboard → sessions`) contra backend + Postgres reales. **No** lo ejecutan `make fe-test`, `make fe-check` ni `make fe-lint`.
+
+La DB debe estar **vacía**: `/auth/setup` solo funciona cuando no existe ningún admin.
+
+```bash
+# 1) DB dedicada (una vez; para repetir: DROP DATABASE devtest_e2e; CREATE DATABASE devtest_e2e;)
+DB_NAME=devtest_e2e make migrate-up
+
+# 2) Backend contra esa DB
+DB_NAME=devtest_e2e make run
+
+# 3) Suite (levanta Vite; la primera vez instala el navegador)
+pnpm --filter dev-test-frontend exec playwright install chromium
+make e2e
+```
+
+En PowerShell, prefija con `$env:DB_NAME='devtest_e2e';` en lugar de `DB_NAME=...`.
+Si el backend no responde en `:8080` o la DB ya tiene un admin, la suite falla con el comando exacto para arreglarlo.
 
 Hooks de git (`lefthook.yml`) — todos los jobs se filtran por `glob`, así que un cambio que solo toca docs/markdown no ejecuta nada:
 
