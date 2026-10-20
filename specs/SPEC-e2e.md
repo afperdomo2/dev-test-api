@@ -1,10 +1,10 @@
-# SPEC — e2e (opt-in)
+# SPEC — e2e
 
 | Campo | Valor |
 |---|---|
 | Module id | `e2e` |
 | IDs originales | B5.1 |
-| Estado | **`opt-in`** — no se implementa sin un go-ahead explícito del usuario |
+| Estado | `ready` (aprobado en D-32) |
 | Depende de | backend + web entregados (todo el mapa) |
 | Migración goose | **Ninguna** |
 | Dependencia nueva | `@playwright/test` (dev) — ⚠️ requiere pasar por `.agents/web/dependencies.md` (D-25) |
@@ -126,7 +126,7 @@ El E2E **no** busca cobertura: cubre **un** camino crítico. No se duplican aqu�
 ## Boundaries
 
 - **Always**: pasar por `.agents/web/dependencies.md` antes de `pnpm add -D @playwright/test` (D-25); documentar en el `README.md`/`Makefile` que el E2E necesita DB dedicada + backend corriendo; selectores accesibles; mantener el E2E **fuera** de `make fe-test`.
-- **Ask first**: adoptar el módulo (es `opt-in`); integrarlo en CI (requiere servicio Postgres en GitHub Actions + secretos → decisión aparte, ver OQ-2); añadir más escenarios; instalar navegadores adicionales (Firefox/WebKit).
+- **Ask first**: integrarlo en CI (requiere servicio Postgres en GitHub Actions + secretos → decisión aparte, ver OQ-2); añadir más escenarios; instalar navegadores adicionales (Firefox/WebKit).
 - **Never**: reutilizar la DB de desarrollo (rompería el setup y borraría datos reales); meterlo en `make fe-check`/`make fe-lint`/`make fe-test`; `waitForTimeout` arbitrarios; `AutoMigrate`; editar `docs/` a mano; tocar mobile.
 
 ## Success Criteria

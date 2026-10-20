@@ -172,9 +172,166 @@
 
 ---
 
-## Verificación final (re-run de la Fase 8 del `ROADMAP`)
+## Módulo `push` — `specs/SPEC-push.md`
+
+- [ ] **PUSH-1** — Modelo + migración `00007_device_tokens.sql`
+  - Acceptance: tabla con `token` único global, `platform` (`ios|android`), `last_seen_at`, FK a `users` con `ON DELETE CASCADE`, `COMMENT ON` de tabla y columnas; `Down` con `DROP TABLE`
+  - Verify: `make migrate-up` + `make migrate-status` + `make migrate-down`; insertar dos veces el mismo token → falla el segundo (índice único)
+  - Files: `internal/database/migrations/00007_device_tokens.sql`, `internal/models/device_token.go`
+- [ ] **PUSH-2** — Store + service (registro y baja)
+  - Acceptance: `Store` con upsert por token, delete por token, listado por usuario; el upsert **reasigna** el token si ya existía con otro usuario; `Unregister` ajeno no borra; errores a `apierr`
+  - Verify: `make check` + `make test`
+  - Files: `internal/modules/push/{request,response,store,service}.go`
+- [ ] **PUSH-3** — Sender de Expo + `Pusher` + hook en notifications
+  - Acceptance: `ExpoSender` hace POST a `EXPO_PUSH_URL` en lotes de 100 con timeout; `DeviceNotRegistered` borra el token; `Pusher` implementa la interfaz de `notifications`; `RunDailyJob` llama a `Push` **después** de insertar y no falla si Expo falla
+  - Verify: `make test` (fake de Expo con `httptest`) + prueba real con un token falso → log de error sin romper el job
+  - Files: `internal/modules/push/sender.go`, `internal/modules/push/service.go`, `internal/modules/notifications/service.go`, `internal/config/config.go`
+- [ ] **PUSH-4** — Handler + rutas + wiring + Swagger
+  - Acceptance: `POST /push/tokens` y `POST /push/tokens/unregister` (protegidos, idempotentes); wiring en `server.go` con `push` **antes** de `notifications`
+  - Verify: `make swagger` + `make check`; arranque real sin conflictos; `docs/swagger.yaml` con los 2 paths
+  - Files: `internal/modules/push/{handler,routes}.go`, `internal/server/server.go`
+- [ ] **PUSH-5** — Tests backend
+  - Acceptance: sender (lotes, timeout, `DeviceNotRegistered`), service (upsert, reasignación, baja), handler (401/422/200); store real en transacción con rollback
+  - Verify: `make test`
+  - Files: `internal/modules/push/{sender,service,handler}_test.go`
+
+---
+
+## Módulo `mobile-tooling` — `specs/SPEC-mobile-tooling.md`
+
+- [ ] **MTOOL-1** — ESLint en mobile
+  - Acceptance: `eslint.config.js` con `eslint-config-expo`; script `lint` real (deja de ser un `echo`); gate de `.agents/mobile/dependencies.md` documentado
+  - Verify: `pnpm --filter mobile lint` ✅ sin errores
+  - Files: `apps/mobile/eslint.config.js`, `apps/mobile/package.json`
+- [ ] **MTOOL-2** — Configuración de Jest + mocks nativos
+  - Acceptance: `jest.config.js` con `jest-expo`, `setupFilesAfterEnv`; `jest.setup.ts` con mocks de `expo-secure-store`, `expo-router`, `@expo/vector-icons`; matchers de RTL
+  - Verify: `pnpm --filter mobile test:run` (los 2 tests existentes siguen verdes)
+  - Files: `apps/mobile/jest.config.js`, `apps/mobile/jest.setup.ts`, `apps/mobile/package.json`
+- [ ] **MTOOL-3** — Tests del cliente HTTP y servicios
+  - Acceptance: `client.ts` (9 casos de la spec, incluido `Network Error` y 401) + los 5 servicios (URL/método/payload) + `auth/storage`
+  - Verify: `pnpm --filter mobile test:run`; romper `unwrap()` a propósito → falla un test
+  - Files: `apps/mobile/src/core/api/client.test.ts`, `apps/mobile/src/core/api/services/*.test.ts`, `apps/mobile/src/core/auth/storage.test.ts`
+- [ ] **MTOOL-4** — Tests de pantallas críticas
+  - Acceptance: `HomeScreen` (racha, meta, CTA diaria, freeze con confirmación), `QuestionCard` (selección única/múltiple, deshabilitado), `SessionStudyPage` (responder y avanzar), `LoginScreen`/`SetupScreen`
+  - Verify: `pnpm --filter mobile test:run` + `typecheck` + `lint`; romper `handleAnswer` a propósito → falla un test
+  - Files: `apps/mobile/src/features/**/*.test.tsx`
+
+---
+
+## Módulo `mobile-daily-tip` — `specs/SPEC-mobile-daily-tip.md`
+
+- [ ] **MTIP-1** — Store en memoria del tip
+  - Acceptance: `setPendingTip`, `getPendingTip` (no consume), `clearPendingTip`; otra sesión devuelve `null`
+  - Verify: `pnpm --filter mobile test:run`
+  - Files: `apps/mobile/src/features/sessions/dailyTipStore.ts`, `dailyTipStore.test.ts`
+- [ ] **MTIP-2** — `DailyTipCard`
+  - Acceptance: título, tema, contenido con `MarkdownText`, cerrar con `accessibilityLabel`, solo tokens de diseño
+  - Verify: `pnpm --filter mobile test:run` + `lint`
+  - Files: `apps/mobile/src/features/sessions/components/DailyTipCard.tsx`, `.test.tsx`
+- [ ] **MTIP-3** — Integrar en Home y en la sesión diaria
+  - Acceptance: `handleDailySession` guarda `res.tip`; la pantalla de sesión pinta la tarjeta solo en fase `question`; se limpia al salir
+  - Verify: tests de `HomeScreen` y `SessionStudyPage` + prueba manual con sesión diaria
+  - Files: `apps/mobile/src/features/home/screens/HomeScreen.tsx`, `apps/mobile/src/features/sessions/screens/SessionStudyPage.tsx` (+ tests)
+
+---
+
+## Módulo `mobile-progress` — `specs/SPEC-mobile-progress.md`
+
+- [ ] **MPROG-1** — Servicio `getTopicMastery`
+  - Acceptance: llama `GET /progress/topics-mastery` y devuelve `TopicMasteryItem[]` (tipo de shared)
+  - Verify: `pnpm --filter mobile test:run` + `typecheck`
+  - Files: `apps/mobile/src/core/api/services/progress.service.ts`, `progress.service.test.ts`
+- [ ] **MPROG-2** — 4ª pestaña + hub
+  - Acceptance: `NativeTabs` con 4 triggers (Inicio, Sesiones, Progreso, Perfil); `progreso/_layout.tsx` con Stack; hub con la fila **Temas** (las otras dos llegan en sus olas)
+  - Verify: prueba manual en dispositivo (iOS/Android): las 3 pestañas previas siguen funcionando
+  - Files: `apps/mobile/app/(tabs)/_layout.tsx`, `apps/mobile/app/(tabs)/progreso/{_layout,index}.tsx`, `apps/mobile/src/features/progress/screens/ProgressHubScreen.tsx`
+- [ ] **MPROG-3** — Pantalla de Temas
+  - Acceptance: lista con barra (`View` + %), `correctCount/attempts`, chip "Débil" con texto, `accessibilityLabel` con el porcentaje, estados vacío/error/carga, pull-to-refresh
+  - Verify: tests de pantalla + `lint` + prueba manual contra el backend real
+  - Files: `apps/mobile/app/(tabs)/progreso/temas.tsx`, `apps/mobile/src/features/progress/screens/TopicMasteryScreen.tsx`, `components/{TopicMasteryRow,ProgressHubRow}.tsx` (+ tests)
+- [ ] **MPROG-4** — Verificación en dispositivo
+  - Acceptance: 4 pestañas correctas, navegación hub→Temas con back, datos reales coinciden con la web, touch targets ≥ 44 pt
+  - Verify: manual en dev build/dispositivo; `typecheck` + `test:run` + `lint`
+  - Files: — (verificación)
+
+---
+
+## Módulo `mobile-weekly` — `specs/SPEC-mobile-weekly.md`
+
+- [ ] **MWEEK-1** — Servicio de insights
+  - Acceptance: `getInsightSummary(period)` con `params.period`; tipos de shared
+  - Verify: `pnpm --filter mobile test:run` + `typecheck`
+  - Files: `apps/mobile/src/core/api/services/insights.service.ts`, `.test.ts`
+- [ ] **MWEEK-2** — Pantalla "Mi semana" + fila en el hub
+  - Acceptance: selector Semana/Mes, 6 KPIs, más practicados, temas débiles (o sección oculta), actividad diaria en barras, estados vacío/error
+  - Verify: `typecheck` + `lint` + prueba manual con datos reales
+  - Files: `apps/mobile/app/(tabs)/progreso/semana.tsx`, `features/progress/screens/WeeklySummaryScreen.tsx`, `components/{KpiCard,PeriodToggle,DailyActivityBar}.tsx`, `ProgressHubScreen.tsx`
+- [ ] **MWEEK-3** — Tests de la pantalla
+  - Acceptance: pinta KPIs, cambia de periodo y re-consulta, vacío, error con reintento, oculta temas débiles vacíos; `DailyActivityBar` con altura y a11y correctas
+  - Verify: `pnpm --filter mobile test:run`
+  - Files: `apps/mobile/src/features/progress/screens/WeeklySummaryScreen.test.tsx`, `components/*.test.tsx`
+
+---
+
+## Módulo `mobile-badges` — `specs/SPEC-mobile-badges.md`
+
+- [ ] **MBADGE-1** — Servicio `getBadges`
+  - Acceptance: llama `GET /gamification/badges`; tipos `Badge`/`BadgesResponse` de shared
+  - Verify: `pnpm --filter mobile test:run` + `typecheck`
+  - Files: `apps/mobile/src/core/api/services/gamification.service.ts`, `.test.ts`
+- [ ] **MBADGE-2** — Pantalla de Logros + fila en el hub
+  - Acceptance: contador `earned/total`, cuadrícula de 2 columnas, conseguido = icono + "Conseguido", pendiente = `current/target` + barra, sin `earnedAt`, estados vacío/error
+  - Verify: `typecheck` + `lint` + prueba manual
+  - Files: `apps/mobile/app/(tabs)/progreso/logros.tsx`, `features/progress/screens/AchievementsScreen.tsx`, `components/BadgeCard.tsx`, `ProgressHubScreen.tsx`
+- [ ] **MBADGE-3** — Tests
+  - Acceptance: 8 badges, contador, ambos estados, a11y del `BadgeCard`, mapeo de icono con fallback
+  - Verify: `pnpm --filter mobile test:run`
+  - Files: `apps/mobile/src/features/progress/screens/AchievementsScreen.test.tsx`, `components/BadgeCard.test.tsx`
+
+---
+
+## Módulo `mobile-push` — `specs/SPEC-mobile-push.md`
+
+- [ ] **MPUSH-1** — Dependencias + `app.json` + canal Android
+  - Acceptance: `expo-notifications`, `expo-device`, `expo-constants` instalados (gate documentado); plugin en `app.json`; `extra.eas.projectId` añadido; canal `default` creado antes del token
+  - Verify: `pnpm --filter mobile typecheck`; comprobar que la app arranca en dev build
+  - Files: `apps/mobile/app.json`, `apps/mobile/package.json`
+- [ ] **MPUSH-2** — Módulo de push + servicio HTTP + tests
+  - Acceptance: `ensurePermission`, `getDevicePushToken` (null en emulador/sin projectId), `configureNotificationHandling`; `registerForPush`/`unregisterFromPush` que **nunca lanzan**; `push.service.ts` con register/unregister
+  - Verify: `pnpm --filter mobile test:run` (mocks de `expo-notifications`/`expo-device`/`expo-constants`)
+  - Files: `apps/mobile/src/core/push/{notifications,register}.ts` (+ tests), `apps/mobile/src/core/api/services/push.service.ts` (+ test)
+- [ ] **MPUSH-3** — Wiring + navegación al tocar + prueba real
+  - Acceptance: registro una vez tras el bootstrap autenticado; baja en logout; tocar una notificación (y arranque en frío) abre Inicio
+  - Verify: prueba en **dev build** con un envío real desde el backend (`push`); sin permiso la app funciona igual
+  - Files: bootstrap de auth, pantalla de Perfil/logout, `app/_layout.tsx`
+
+---
+
+## Módulo `mobile-offline` — `specs/SPEC-mobile-offline.md`
+
+- [ ] **MOFF-1** — Backend: migración + modelo + request
+  - Acceptance: `session_answers.client_answer_id` + índice único `(session_id, client_answer_id)` con `COMMENT ON`; `ClientAnswerID *uuid.UUID` en `AnswerRequest` y en el modelo (opcional)
+  - Verify: `make migrate-up`/`down`; insertar dos filas con el mismo par → falla; con `NULL` → permitido
+  - Files: `internal/database/migrations/NNNNN_answer_idempotency.sql`, `internal/models/session_answer.go`, `internal/modules/sessions/request.go`
+- [ ] **MOFF-2** — Backend: store + service idempotentes
+  - Acceptance: `CreateAnswer` devuelve `created bool` con `ON CONFLICT DO NOTHING`; si la respuesta ya existía, el service devuelve la guardada y **no** ejecuta `progressService.Answer` (sin doble XP/SRS); sin `clientAnswerId` se comporta como hoy
+  - Verify: `make test` + `make check`; contraste real en transacción con rollback (dos envíos → 1 fila, 1 XP)
+  - Files: `internal/modules/sessions/store.go`, `internal/modules/sessions/service.go`, `internal/modules/sessions/service_test.go`
+- [ ] **MOFF-3** — Mobile: `isNetworkError` + `clientAnswerId`
+  - Acceptance: helper en `core/utils/errors.ts`; `submitAnswer` acepta y envía `clientAnswerId`; se genera **una vez por pregunta** con `expo-crypto` y se reutiliza al reintentar
+  - Verify: `pnpm --filter mobile test:run` + `typecheck`; gate de dependencias de `expo-crypto`
+  - Files: `apps/mobile/src/core/utils/errors.ts` (+ test), `apps/mobile/src/core/api/services/sessions.service.ts` (+ test)
+- [ ] **MOFF-4** — Mobile: UI de reintento
+  - Acceptance: error de red → no avanza, conserva la selección, mensaje + "Reintentar"; error de API → detalle + "Reintentar"; doble toque no duplica; el `clientAnswerId` cambia al cambiar de pregunta
+  - Verify: tests de `SessionStudyPage` (espía del `clientAnswerId`) + prueba manual en modo avión
+  - Files: `apps/mobile/src/features/sessions/screens/SessionStudyPage.tsx`, `.test.tsx`
+
+---
+
+## Verificación final
 
 - [ ] **VF-1** — Backend: `make fmt` + `make vet` + `make test` (+ `make build`)
-- [ ] **VF-2** — Frontend: `make fe-format` + `make fe-check` + `make fe-lint` + `make fe-test`
-- [ ] **VF-3** — Tipos compartidos y mobile: `pnpm -r typecheck`
-- [ ] **VF-4** — Esquema: `make migrate-status` sin migraciones pendientes; `docs/swagger.yaml` regenerado y actualizado
+- [ ] **VF-2** — Web: `make fe-format` + `make fe-check` + `make fe-lint` + `make fe-test`
+- [ ] **VF-3** — Mobile: `pnpm --filter mobile typecheck` + `pnpm --filter mobile test:run` + `pnpm --filter mobile lint`
+- [ ] **VF-4** — Shared: `pnpm --filter @devtest/shared typecheck`
+- [ ] **VF-5** — Esquema: `make migrate-status` sin migraciones pendientes; `docs/swagger.yaml` regenerado y actualizado

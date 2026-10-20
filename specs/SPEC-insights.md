@@ -6,6 +6,7 @@
 | IDs originales | B3.1–B3.8 |
 | Estado | `ready` |
 | Depende de | `review-mastery` (temas débiles), `gamification` (XP, racha), `sessions` |
+| Consumido por | `mobile-weekly` (`SPEC-mobile-weekly.md`) |
 | Migración goose | **Ninguna** — solo lectura |
 | Dependencia nueva | **Ninguna** (sin librería de gráficas) |
 
@@ -254,7 +255,7 @@ export function insightSummaryOptions(period: () => InsightPeriod) {
 - Errores: `apierr.ErrValidation` para `period` inválido (aunque el `binding` ya lo corta en el handler con `response.ValidationError`).
 - Handler fija `e.Instance = c.Request.URL.Path`.
 - Redondeo de `accuracy` a 4 decimales (igual que `review-mastery`) para tests estables.
-- Mobile fuera de alcance (D-18).
+- Esta spec cubre **backend + web**. La pantalla de la app está en `SPEC-mobile-weekly.md` y consume el mismo endpoint.
 
 ## Testing strategy
 

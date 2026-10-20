@@ -1,11 +1,12 @@
-# SPEC — badges (opt-in)
+# SPEC — badges
 
 | Campo | Valor |
 |---|---|
 | Module id | `badges` |
 | IDs originales | B4.1–B4.5 |
-| Estado | **`opt-in`** — no se implementa sin un go-ahead explícito del usuario |
+| Estado | `ready` |
 | Depende de | `gamification`, `review-mastery`, `insights` |
+| Consumido por | `mobile-badges` (`SPEC-mobile-badges.md`) |
 | Migración goose | **Ninguna** — catálogo `const` + evaluación derivada (D-16) |
 | Dependencia nueva | **Ninguna** |
 
@@ -170,7 +171,8 @@ export interface BadgesResponse {
 - `catalog.go`: datos como `var` de solo lectura + `const` para los ids. Nada de lógica.
 - `badges.go`: funciones puras de evaluación que reciben los agregados ya cargados — testeables sin mocks de store complejos.
 - Handler/service/store siguen la anatomía estándar; errores a `*apierr.APIError`.
-- Mobile fuera de alcance (D-18).
+- Este spec cubre **backend + web**. La pantalla de la app está en `SPEC-mobile-badges.md` y consume el mismo endpoint.
+- Los `Icon` del catálogo deben ser nombres **válidos de MaterialCommunityIcons** sin el prefijo `mdi-` (mobile los mapea). Validar cada uno contra el catálogo antes de fijarlo.
 
 ## Testing strategy
 
@@ -185,8 +187,8 @@ export interface BadgesResponse {
 ## Boundaries
 
 - **Always**: catálogo en código (D-16); reutilizar agregaciones existentes; `make check` + `make test` + `make swagger`; `make fe-*` + `make fe-test`.
-- **Ask first**: adoptar el módulo (es `opt-in`); cualquier persistencia de logros ganados (implica migración y **supersede D-16**, requiere ADR explícito); añadir un badge nuevo; cambiar los umbrales.
-- **Never**: crear la tabla `user_badges` sin superseder D-16 (X-02); evaluar en `RecordAnswer`/`RecordSessionFinished` (B4.2 desviado); prometer `earnedAt`; `errgroup` (D-13); editar `docs/` a mano; tocar mobile.
+- **Ask first**: cualquier persistencia de logros ganados (implica migración y **supersede D-16**, requiere ADR explícito); añadir un badge nuevo; cambiar los umbrales.
+- **Never**: crear la tabla `user_badges` sin superseder D-16 (X-02); evaluar en `RecordAnswer`/`RecordSessionFinished` (B4.2 desviado); prometer `earnedAt`; `errgroup` (D-13); editar `docs/` a mano.
 
 ## Success Criteria
 

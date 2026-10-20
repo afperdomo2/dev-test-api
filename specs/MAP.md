@@ -11,12 +11,29 @@
 | `review-mastery` | Dominio (accuracy) **por tema** y detección de temas débiles | `progress` (existente), `sessions` (existente) | B1.1–B1.8 | `done` |
 | `notifications` | Notificaciones in-app + job diario de repaso | `sessions` (due count ya existente) | B2.1–B2.9 | `ready` |
 | `insights` | Agregados de actividad (semana/mes): KPIs, temas, racha, XP | `review-mastery`, `gamification`, `sessions` | B3.1–B3.8 | `ready` |
-| `badges` | Catálogo de logros `const`, evaluados on-the-fly | `gamification`, `review-mastery`, `insights` | B4.1–B4.5 | `opt-in` |
-| `e2e` | Flujo E2E con Playwright | todos los entregados | B5.1 | `opt-in` |
+| `badges` | Catálogo de logros `const`, evaluados on-the-fly | `gamification`, `review-mastery`, `insights` | B4.1–B4.5 | `ready` |
+| `e2e` | Flujo E2E con Playwright | todos los entregados | B5.1 | `ready` |
+| `push` | Entrega push: tokens de dispositivo + Expo Push API | `notifications` | nuevo (mobile) | `ready` |
+| `mobile-tooling` | ESLint + tests del código mobile existente y nuevo | — | nuevo (mobile) | `ready` |
+| `mobile-daily-tip` | Mostrar el tip del día al empezar la sesión diaria | — (el backend ya lo envía) | nuevo (mobile) | `ready` |
+| `mobile-progress` | 4ª pestaña **Progreso** + pantalla de Temas | `review-mastery` ✅ | nuevo (mobile) | `ready` |
+| `mobile-weekly` | "Mi semana": KPIs del periodo dentro de Progreso | `insights` | nuevo (mobile) | `ready` |
+| `mobile-badges` | Logros dentro de Progreso | `badges` (backend) | nuevo (mobile) | `ready` |
+| `mobile-push` | Registrar el dispositivo y recibir/abrir push | `push` | nuevo (mobile) | `ready` |
+| `mobile-offline` | Reintento con aviso al fallar el envío de una respuesta | — | nuevo (mobile) | `ready` |
 
-**Build order**: `review-mastery` → `notifications`, `insights` → `badges` → `e2e`
+**Build order** (olas por dependencia; lo que no bloquea va en paralelo):
 
-Sin ciclos. `notifications` e `insights` son independientes entre sí y pueden ejecutarse en paralelo una vez cerrado `review-mastery`; `badges` consume ambos; `e2e` va al final por definición (prueba el sistema integrado).
+```
+Ola 0  review-mastery ✅ (hecho)
+Ola 1  notifications  ·  mobile-tooling  ·  mobile-daily-tip  ·  mobile-progress
+Ola 2  insights  →  mobile-weekly
+Ola 3  badges (backend → web)  →  mobile-badges
+Ola 4  push  →  mobile-push
+Ola 5  mobile-offline  ·  e2e
+```
+
+Sin ciclos. `mobile-progress` crea la pestaña que `mobile-weekly` y `mobile-badges` reutilizan, por eso va antes. `push` cuelga de `notifications` (D-28): la tabla de avisos es la fuente y el dispatcher solo entrega.
 
 ## Interfaces en las fronteras
 
@@ -25,6 +42,10 @@ Sin ciclos. `notifications` e `insights` son independientes entre sí y pueden e
 | `review-mastery` | `progress.Service.TopicMastery() ([]TopicMasteryItem, error)` — incluye la definición única de `isWeak` | `insights` (filtra `isWeak`), `badges` (`topics_mastered_5`) |
 | `sessions` | `Store.CountDueReviews(userID) (int64, error)` — **ya existe** (`sessions/store.go:210`), no se reimplementa | `notifications` (job diario) |
 | `gamification` | `Service.GetOverview()` (XP, streak, `topicXp`), `RegisterAnswer`, `CompleteSession` | `insights`, `badges` |
+| `insights` | `insights.Service.Summary(userID, period)` + `GET /insights/summary` | `mobile-weekly` |
+| `badges` | `GET /gamification/badges` | `mobile-badges` |
+| `notifications` | `Service.RunDailyJob()` + `Pusher` interface (`Push(ctx, []Notification) error`) | `push` |
+| `push` | `POST /push/tokens`, `POST /push/tokens/unregister`, `ExpoSender` | `mobile-push` |
 | `insights` | `insights.Service.Summary(userID, period)` | `badges` (`answers_100` si se decide derivar de ahí) |
 
 **Regla de reutilización**: `isWeak`, "tema débil" y "due review" tienen **una sola definición** en el sistema. Ningún módulo los recalcula (ver `specs/DECISIONS.md` D-08, D-09).
@@ -80,6 +101,22 @@ Los gates de SDD (revisión de la spec antes de implementar, y del plan antes de
 
 ## Fuera de alcance
 
-- **Mobile** (Expo/RN): ningún módulo de este mapa incluye tareas mobile. La sesión diaria es mobile-first, pero estas funcionalidades son backend + web.
-- **Cambios de esquema** en `review-mastery` e `insights`: son de solo lectura.
 - **Retención/purga** de notificaciones y **`xp_events` ledger**: ver Open Questions de cada spec.
+- **Cola offline persistente** (guardar respuestas en disco y sincronizar): descartada en D-31 / X-11.
+- **Push con Firebase/APNs directos**: descartado en D-27 (se usa Expo Push).
+- **E2E de la app mobile** (Detox/Maestro): no se incluye; el E2E del plan es solo web (Playwright).
+
+## Backlog mobile (sin IDs `Bx.y`)
+
+Los módulos mobile son alcance nuevo (D-26); no tienen IDs heredados del `ROADMAP`. Su trazabilidad es el propio module id:
+
+| Module id | Spec | Tareas |
+|---|---|---|
+| `push` | `SPEC-push.md` | `PUSH-1…` |
+| `mobile-tooling` | `SPEC-mobile-tooling.md` | `MTOOL-1…` |
+| `mobile-daily-tip` | `SPEC-mobile-daily-tip.md` | `MTIP-1…` |
+| `mobile-progress` | `SPEC-mobile-progress.md` | `MPROG-1…` |
+| `mobile-weekly` | `SPEC-mobile-weekly.md` | `MWEEK-1…` |
+| `mobile-badges` | `SPEC-mobile-badges.md` | `MBADGE-1…` |
+| `mobile-push` | `SPEC-mobile-push.md` | `MPUSH-1…` |
+| `mobile-offline` | `SPEC-mobile-offline.md` | `MOFF-1…` |

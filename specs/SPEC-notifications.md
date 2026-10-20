@@ -6,6 +6,7 @@
 | IDs originales | B2.1–B2.9 |
 | Estado | `ready` |
 | Depende de | `sessions` (due count existente: `sessions/store.go:210`) |
+| Consumido por | `push` (entrega a móvil, D-28) |
 | Migración goose | `00006_notifications.sql` |
 | Dependencia nueva | **Ninguna** (ticker stdlib — D-17) |
 
@@ -305,13 +306,35 @@ export function markAllReadMutation() { /* invalida ['notifications'] */ }
 - Ruta `/notifications` en `routes.ts` con `meta: { requiresAuth: true }`.
 - El badge **no** consulta para admins/users por separado: es para todos.
 
+### Integración con push (D-28)
+
+`notifications` es la **fuente única** del aviso. La entrega al móvil es responsabilidad de `push` (`SPEC-push.md`), que implementa esta interfaz:
+
+```go
+// notifications define la interfaz; push la implementa.
+type Pusher interface {
+	Push(ctx context.Context, items []models.Notification) error
+}
+
+func NewService(store Store, pusher Pusher) Service // pusher puede ser nil (modo web-only)
+```
+
+- `RunDailyJob` llama a `pusher.Push(ctx, inserted)` **después** de insertar los avisos. Si `pusher` es `nil`, no hace nada.
+- El resultado del push **no** altera el resultado del job: si Expo falla, el aviso in-app ya está creado (best-effort).
+- Para crear esta dependencia, `push` debe existir antes en `server.go` (build order: Ola 4; `notifications` va en la Ola 1 con `pusher = nil` y se cablea en la Ola 4).
+
+### Alcance de clientes
+
+- **Web**: campana + centro de notificaciones (esta spec).
+- **Mobile**: no lleva campana; recibe el mismo aviso por push (`SPEC-mobile-push.md`).
+
 ## Code style
 
 - `mapper.go` con `ToNotificationResponse(models.Notification) NotificationResponse` (exportado).
 - El service fija `instance` a `""`; el handler lo rellena con `c.Request.URL.Path`.
 - Store: errores GORM crudos; service los traduce a `*apierr.APIError`.
 - Logs con emoji (`✅` job ok, `❌` error, `🚀`/`🛑` si aplica).
-- Mobile fuera de alcance (D-18): no se toca `apps/mobile/`.
+- Esta spec es **web**; mobile consume el aviso vía push.
 
 ## Testing strategy
 
