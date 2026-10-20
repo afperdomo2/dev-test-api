@@ -25,7 +25,8 @@ type mockSessionStore struct {
 	createFn                  func(s *models.Session) error
 	updateFn                  func(s *models.Session) error
 	addSessionTopicsFn        func(sessionID uuid.UUID, topicIDs []uuid.UUID) error
-	createAnswerFn            func(a *models.SessionAnswer) error
+	createAnswerFn            func(a *models.SessionAnswer) (bool, error)
+	findByClientAnswerIDFn    func(sessionID, clientAnswerID uuid.UUID) (*models.SessionAnswer, error)
 	findAnsweredQuestionIDsFn func(sessionID uuid.UUID) ([]uuid.UUID, error)
 	findNextQuestionFn        func(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty, mode string, userID uuid.UUID) (*models.Question, error)
 	countAvailableQuestionsFn func(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty, mode string, userID uuid.UUID) (int64, error)
@@ -46,7 +47,12 @@ func (m *mockSessionStore) Update(s *models.Session) error                 { ret
 func (m *mockSessionStore) AddSessionTopics(id uuid.UUID, tIDs []uuid.UUID) error {
 	return m.addSessionTopicsFn(id, tIDs)
 }
-func (m *mockSessionStore) CreateAnswer(a *models.SessionAnswer) error { return m.createAnswerFn(a) }
+func (m *mockSessionStore) CreateAnswer(a *models.SessionAnswer) (bool, error) {
+	return m.createAnswerFn(a)
+}
+func (m *mockSessionStore) FindByClientAnswerID(sessionID, clientAnswerID uuid.UUID) (*models.SessionAnswer, error) {
+	return m.findByClientAnswerIDFn(sessionID, clientAnswerID)
+}
 func (m *mockSessionStore) FindAnsweredQuestionIDs(id uuid.UUID) ([]uuid.UUID, error) {
 	return m.findAnsweredQuestionIDsFn(id)
 }
@@ -73,12 +79,15 @@ func (m *mockSessionStore) Delete(id uuid.UUID) error { return m.deleteFn(id) }
 
 func newSessionStore() *mockSessionStore {
 	return &mockSessionStore{
-		findPageFn:                func(uuid.UUID, ListSessionsParams) ([]models.Session, int64, error) { return nil, 0, nil },
-		findByIDFn:                func(uuid.UUID) (*models.Session, error) { return nil, gorm.ErrRecordNotFound },
-		createFn:                  func(*models.Session) error { return nil },
-		updateFn:                  func(*models.Session) error { return nil },
-		addSessionTopicsFn:        func(uuid.UUID, []uuid.UUID) error { return nil },
-		createAnswerFn:            func(*models.SessionAnswer) error { return nil },
+		findPageFn:         func(uuid.UUID, ListSessionsParams) ([]models.Session, int64, error) { return nil, 0, nil },
+		findByIDFn:         func(uuid.UUID) (*models.Session, error) { return nil, gorm.ErrRecordNotFound },
+		createFn:           func(*models.Session) error { return nil },
+		updateFn:           func(*models.Session) error { return nil },
+		addSessionTopicsFn: func(uuid.UUID, []uuid.UUID) error { return nil },
+		createAnswerFn:     func(*models.SessionAnswer) (bool, error) { return true, nil },
+		findByClientAnswerIDFn: func(uuid.UUID, uuid.UUID) (*models.SessionAnswer, error) {
+			return nil, gorm.ErrRecordNotFound
+		},
 		findAnsweredQuestionIDsFn: func(uuid.UUID) ([]uuid.UUID, error) { return nil, nil },
 		findNextQuestionFn: func([]uuid.UUID, []uuid.UUID, string, string, uuid.UUID) (*models.Question, error) {
 			return nil, gorm.ErrRecordNotFound
@@ -468,5 +477,130 @@ func TestSessionNextQuestionDaily(t *testing.T) {
 		var apiErr *apierr.APIError
 		require.ErrorAs(t, err, &apiErr)
 		assert.Equal(t, 404, apiErr.Status)
+	})
+}
+
+/* adapter that counts how many times progress is applied */
+type countingProgressAdapter struct {
+	fakeProgressAdapter
+	calls int
+}
+
+func (c *countingProgressAdapter) Answer(uuid.UUID, uuid.UUID, bool) (*progress.ProgressResponse, error) {
+	c.calls++
+	return &progress.ProgressResponse{}, nil
+}
+
+func TestSessionAnswerIdempotency(t *testing.T) {
+	sessionID := uuid.New()
+	userID := uuid.New()
+	questionID := uuid.New()
+	clientID := uuid.New()
+
+	activeStore := func(t *testing.T) *mockSessionStore {
+		t.Helper()
+		store := newSessionStore()
+		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
+			return &models.Session{ID: sessionID, UserID: userID, Status: "in_progress"}, nil
+		}
+		return store
+	}
+
+	t.Run("primera respuesta aplica progreso una vez", func(t *testing.T) {
+		store := activeStore(t)
+		created := 0
+		store.createAnswerFn = func(a *models.SessionAnswer) (bool, error) {
+			created++
+			require.NotNil(t, a.ClientAnswerID)
+			assert.Equal(t, clientID, *a.ClientAnswerID)
+			return true, nil
+		}
+		progressSvc := &countingProgressAdapter{}
+		svc := &sessionService{store: store, progressService: progressSvc}
+
+		got, err := svc.Answer(sessionID, userID, AnswerRequest{QuestionID: questionID, ClientAnswerID: &clientID})
+
+		require.NoError(t, err)
+		assert.NotNil(t, got)
+		assert.Equal(t, 1, created)
+		assert.Equal(t, 1, progressSvc.calls)
+	})
+
+	t.Run("reintento con el mismo clientAnswerId no reaplica progreso", func(t *testing.T) {
+		store := activeStore(t)
+		store.createAnswerFn = func(*models.SessionAnswer) (bool, error) { return false, nil }
+
+		stored := &models.SessionAnswer{
+			ID:              uuid.New(),
+			SessionID:       sessionID,
+			UserID:          userID,
+			QuestionID:      questionID,
+			SelectedOptions: "[]",
+			IsCorrect:       true,
+			ClientAnswerID:  &clientID,
+		}
+		store.findByClientAnswerIDFn = func(gotSessionID, gotClientID uuid.UUID) (*models.SessionAnswer, error) {
+			assert.Equal(t, sessionID, gotSessionID)
+			assert.Equal(t, clientID, gotClientID)
+			return stored, nil
+		}
+		store.findQuestionByIDFn = func(id uuid.UUID) (*models.Question, error) {
+			return &models.Question{ID: id, Explanation: "porque sí"}, nil
+		}
+		progressSvc := &countingProgressAdapter{}
+		svc := &sessionService{store: store, progressService: progressSvc}
+
+		got, err := svc.Answer(sessionID, userID, AnswerRequest{QuestionID: questionID, ClientAnswerID: &clientID})
+
+		require.NoError(t, err)
+		assert.Equal(t, stored.ID, got.ID)
+		assert.True(t, got.IsCorrect)
+		assert.Equal(t, "porque sí", got.Explanation)
+		assert.Zero(t, progressSvc.calls)
+	})
+
+	t.Run("sin clientAnswerId se comporta como antes", func(t *testing.T) {
+		store := activeStore(t)
+		created := 0
+		store.createAnswerFn = func(*models.SessionAnswer) (bool, error) {
+			created++
+			return true, nil
+		}
+		progressSvc := &countingProgressAdapter{}
+		svc := &sessionService{store: store, progressService: progressSvc}
+
+		_, err := svc.Answer(sessionID, userID, AnswerRequest{QuestionID: questionID})
+		require.NoError(t, err)
+		_, err = svc.Answer(sessionID, userID, AnswerRequest{QuestionID: questionID})
+		require.NoError(t, err)
+
+		assert.Equal(t, 2, created)
+		assert.Equal(t, 2, progressSvc.calls)
+	})
+
+	t.Run("error del store al insertar → 500", func(t *testing.T) {
+		store := activeStore(t)
+		store.createAnswerFn = func(*models.SessionAnswer) (bool, error) {
+			return false, errors.New("boom")
+		}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+
+		_, err := svc.Answer(sessionID, userID, AnswerRequest{QuestionID: questionID, ClientAnswerID: &clientID})
+
+		var apiErr *apierr.APIError
+		require.ErrorAs(t, err, &apiErr)
+		assert.Equal(t, 500, apiErr.Status)
+	})
+
+	t.Run("reintento sin fila recuperable → 500", func(t *testing.T) {
+		store := activeStore(t)
+		store.createAnswerFn = func(*models.SessionAnswer) (bool, error) { return false, nil }
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+
+		_, err := svc.Answer(sessionID, userID, AnswerRequest{QuestionID: questionID, ClientAnswerID: &clientID})
+
+		var apiErr *apierr.APIError
+		require.ErrorAs(t, err, &apiErr)
+		assert.Equal(t, 500, apiErr.Status)
 	})
 }

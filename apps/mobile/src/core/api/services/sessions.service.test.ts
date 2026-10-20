@@ -58,6 +58,20 @@ describe('sessions.service', () => {
     expect(mocked.post).toHaveBeenCalledWith('/api/v1/sessions/s1/answer', body)
   })
 
+  it('submitAnswer reenvía el clientAnswerId para reintentos idempotentes', async () => {
+    mocked.post.mockResolvedValue({ id: 'a1' })
+    const body = {
+      questionId: 'q1',
+      selectedOptions: ['o1'],
+      clientAnswerId: 'c1',
+    }
+
+    await submitAnswer('s1', body)
+
+    expect(mocked.post).toHaveBeenCalledWith('/api/v1/sessions/s1/answer', body)
+    expect(mocked.post.mock.calls[0]?.[1]).toHaveProperty('clientAnswerId', 'c1')
+  })
+
   it('getNextQuestion desempaqueta la pregunta', async () => {
     const question = { question: { id: 'q1' }, answeredCount: 0 }
     mocked.get.mockResolvedValue({ question })

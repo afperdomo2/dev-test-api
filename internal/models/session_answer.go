@@ -20,7 +20,11 @@ type SessionAnswer struct {
 	IsCorrect       bool      `gorm:"not null;default:false" json:"isCorrect"`
 	AiFeedback      string    `gorm:"type:text" json:"aiFeedback,omitempty"`
 	ResponseTimeMs  int       `json:"responseTimeMs,omitempty"`
-	CreatedAt       time.Time `json:"createdAt"`
+	// ClientAnswerID es el UUID que genera el cliente para que reintentar el
+	// envío sea idempotente (D-35). NULL en filas antiguas o clientes que no
+	// lo envían.
+	ClientAnswerID *uuid.UUID `gorm:"type:uuid" json:"clientAnswerId,omitempty"`
+	CreatedAt      time.Time  `json:"createdAt"`
 }
 
 func (a *SessionAnswer) BeforeCreate(tx *gorm.DB) error {

@@ -7,7 +7,7 @@
 | Estado | `ready` |
 | Depende de | `notifications` (D-28: la tabla de avisos es la fuente) |
 | Consumido por | `mobile-push` |
-| Migración goose | `00007_device_tokens.sql` |
+| Migración goose | `00008_device_tokens.sql` |
 | Dependencia nueva | **Ninguna** (HTTP con `net/http` contra la Expo Push API) |
 
 ## Objective
@@ -28,7 +28,7 @@ Go + Gin + GORM + Postgres · Expo Push API (`https://exp.host/--/api/v2/push/se
 ## Commands
 
 ```bash
-make migrate-create name=device_tokens   # 00007_device_tokens.sql
+make migrate-create name=device_tokens   # 00008_device_tokens.sql
 make migrate-up && make migrate-status
 make check && make test && make swagger
 make build
@@ -38,7 +38,7 @@ make build
 
 ```
 internal/models/device_token.go                      # NUEVO
-internal/database/migrations/00007_device_tokens.sql # NUEVO
+internal/database/migrations/00008_device_tokens.sql # NUEVO
 internal/modules/push/
 ├── request.go      # RegisterTokenRequest, UnregisterTokenRequest
 ├── response.go     # (reutiliza response.Success; sin DTO propio si no hace falta)
@@ -55,7 +55,7 @@ internal/modules/notifications/service.go  # llama al Pusher tras crear los avis
 
 ## Contrato
 
-### Migración `00007_device_tokens.sql`
+### Migración `00008_device_tokens.sql`
 
 ```sql
 -- +goose Up

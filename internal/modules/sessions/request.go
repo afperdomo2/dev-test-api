@@ -29,4 +29,7 @@ type AnswerRequest struct {
 	AnswerText      string      `json:"answerText,omitempty"`
 	SelectedOptions []uuid.UUID `json:"selectedOptions,omitempty"`
 	ResponseTimeMs  int         `json:"responseTimeMs"`
+	// ClientAnswerID es opcional: permite que reintentar el envío no duplique
+	// la respuesta, el XP ni el SRS (D-35).
+	ClientAnswerID *uuid.UUID `json:"clientAnswerId,omitempty"`
 }

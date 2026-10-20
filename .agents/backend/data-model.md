@@ -15,7 +15,7 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 | `user_question_progress` | Progreso SRS por usuario+pregunta (repetitions, easeFactor, intervalDays, isMastered) |
 | `sessions` | Sesión de práctica (status, mode, difficulty, score, tipId) |
 | `session_topics` | Join N:M Session ↔ Topic |
-| `session_answers` | Respuestas de la sesión (isCorrect, aiFeedback, responseTimeMs) |
+| `session_answers` | Respuestas de la sesión (isCorrect, aiFeedback, responseTimeMs, clientAnswerId) |
 | `tips` | Tips del día (content, source, topicId) |
 | `reports` | Reportes de moderación (targetType, targetId, reason, status) |
 | `user_xps` | XP total por usuario (xp). El nivel se **deriva** del XP, no se guarda |
@@ -65,5 +65,5 @@ Un registro = una llamada a la IA que produce hasta 10 preguntas. `quantity` es 
 - Único `topics (slug, created_by)` (NULLS NOT DISTINCT)
 - `user_question_progress (user_id, next_review_at)` y `(user_id, is_mastered)`
 - `sessions (user_id, status)` y `(user_id, started_at DESC)`
-- `session_answers (session_id)`
+- `session_answers (session_id)` · único `(session_id, client_answer_id)` para reintentos idempotentes
 - Trigger `calc_session_score()` → calcula `sessions.score` al pasar a `completed`

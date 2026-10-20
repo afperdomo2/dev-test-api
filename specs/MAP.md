@@ -20,7 +20,7 @@
 | `mobile-weekly` | "Mi semana": KPIs del periodo dentro de Progreso | `insights` ✅ | nuevo (mobile) | `done` |
 | `mobile-badges` | Logros dentro de Progreso | `badges` (backend) | nuevo (mobile) | `done` |
 | `mobile-push` | Registrar el dispositivo y recibir/abrir push | `push` | nuevo (mobile) | `ready` |
-| `mobile-offline` | Reintento con aviso al fallar el envío de una respuesta | — | nuevo (mobile) | `ready` |
+| `mobile-offline` | Reintento con aviso al fallar el envío de una respuesta | — | nuevo (mobile) | `done` |
 
 **Build order** (olas por dependencia; lo que no bloquea va en paralelo):
 
@@ -62,7 +62,7 @@ Sin ciclos. `mobile-progress` crea la pestaña que `mobile-weekly` y `mobile-bad
 | B1.6 | `RM-6` | Shared types + service + query |
 | B1.7 | `RM-7` | 4ª pestaña "Temas" en `ProgressPage` |
 | B1.8 | `RM-8` | Tests web + checks |
-| B2.1 | `NT-1` | Modelo + migración `00006` |
+| B2.1 | `NT-1` | Modelo + migración `00007` |
 | B2.2 | `NT-2` | Módulo `notifications` |
 | B2.3 | `NT-3` | 4 endpoints |
 | B2.4 | `NT-4` | Job diario (fan-out idempotente) |

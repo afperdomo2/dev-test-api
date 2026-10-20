@@ -110,6 +110,8 @@ export interface SubmitAnswerRequest {
   answerText?: string
   selectedOptions?: Array<string>
   responseTimeMs?: number
+  /** UUID generado por el cliente para que reintentar sea idempotente (D-35). */
+  clientAnswerId?: string
 }
 
 export interface SessionAnswer {

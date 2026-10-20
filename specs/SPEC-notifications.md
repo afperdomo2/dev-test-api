@@ -7,7 +7,7 @@
 | Estado | `ready` |
 | Depende de | `sessions` (due count existente: `sessions/store.go:210`) |
 | Consumido por | `push` (entrega a móvil, D-28) |
-| Migración goose | `00006_notifications.sql` |
+| Migración goose | `00007_notifications.sql` |
 | Dependencia nueva | **Ninguna** (ticker stdlib — D-17) |
 
 ## Objective
@@ -28,7 +28,7 @@ Go + Gin + GORM + Postgres · Vue 3 + Vuetify + TanStack Query · `@devtest/shar
 ## Commands
 
 ```bash
-make migrate-create name=notifications   # crea 00006_notifications.sql
+make migrate-create name=notifications   # crea 00007_notifications.sql
 make migrate-up                          # aplica
 make migrate-status
 make migrate-down                        # revertir en desarrollo
@@ -41,7 +41,7 @@ pnpm --filter @devtest/shared typecheck
 
 ```
 internal/models/notification.go                     # NUEVO
-internal/database/migrations/00006_notifications.sql # NUEVO
+internal/database/migrations/00007_notifications.sql # NUEVO
 internal/modules/notifications/
 ├── request.go      # ListNotificationsParams (embebe common.PaginationParams)
 ├── response.go     # NotificationResponse, UnreadCountResponse, MarkAllReadResponse
@@ -68,7 +68,7 @@ apps/web/src/router/routes.ts                        # + /notifications
 
 ## Contrato
 
-### Migración `00006_notifications.sql`
+### Migración `00007_notifications.sql`
 
 ```sql
 -- +goose Up
@@ -358,7 +358,7 @@ Store mockeado. Sin DB en tests.
 
 ## Success Criteria
 
-1. `make migrate-up` aplica `00006_notifications.sql` y `make migrate-down` la revierte limpiamente.
+1. `make migrate-up` aplica `00007_notifications.sql` y `make migrate-down` la revierte limpiamente.
 2. Ejecutar `RunDailyJob` dos veces el mismo día inserta filas la primera vez y **0** la segunda (idempotencia por índice único).
 3. Un usuario sin repasos vencidos no recibe ninguna fila.
 4. El texto es `Tienes N preguntas para repasar` con el `N` real del usuario.

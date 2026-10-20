@@ -334,10 +334,19 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 		SelectedOptions: selectedJSON,
 		IsCorrect:       isCorrect,
 		ResponseTimeMs:  input.ResponseTimeMs,
+		ClientAnswerID:  input.ClientAnswerID,
 	}
 
-	if err := s.store.CreateAnswer(answer); err != nil {
+	created, err := s.store.CreateAnswer(answer)
+	if err != nil {
 		return nil, apierr.ErrInternal("Error al guardar la respuesta", "")
+	}
+
+	if !created {
+		// Reintento con el mismo clientAnswerId: devolver la respuesta ya
+		// guardada y NO volver a aplicar progreso/gamificación (si no, doble
+		// XP y doble SRS).
+		return s.answerAlreadyStored(sessionID, input.ClientAnswerID)
 	}
 
 	var reward *gamification.Reward
@@ -358,6 +367,28 @@ func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest
 
 	resp := ToAnswerResponse(*answer)
 	resp.Reward = reward
+	return &resp, nil
+}
+
+// answerAlreadyStored recupera la respuesta que ya existía para el mismo
+// (session_id, client_answer_id) y la devuelve sin efectos secundarios.
+func (s *sessionService) answerAlreadyStored(sessionID uuid.UUID, clientAnswerID *uuid.UUID) (*SessionAnswerResponse, error) {
+	if clientAnswerID == nil {
+		// `created=false` solo puede venir de un conflicto, y sin client id no
+		// hay clave de idempotencia que recuperar.
+		return nil, apierr.ErrInternal("Error al guardar la respuesta", "")
+	}
+
+	stored, err := s.store.FindByClientAnswerID(sessionID, *clientAnswerID)
+	if err != nil {
+		return nil, apierr.ErrInternal("Error al recuperar la respuesta guardada", "")
+	}
+
+	if question, qErr := s.store.FindQuestionByID(stored.QuestionID); qErr == nil {
+		stored.Question = question
+	}
+
+	resp := ToAnswerResponse(*stored)
 	return &resp, nil
 }
 

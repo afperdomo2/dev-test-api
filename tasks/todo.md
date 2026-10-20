@@ -58,10 +58,10 @@
 
 ## Módulo `notifications` — `specs/SPEC-notifications.md`
 
-- [ ] **NT-1** — Modelo + migración `00006_notifications.sql`
+- [ ] **NT-1** — Modelo + migración `00007_notifications.sql`
   - Acceptance: tabla con `creation_day` generada, índice único `(user_id, type, creation_day)`, índices de listado y no-leídas, `COMMENT ON` de tabla y de **todas** las columnas (D-23); `Down` con `DROP TABLE`
   - Verify: `make migrate-up` → `make migrate-status` → `make migrate-down` (la columna generada debe ser aceptada por Postgres; si no, aplicar el fallback documentado en la spec); comprobar el índice único intentando insertar un duplicado
-  - Files: `internal/database/migrations/00006_notifications.sql`, `internal/models/notification.go`
+  - Files: `internal/database/migrations/00007_notifications.sql`, `internal/models/notification.go`
 - [ ] **NT-2** — Store + service (CRUD)
   - Acceptance: `Store` con listado paginado (`created_at DESC`), `FindByIDAndUser`, `MarkRead`, `MarkAllRead`, `CountUnread`, `InsertBatch` (`OnConflict{DoNothing:true}`); service con `apierr` y `404` para id ajeno; `mapper.ToNotificationResponse` exportado
   - Verify: `make check` + `make test`
@@ -187,10 +187,10 @@
 
 ## Módulo `push` — `specs/SPEC-push.md`
 
-- [ ] **PUSH-1** — Modelo + migración `00007_device_tokens.sql`
+- [ ] **PUSH-1** — Modelo + migración `00008_device_tokens.sql`
   - Acceptance: tabla con `token` único global, `platform` (`ios|android`), `last_seen_at`, FK a `users` con `ON DELETE CASCADE`, `COMMENT ON` de tabla y columnas; `Down` con `DROP TABLE`
   - Verify: `make migrate-up` + `make migrate-status` + `make migrate-down`; insertar dos veces el mismo token → falla el segundo (índice único)
-  - Files: `internal/database/migrations/00007_device_tokens.sql`, `internal/models/device_token.go`
+  - Files: `internal/database/migrations/00008_device_tokens.sql`, `internal/models/device_token.go`
 - [ ] **PUSH-2** — Store + service (registro y baja)
   - Acceptance: `Store` con upsert por token, delete por token, listado por usuario; el upsert **reasigna** el token si ya existía con otro usuario; `Unregister` ajeno no borra; errores a `apierr`
   - Verify: `make check` + `make test`
@@ -340,22 +340,27 @@
 
 ## Módulo `mobile-offline` — `specs/SPEC-mobile-offline.md`
 
-- [ ] **MOFF-1** — Backend: migración + modelo + request
+- [x] **MOFF-1** — Backend: migración + modelo + request
   - Acceptance: `session_answers.client_answer_id` + índice único `(session_id, client_answer_id)` con `COMMENT ON`; `ClientAnswerID *uuid.UUID` en `AnswerRequest` y en el modelo (opcional)
   - Verify: `make migrate-up`/`down`; insertar dos filas con el mismo par → falla; con `NULL` → permitido
-  - Files: `internal/database/migrations/NNNNN_answer_idempotency.sql`, `internal/models/session_answer.go`, `internal/modules/sessions/request.go`
-- [ ] **MOFF-2** — Backend: store + service idempotentes
+  - Files: `internal/database/migrations/00006_answer_idempotency.sql`, `internal/models/session_answer.go`, `internal/modules/sessions/request.go`
+  - Hecho: migración `00006` (las olas futuras se renumeran: notifications `00007`, push `00008`) · `migrate-up` → `status` → `down` → `up` limpios · prueba contra Postgres real en transacción con rollback: segundo envío del mismo `clientAnswerId` inserta 0 filas y devuelve la guardada, `NULL` sigue permitiendo duplicados, rollback deja la tabla intacta · `make check` + `make test` ✅
+- [x] **MOFF-2** — Backend: store + service idempotentes
   - Acceptance: `CreateAnswer` devuelve `created bool` con `ON CONFLICT DO NOTHING`; si la respuesta ya existía, el service devuelve la guardada y **no** ejecuta `progressService.Answer` (sin doble XP/SRS); sin `clientAnswerId` se comporta como hoy
   - Verify: `make test` + `make check`; contraste real en transacción con rollback (dos envíos → 1 fila, 1 XP)
   - Files: `internal/modules/sessions/store.go`, `internal/modules/sessions/service.go`, `internal/modules/sessions/service_test.go`
-- [ ] **MOFF-3** — Mobile: `isNetworkError` + `clientAnswerId`
+  - Hecho: `OnConflict{Columns: session_id, client_answer_id, DoNothing}` + `FindByClientAnswerID` · el reintento devuelve la fila guardada con su explicación y **no** llama a `progressService.Answer` · 5 subtests nuevos (progreso 1 vez, reintento sin reaplicar, sin client id = comportamiento actual, error de store 500, fila no recuperable 500)
+- [x] **MOFF-3** — Mobile: `isNetworkError` + `clientAnswerId`
   - Acceptance: helper en `core/utils/errors.ts`; `submitAnswer` acepta y envía `clientAnswerId`; se genera **una vez por pregunta** con `expo-crypto` y se reutiliza al reintentar
   - Verify: `pnpm --filter mobile test:run` + `typecheck`; gate de dependencias de `expo-crypto`
   - Files: `apps/mobile/src/core/utils/errors.ts` (+ test), `apps/mobile/src/core/api/services/sessions.service.ts` (+ test)
-- [ ] **MOFF-4** — Mobile: UI de reintento
+  - Hecho: `expo-crypto@~57.0.4` instalado con `expo install` (oficial, MIT, sin prebuild) · `isNetworkError` distingue el `{title:'Network Error'}` del cliente de un 4xx/5xx · `SubmitAnswerRequest.clientAnswerId?` en shared · el UUID vive en un `useRef` y se renueva solo al cargar la siguiente pregunta · mock central de `expo-crypto` en `jest.setup.ts`
+- [x] **MOFF-4** — Mobile: UI de reintento
   - Acceptance: error de red → no avanza, conserva la selección, mensaje + "Reintentar"; error de API → detalle + "Reintentar"; doble toque no duplica; el `clientAnswerId` cambia al cambiar de pregunta
   - Verify: tests de `SessionStudyPage` (espía del `clientAnswerId`) + prueba manual en modo avión
   - Files: `apps/mobile/src/features/sessions/screens/SessionStudyPage.tsx`, `.test.tsx`
+  - Hecho: bloque de error bajo `QuestionCard` (icono + texto + "Reintentar" de 48 pt) · la selección se conserva porque la tarjeta no se desmonta · guard síncrono `submittingRef` contra doble toque · 4 tests nuevos (red + reintento con el mismo id, error de API, doble toque, id distinto por pregunta) → suite mobile **111 tests / 25 archivos** · `typecheck` + `test:run` + `lint` (0 errores) en verde
+  - ⚠️ **Pendiente**: prueba manual en modo avión con dispositivo/emulador (no bloquea el código ni los tests)
 
 ---
 

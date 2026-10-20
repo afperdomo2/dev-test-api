@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { randomUUID } from 'expo-crypto'
 import type { NextQuestionItem, SessionAnswer, SessionSummary, Reward } from '@devtest/shared'
 
 import { QuestionCard } from '@/features/sessions/components/QuestionCard'
@@ -21,7 +22,7 @@ import {
   submitAnswer,
   finishSession,
 } from '@/core/api/services/sessions.service'
-import { getErrorDetail } from '@/core/utils/errors'
+import { getErrorDetail, isNetworkError } from '@/core/utils/errors'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
 type Phase = 'loading' | 'question' | 'result' | 'finished' | 'error'
@@ -37,7 +38,13 @@ export default function SessionStudyPage() {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [lastResult, setLastResult] = useState<SessionAnswer | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitErrorIsNetwork, setSubmitErrorIsNetwork] = useState(false)
   const loadingRef = useRef(false)
+  const submittingRef = useRef(false)
+  // UUID estable por pregunta: se reutiliza en los reintentos y se renueva al
+  // cargar la siguiente (idempotencia, D-35).
+  const clientAnswerIdRef = useRef<string | null>(null)
 
   // El tip del día se guarda al crear la sesión (Home) y solo se muestra al
   // empezar. Se limpia al salir de la pantalla.
@@ -67,8 +74,12 @@ export default function SessionStudyPage() {
       setPhase('loading')
       setSelectedOptions([])
       setLastResult(null)
+      setSubmitError(null)
+      setSubmitErrorIsNetwork(false)
+      clientAnswerIdRef.current = null
       try {
         const next = await getNextQuestion(sessionId)
+        clientAnswerIdRef.current = randomUUID()
         setQuestion(next)
         setPhase('question')
       } catch {
@@ -105,21 +116,40 @@ export default function SessionStudyPage() {
 
   const handleAnswer = useCallback(
     async (options: string[]) => {
-      if (!id || !question) return
+      if (!id || !question || submittingRef.current) return
+
+      // Se genera una vez por pregunta; los reintentos reutilizan el mismo id.
+      const clientAnswerId = clientAnswerIdRef.current ?? randomUUID()
+      clientAnswerIdRef.current = clientAnswerId
+
+      submittingRef.current = true
       setSelectedOptions(options)
+      setSubmitError(null)
+      setSubmitErrorIsNetwork(false)
       setPhase('loading')
       try {
         const result = await submitAnswer(id, {
           questionId: question.id,
           selectedOptions: options,
+          clientAnswerId,
         })
         setLastResult(result)
         setSummary((prev) =>
           prev ? { ...prev, answerCount: prev.answerCount + 1 } : prev,
         )
         setPhase('result')
-      } catch {
-        setPhase('result')
+      } catch (err) {
+        // No se avanza: el usuario ve el error y puede reintentar sin duplicar.
+        const network = isNetworkError(err)
+        setPhase('question')
+        setSubmitErrorIsNetwork(network)
+        setSubmitError(
+          network
+            ? 'Sin conexión. Revisa tu red e inténtalo de nuevo.'
+            : getErrorDetail(err, 'No se pudo enviar la respuesta'),
+        )
+      } finally {
+        submittingRef.current = false
       }
     },
     [id, question],
@@ -255,6 +285,28 @@ export default function SessionStudyPage() {
             submitting={phase === 'loading'}
           />
         )}
+
+        {phase === 'question' && submitError ? (
+          <View style={styles.submitError}>
+            <View style={styles.submitErrorHeader}>
+              <MaterialCommunityIcons
+                name={submitErrorIsNetwork ? 'cloud-off-outline' : 'alert-circle-outline'}
+                size={18}
+                color={colors.destructive}
+              />
+              <Text style={styles.submitErrorText}>{submitError}</Text>
+            </View>
+            <Pressable
+              onPress={() => void handleAnswer(selectedOptions)}
+              style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Reintentar"
+            >
+              <MaterialCommunityIcons name="refresh" size={18} color={colors.onPrimary} />
+              <Text style={styles.retryButtonLabel}>Reintentar</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   )
@@ -310,6 +362,43 @@ const styles = StyleSheet.create({
   },
   tipWrapper: {
     marginBottom: spacing.lg,
+  },
+  submitError: {
+    marginTop: spacing.lg,
+    gap: spacing.md,
+    padding: spacing.md,
+    backgroundColor: `${colors.destructive}12`,
+    borderWidth: 1,
+    borderColor: `${colors.destructive}55`,
+    borderRadius: radius.md,
+  },
+  submitErrorHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  submitErrorText: {
+    flex: 1,
+    fontSize: typography.size.sm,
+    lineHeight: 20,
+    color: colors.foreground,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+  },
+  retryButtonPressed: {
+    opacity: 0.85,
+  },
+  retryButtonLabel: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.onPrimary,
   },
   error: {
     fontSize: typography.size.md,

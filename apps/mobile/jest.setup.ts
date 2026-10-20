@@ -13,6 +13,16 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(async () => undefined),
 }))
 
+jest.mock('expo-crypto', () => {
+  let counter = 0
+  return {
+    randomUUID: jest.fn(() => {
+      counter += 1
+      return `00000000-0000-4000-8000-${String(counter).padStart(12, '0')}`
+    }),
+  }
+})
+
 jest.mock('expo-router', () => {
   const router = {
     push: jest.fn(),

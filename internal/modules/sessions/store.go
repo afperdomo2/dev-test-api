@@ -4,6 +4,7 @@ import (
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Store interface {
@@ -12,7 +13,11 @@ type Store interface {
 	Create(session *models.Session) error
 	Update(session *models.Session) error
 	AddSessionTopics(sessionID uuid.UUID, topicIDs []uuid.UUID) error
-	CreateAnswer(answer *models.SessionAnswer) error
+	// CreateAnswer inserta la respuesta. Si choca con
+	// (session_id, client_answer_id) no inserta y devuelve created=false.
+	CreateAnswer(answer *models.SessionAnswer) (created bool, err error)
+	// FindByClientAnswerID recupera la respuesta ya guardada de un reintento.
+	FindByClientAnswerID(sessionID, clientAnswerID uuid.UUID) (*models.SessionAnswer, error)
 	FindAnsweredQuestionIDs(sessionID uuid.UUID) ([]uuid.UUID, error)
 	FindNextQuestion(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty string, mode string, userID uuid.UUID) (*models.Question, error)
 	CountAvailableQuestions(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty string, mode string, userID uuid.UUID) (int64, error)
@@ -83,8 +88,27 @@ func (s *gormStore) AddSessionTopics(sessionID uuid.UUID, topicIDs []uuid.UUID) 
 	return nil
 }
 
-func (s *gormStore) CreateAnswer(answer *models.SessionAnswer) error {
-	return s.db.Create(answer).Error
+func (s *gormStore) CreateAnswer(answer *models.SessionAnswer) (bool, error) {
+	tx := s.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "session_id"}, {Name: "client_answer_id"}},
+		DoNothing: true,
+	}).Create(answer)
+
+	if tx.Error != nil {
+		return false, tx.Error
+	}
+	return tx.RowsAffected > 0, nil
+}
+
+func (s *gormStore) FindByClientAnswerID(sessionID, clientAnswerID uuid.UUID) (*models.SessionAnswer, error) {
+	var answer models.SessionAnswer
+	err := s.db.
+		Where("session_id = ? AND client_answer_id = ?", sessionID, clientAnswerID).
+		First(&answer).Error
+	if err != nil {
+		return nil, err
+	}
+	return &answer, nil
 }
 
 func (s *gormStore) FindAnsweredQuestionIDs(sessionID uuid.UUID) ([]uuid.UUID, error) {

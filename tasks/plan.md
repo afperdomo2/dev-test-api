@@ -35,10 +35,10 @@ notifications ──► push ──► mobile-push
 
 | Componente | Backend | Web | Mobile |
 |---|---|---|---|
-| `notifications` | `models/notification.go`, `modules/notifications/*`, `server.go`, migración `00006` | campana, `NotificationsPage`, ruta | — |
+| `notifications` | `models/notification.go`, `modules/notifications/*`, `server.go`, migración `00007` | campana, `NotificationsPage`, ruta | — |
 | `insights` | `modules/insights/*`, helpers XP en `gamification` | `InsightsPage`, nav | — |
 | `badges` | `gamification/{catalog,badges}.go`, endpoint | `AchievementsPage`, ruta, nav | — |
-| `push` | `models/device_token.go`, `modules/push/*`, migración `00007` | — | — |
+| `push` | `models/device_token.go`, `modules/push/*`, migración `00008` | — | — |
 | `mobile-tooling` | — | — | eslint, jest, tests |
 | `mobile-daily-tip` | — | — | store + card + Home + Study |
 | `mobile-progress` | — | — | tab + hub + Temas |

@@ -4004,6 +4004,10 @@ const docTemplate = `{
                 "answerText": {
                     "type": "string"
                 },
+                "clientAnswerId": {
+                    "description": "ClientAnswerID es opcional: permite que reintentar el envío no duplique\nla respuesta, el XP ni el SRS (D-35).",
+                    "type": "string"
+                },
                 "isCorrect": {
                     "type": "boolean"
                 },
