@@ -17,6 +17,8 @@ export function AuthButton({ title, onPress, loading, disabled }: AuthButtonProp
       onPress={onPress}
       disabled={inactive}
       accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: inactive }}
     >
       {loading === true ? (
         <ActivityIndicator color={colors.onPrimary} />

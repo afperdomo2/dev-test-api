@@ -50,6 +50,7 @@ export default function LoginScreen() {
           error={errors.email}
           keyboardType="email-address"
           editable={!loading}
+          testID="login-email"
         />
         <AuthInput
           label="Contraseña"
@@ -58,6 +59,7 @@ export default function LoginScreen() {
           error={errors.password}
           secureTextEntry
           editable={!loading}
+          testID="login-password"
         />
         <AuthServerError message={serverError} />
         <AuthButton title="Iniciar sesión" onPress={() => void submit()} loading={loading} />

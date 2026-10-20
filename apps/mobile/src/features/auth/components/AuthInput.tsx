@@ -10,6 +10,7 @@ type AuthInputProps = {
   secureTextEntry?: boolean
   keyboardType?: 'default' | 'email-address'
   editable?: boolean
+  testID?: string
 }
 
 export function AuthInput({
@@ -20,11 +21,13 @@ export function AuthInput({
   secureTextEntry,
   keyboardType = 'default',
   editable = true,
+  testID,
 }: AuthInputProps) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        testID={testID}
         style={[styles.input, error ? styles.inputError : null]}
         value={value}
         onChangeText={onChangeText}

@@ -58,6 +58,7 @@ export default function SetupScreen() {
           error={errors.email}
           keyboardType="email-address"
           editable={!loading}
+          testID="setup-email"
         />
         <AuthInput
           label="Contraseña"
@@ -66,6 +67,7 @@ export default function SetupScreen() {
           error={errors.password}
           secureTextEntry
           editable={!loading}
+          testID="setup-password"
         />
         <AuthInput
           label="Confirmar contraseña"
@@ -74,6 +76,7 @@ export default function SetupScreen() {
           error={errors.confirm}
           secureTextEntry
           editable={!loading}
+          testID="setup-confirm"
         />
         <AuthServerError message={serverError} />
         <AuthButton title="Crear cuenta" onPress={() => void submit()} loading={loading} />

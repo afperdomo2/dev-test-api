@@ -199,22 +199,26 @@
 
 ## Módulo `mobile-tooling` — `specs/SPEC-mobile-tooling.md`
 
-- [ ] **MTOOL-1** — ESLint en mobile
+- [x] **MTOOL-1** — ESLint en mobile
   - Acceptance: `eslint.config.js` con `eslint-config-expo`; script `lint` real (deja de ser un `echo`); gate de `.agents/mobile/dependencies.md` documentado
   - Verify: `pnpm --filter mobile lint` ✅ sin errores
   - Files: `apps/mobile/eslint.config.js`, `apps/mobile/package.json`
-- [ ] **MTOOL-2** — Configuración de Jest + mocks nativos
+  - Hecho: `eslint@9` + `eslint-config-expo@58` (MIT, peer `eslint >=8.10`, gate OK) · **0 errores, 11 warnings** · la regla nueva `react-hooks/set-state-in-effect` se dejó en `warn` (marca el patrón estándar de fetch inicial de `SessionsListPage`; como error bloquearía código válido) · se **eliminó un `useEffect` redundante** en `QuestionCard` (el padre ya monta con `key={question.id}`) · `types/eslint-config-expo.d.ts` para el typecheck
+- [x] **MTOOL-2** — Configuración de Jest + mocks nativos
   - Acceptance: `jest.config.js` con `jest-expo`, `setupFilesAfterEnv`; `jest.setup.ts` con mocks de `expo-secure-store`, `expo-router`, `@expo/vector-icons`; matchers de RTL
   - Verify: `pnpm --filter mobile test:run` (los 2 tests existentes siguen verdes)
   - Files: `apps/mobile/jest.config.js`, `apps/mobile/jest.setup.ts`, `apps/mobile/package.json`
-- [ ] **MTOOL-3** — Tests del cliente HTTP y servicios
+  - Hecho: Jest no resolvía el workspace → `moduleNameMapper` para `@devtest/shared` (main es TS) y `@/` · `testTimeout: 30000` (el primer render supera los 5 s por defecto) · el bloque `"jest"` de `package.json` se movió al config
+- [x] **MTOOL-3** — Tests del cliente HTTP y servicios
   - Acceptance: `client.ts` (9 casos de la spec, incluido `Network Error` y 401) + los 5 servicios (URL/método/payload) + `auth/storage`
   - Verify: `pnpm --filter mobile test:run`; romper `unwrap()` a propósito → falla un test
   - Files: `apps/mobile/src/core/api/client.test.ts`, `apps/mobile/src/core/api/services/*.test.ts`, `apps/mobile/src/core/auth/storage.test.ts`
-- [ ] **MTOOL-4** — Tests de pantallas críticas
+  - Hecho: **44 tests** (cliente 9, storage 4, auth 4, sessions 6, questions 3, progress 3, gamification 3, + los 2 de utils)
+- [x] **MTOOL-4** — Tests de pantallas críticas
   - Acceptance: `HomeScreen` (racha, meta, CTA diaria, freeze con confirmación), `QuestionCard` (selección única/múltiple, deshabilitado), `SessionStudyPage` (responder y avanzar), `LoginScreen`/`SetupScreen`
   - Verify: `pnpm --filter mobile test:run` + `typecheck` + `lint`; romper `handleAnswer` a propósito → falla un test
   - Files: `apps/mobile/src/features/**/*.test.tsx`
+  - Hecho: **20 tests** → total **64 tests / 14 archivos** · se añadió `accessibilityLabel` a `AuthButton` (faltaba) y `testID` a `AuthInput` (RTL v14 ya no expone `UNSAFE_getAllByType`) · los tests de `Login/Setup` validan formularios sin tocar el backend
 
 ---
 

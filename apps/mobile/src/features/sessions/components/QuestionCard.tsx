@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { NextQuestionItem, SessionAnswer } from '@devtest/shared'
@@ -33,9 +33,8 @@ export function QuestionCard({
   const isMultiple = question.type === 'multiple_choice'
   const isResult = mode === 'result'
 
-  useEffect(() => {
-    setLocalSelected(new Set())
-  }, [question.id])
+  // La selección se reinicia sola: el padre monta este componente con
+  // `key={question.id}`, así que al cambiar de pregunta hay un remount.
 
   const toggleOption = (id: string) => {
     if (isResult) return

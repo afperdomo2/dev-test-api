@@ -107,6 +107,21 @@ Cada servicio: URL, método y payload correctos (mockeando `apiClient`). Especia
 - Mocks de módulos nativos (`expo-secure-store`, `expo-router`, `@expo/vector-icons`) en `jest.setup.ts`, no repetidos por archivo.
 - ESLint flat config con `eslint-config-expo`; reglas extra alineadas con web donde aplique (`no-unused-vars`, `eqeqeq`).
 
+### ⚠️ RTL v14: `render` y `fireEvent` son **async**
+
+`@testing-library/react-native` v14 cambió la API (verificado al implementar):
+
+```ts
+await render(<Component />)          // devuelve el RenderResult
+await fireEvent.press(screen.getByLabelText('…'))
+await fireEvent.changeText(screen.getByTestId('login-email'), 'x')
+```
+
+- `screen.*` solo es válido **después** de `await render`.
+- Los imports no necesitan `extend-expect`: la librería registra sus matchers al importarse.
+- No existen las queries `UNSAFE_*` en v14: para localizar `TextInput` se usa `testID` (por eso `AuthInput` lo acepta).
+- `render`/`fireEvent` son lentos en frío → `testTimeout: 30000` en `jest.config.js`.
+
 ## Testing strategy
 
 No se persigue un número de cobertura global. Se exige:
