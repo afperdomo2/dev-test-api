@@ -25,6 +25,11 @@ type OpenCodeConfig struct {
 	UsageTimeout int
 }
 
+type PushConfig struct {
+	ExpoURL     string
+	AccessToken string
+}
+
 type Config struct {
 	Port     string
 	GinMode  string
@@ -33,6 +38,7 @@ type Config struct {
 	Cors     CorsConfig
 	AI       AIConfig
 	OpenCode OpenCodeConfig
+	Push     PushConfig
 }
 
 type DBConfig struct {
@@ -90,6 +96,10 @@ func Load() *Config {
 		OpenCode: OpenCodeConfig{
 			UsageURL:     getEnv("OPENCODE_USAGE_URL", "https://opencode.ai/zen/go/v1/usage"),
 			UsageTimeout: getIntEnv("OPENCODE_USAGE_TIMEOUT", 10),
+		},
+		Push: PushConfig{
+			ExpoURL:     getEnv("EXPO_PUSH_URL", "https://exp.host/--/api/v2/push/send"),
+			AccessToken: getEnv("EXPO_ACCESS_TOKEN", ""),
 		},
 	}
 

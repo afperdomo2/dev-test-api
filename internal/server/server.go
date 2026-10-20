@@ -19,6 +19,7 @@ import (
 	"github.com/felipe/dev-test-api/internal/modules/notifications"
 	opencodeModule "github.com/felipe/dev-test-api/internal/modules/opencode"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
+	"github.com/felipe/dev-test-api/internal/modules/push"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
 	"github.com/felipe/dev-test-api/internal/modules/sessions"
 	"github.com/felipe/dev-test-api/internal/modules/settings"
@@ -100,9 +101,15 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	authService := auth.NewService(userStore, cfg.JWT.SecretBytes(), cfg.JWT.ExpiryHrs)
 	authHandler := auth.NewHandler(authService)
 
-	// pusher nil en web-only; push lo inyecta en su ola (D-28).
+	// push se cablea antes que notifications: su service implementa el Pusher
+	// que el job diario usa para entregar los avisos (D-28).
+	pushStore := push.NewStore(db)
+	pushSender := push.NewExpoSender(cfg.Push, pushStore)
+	pushService := push.NewService(pushStore, pushSender)
+	pushHandler := push.NewHandler(pushService)
+
 	notificationStore := notifications.NewStore(db)
-	notificationService := notifications.NewService(notificationStore, nil)
+	notificationService := notifications.NewService(notificationStore, pushService)
 	notificationHandler := notifications.NewHandler(notificationService)
 	notificationScheduler := notifications.NewScheduler(notificationService)
 
@@ -133,6 +140,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 		moderation.RegisterRoutes(protected, moderationHandler)
 		gamification.RegisterRoutes(protected, gamificationHandler)
 		insights.RegisterRoutes(protected, insightsHandler)
+		push.RegisterRoutes(protected, pushHandler)
 		notifications.RegisterRoutes(protected, notificationHandler)
 
 		admin := protected.Group("")

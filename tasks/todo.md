@@ -199,26 +199,31 @@
 
 ## Módulo `push` — `specs/SPEC-push.md`
 
-- [ ] **PUSH-1** — Modelo + migración `00008_device_tokens.sql`
+- [x] **PUSH-1** — Modelo + migración `00008_device_tokens.sql`
   - Acceptance: tabla con `token` único global, `platform` (`ios|android`), `last_seen_at`, FK a `users` con `ON DELETE CASCADE`, `COMMENT ON` de tabla y columnas; `Down` con `DROP TABLE`
   - Verify: `make migrate-up` + `make migrate-status` + `make migrate-down`; insertar dos veces el mismo token → falla el segundo (índice único)
   - Files: `internal/database/migrations/00008_device_tokens.sql`, `internal/models/device_token.go`
-- [ ] **PUSH-2** — Store + service (registro y baja)
+  - Hecho: tabla + `COMMENT ON` de tabla y 8 columnas · `up`/`down`/`up` limpios · contra Postgres real: upsert no duplica, `DeleteByTokenAndUser` no borra ajeno y `ON DELETE CASCADE` borra el token al eliminar el usuario (tx con rollback)
+- [x] **PUSH-2** — Store + service (registro y baja)
   - Acceptance: `Store` con upsert por token, delete por token, listado por usuario; el upsert **reasigna** el token si ya existía con otro usuario; `Unregister` ajeno no borra; errores a `apierr`
   - Verify: `make check` + `make test`
   - Files: `internal/modules/push/{request,response,store,service}.go`
-- [ ] **PUSH-3** — Sender de Expo + `Pusher` + hook en notifications
+  - Hecho: `Upsert` con `ON CONFLICT (token) DO UPDATE` (reasigna user/platform y refresca `last_seen_at`) · `DeleteByTokenAndUser` devuelve si borró · `FindByUser` para el fan-out · `Unregister` devuelve `(bool, error)` para responder `removed` sin filtrar tokens ajenos
+- [x] **PUSH-3** — Sender de Expo + `Pusher` + hook en notifications
   - Acceptance: `ExpoSender` hace POST a `EXPO_PUSH_URL` en lotes de 100 con timeout; `DeviceNotRegistered` borra el token; `Pusher` implementa la interfaz de `notifications`; `RunDailyJob` llama a `Push` **después** de insertar y no falla si Expo falla
   - Verify: `make test` (fake de Expo con `httptest`) + prueba real con un token falso → log de error sin romper el job
   - Files: `internal/modules/push/sender.go`, `internal/modules/push/service.go`, `internal/modules/notifications/service.go`, `internal/config/config.go`
-- [ ] **PUSH-4** — Handler + rutas + wiring + Swagger
+  - Hecho: lotes de 100 con `context.WithTimeout` de 10 s · `Authorization: Bearer` opcional · tickets `DeviceNotRegistered` → `🗑️` + borrado · errores HTTP/red se propagan al job, que solo loguea (`⚠️`) y deja el aviso in-app · `notifications.NewService` recibe el `*pushService` como `Pusher` · `PushConfig` (`EXPO_PUSH_URL`, `EXPO_ACCESS_TOKEN`) + `.env.example`
+- [x] **PUSH-4** — Handler + rutas + wiring + Swagger
   - Acceptance: `POST /push/tokens` y `POST /push/tokens/unregister` (protegidos, idempotentes); wiring en `server.go` con `push` **antes** de `notifications`
   - Verify: `make swagger` + `make check`; arranque real sin conflictos; `docs/swagger.yaml` con los 2 paths
   - Files: `internal/modules/push/{handler,routes}.go`, `internal/server/server.go`
-- [ ] **PUSH-5** — Tests backend
+  - Hecho: 2 rutas protegidas · validación `platform` `oneof=ios android` · arranque real sin conflictos · `docs/swagger.yaml` con ambos paths
+- [x] **PUSH-5** — Tests backend
   - Acceptance: sender (lotes, timeout, `DeviceNotRegistered`), service (upsert, reasignación, baja), handler (401/422/200); store real en transacción con rollback
   - Verify: `make test`
   - Files: `internal/modules/push/{sender,service,handler}_test.go`
+  - Hecho: **17 tests** (sender 6: lotes 100, payload/auth, `DeviceNotRegistered`, HTTP 500, timeout, vacío; servicio 9: upsert, baja, push por token/usuarios/errores; handler 4: 401, 422, 200 alta/baja) · store real verificado en transacción con rollback · `make check` + `make test` + `make build` ✅
 
 ---
 

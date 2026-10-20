@@ -164,6 +164,15 @@ Store mockeado en unitarios. Sin llamadas reales a Expo.
 7. `docs/swagger.yaml` incluye los 2 paths.
 8. Sin dependencias nuevas en `go.mod`.
 
+## Notas de implementación (2026-10-20)
+
+- **`Unregister` devuelve `(bool, error)`** (la spec declaraba solo `error`): la respuesta necesita distinguir `removed: false` de `removed: true` sin revelar si el token es ajeno.
+- **Upsert**: `ON CONFLICT (token) DO UPDATE` reasigna `user_id`/`platform` y refresca `last_seen_at`; el `id` y `created_at` se conservan. Verificado contra la DB real, junto con `ON DELETE CASCADE`, en transacción con rollback.
+- **Sender**: lotes de 100, timeout de 10 s por lote y `Authorization: Bearer` opcional. Los tickets `DeviceNotRegistered` se borran (`🗑️`); los errores HTTP/red se propagan al job, que solo loguea `⚠️` y conserva el aviso in-app.
+- **Wiring**: `pushStore → pushService → notificationStore → notificationService(pusher: pushService)`, y `push.RegisterRoutes` antes de `notifications`.
+- **Config**: `PushConfig{ExpoURL, AccessToken}` con defaults (`exp.host`); `EXPO_*` documentadas en `.env.example`.
+- Tests: **17 nuevos** en `push`; `make check`/`test`/`build` en verde; 2 rutas responden 401 sin token y `docs/swagger.yaml` incluye ambos paths.
+
 ## Open Questions
 
 | # | Pregunta | Propuesta por defecto |

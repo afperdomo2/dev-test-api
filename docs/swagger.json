@@ -1101,6 +1101,114 @@
                 }
             }
         },
+        "/api/v1/push/tokens": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Registra o refresca el token de Expo del dispositivo. Es idempotente y reasigna el token si ya existía con otro usuario.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push"
+                ],
+                "summary": "Registrar dispositivo para push",
+                "parameters": [
+                    {
+                        "description": "Token y plataforma",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/push.RegisterTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/push/tokens/unregister": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Elimina el token si pertenece al usuario autenticado. Idempotente: si no existe o es ajeno responde removed=false sin error.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push"
+                ],
+                "summary": "Dar de baja el dispositivo",
+                "parameters": [
+                    {
+                        "description": "Token a eliminar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/push.UnregisterTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/questions": {
             "get": {
                 "security": [
@@ -3835,6 +3943,38 @@
                 },
                 "topicName": {
                     "type": "string"
+                }
+            }
+        },
+        "push.RegisterTokenRequest": {
+            "type": "object",
+            "required": [
+                "platform",
+                "token"
+            ],
+            "properties": {
+                "platform": {
+                    "type": "string",
+                    "enum": [
+                        "ios",
+                        "android"
+                    ]
+                },
+                "token": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "push.UnregisterTokenRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string",
+                    "maxLength": 255
                 }
             }
         },

@@ -349,6 +349,28 @@ definitions:
       topicName:
         type: string
     type: object
+  push.RegisterTokenRequest:
+    properties:
+      platform:
+        enum:
+        - ios
+        - android
+        type: string
+      token:
+        maxLength: 255
+        type: string
+    required:
+    - platform
+    - token
+    type: object
+  push.UnregisterTokenRequest:
+    properties:
+      token:
+        maxLength: 255
+        type: string
+    required:
+    - token
+    type: object
   questions.CategoryCount:
     properties:
       category:
@@ -1700,6 +1722,76 @@ paths:
       summary: Preguntas pendientes (con paginación)
       tags:
       - progress
+  /api/v1/push/tokens:
+    post:
+      consumes:
+      - application/json
+      description: Registra o refresca el token de Expo del dispositivo. Es idempotente
+        y reasigna el token si ya existía con otro usuario.
+      parameters:
+      - description: Token y plataforma
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/push.RegisterTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Registrar dispositivo para push
+      tags:
+      - push
+  /api/v1/push/tokens/unregister:
+    post:
+      consumes:
+      - application/json
+      description: 'Elimina el token si pertenece al usuario autenticado. Idempotente:
+        si no existe o es ajeno responde removed=false sin error.'
+      parameters:
+      - description: Token a eliminar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/push.UnregisterTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Dar de baja el dispositivo
+      tags:
+      - push
   /api/v1/questions:
     get:
       description: Lista todas las preguntas disponibles, con filtros opcionales
