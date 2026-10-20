@@ -78,15 +78,13 @@ watch(currentQuestion, () => {
   answerState.value = 'answering'
 })
 
-const isSingleChoice = computed(() => currentQuestion.value?.type === 'single_choice')
-const isMultipleChoice = computed(() => currentQuestion.value?.type === 'multiple_choice')
+const isMultiSelect = computed(() => currentQuestion.value?.type === 'multiple_choice')
 const isCodeCompletion = computed(() => currentQuestion.value?.type === 'code_completion')
 
 const canSubmit = computed(() => {
-  if (isSingleChoice.value) return selectedOptions.value.length === 1
-  if (isMultipleChoice.value) return selectedOptions.value.length > 0
   if (isCodeCompletion.value) return answerText.value.trim().length > 0
-  return false
+  if (isMultiSelect.value) return selectedOptions.value.length > 0
+  return selectedOptions.value.length === 1
 })
 
 const optionsArray = computed<Array<{ id: string; content: string }>>(() => {
@@ -96,7 +94,7 @@ const optionsArray = computed<Array<{ id: string; content: string }>>(() => {
 })
 
 function toggleOption(optionId: string) {
-  if (isSingleChoice.value) {
+  if (!isMultiSelect.value) {
     selectedOptions.value = [optionId]
     return
   }
@@ -249,7 +247,7 @@ function finishSession() {
               >
                 <template #prepend>
                   <v-checkbox
-                    v-if="isMultipleChoice"
+                    v-if="isMultiSelect"
                     :model-value="isSelected(option.id)"
                     :disabled="answerState === 'submitting' || answerState === 'result'"
                     hide-details
