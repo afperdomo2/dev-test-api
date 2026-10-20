@@ -4,6 +4,7 @@ import {
   getUpcomingReviews,
   getSavedQuestions,
   toggleSaveQuestion,
+  getTopicMastery,
 } from './progress.service'
 import apiClient from '@/api/client'
 
@@ -59,5 +60,25 @@ describe('progress.service', () => {
     const res = await toggleSaveQuestion('q1')
     expect(mockedPost).toHaveBeenCalledWith('/api/v1/progress/q1/toggle-save')
     expect(res).toEqual({ id: 'p1' })
+  })
+
+  it('getTopicMastery devuelve el array desempaquetado', async () => {
+    const items = [
+      {
+        topicId: 't1',
+        topicName: 'Go',
+        attempts: 5,
+        correctCount: 2,
+        accuracy: 0.4,
+        isWeak: true,
+      },
+    ]
+    mockedGet.mockResolvedValue({ data: items })
+
+    const res = await getTopicMastery()
+
+    expect(mockedGet).toHaveBeenCalledWith('/api/v1/progress/topics-mastery')
+    // El interceptor ya quitó el envelope { data }, así que devolvemos el array tal cual.
+    expect(res).toEqual(items)
   })
 })

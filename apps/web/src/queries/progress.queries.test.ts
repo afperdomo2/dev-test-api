@@ -5,6 +5,7 @@ import {
   savedQuestionsOptions,
   submitProgressAnswerMutation,
   toggleSaveMutation,
+  topicMasteryOptions,
 } from './progress.queries'
 import * as progressService from '@/api/services/progress.service'
 
@@ -14,6 +15,7 @@ vi.mock('@/api/services/progress.service', () => ({
   getSavedQuestions: vi.fn(),
   submitProgressAnswer: vi.fn(),
   toggleSaveQuestion: vi.fn(),
+  getTopicMastery: vi.fn(),
 }))
 
 describe('progress.queries', () => {
@@ -59,5 +61,13 @@ describe('progress.queries', () => {
     const mut = toggleSaveMutation()
     expect(mut.mutationKey).toEqual(['progress', 'toggle-save'])
     expect(mut.mutationFn).toBe(progressService.toggleSaveQuestion)
+  })
+
+  it('topicMasteryOptions', async () => {
+    vi.mocked(progressService.getTopicMastery).mockResolvedValue([] as never)
+    const opts = topicMasteryOptions()
+    expect(opts.queryKey).toEqual(['progress', 'topics-mastery'])
+    await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
+    expect(progressService.getTopicMastery).toHaveBeenCalledTimes(1)
   })
 })

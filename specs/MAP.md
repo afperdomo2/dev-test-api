@@ -8,7 +8,7 @@
 
 | Module id | Responsabilidad | Depende de | IDs originales | Estado |
 |---|---|---|---|---|
-| `review-mastery` | Dominio (accuracy) **por tema** y detección de temas débiles | `progress` (existente), `sessions` (existente) | B1.1–B1.8 | `ready` |
+| `review-mastery` | Dominio (accuracy) **por tema** y detección de temas débiles | `progress` (existente), `sessions` (existente) | B1.1–B1.8 | `done` |
 | `notifications` | Notificaciones in-app + job diario de repaso | `sessions` (due count ya existente) | B2.1–B2.9 | `ready` |
 | `insights` | Agregados de actividad (semana/mes): KPIs, temas, racha, XP | `review-mastery`, `gamification`, `sessions` | B3.1–B3.8 | `ready` |
 | `badges` | Catálogo de logros `const`, evaluados on-the-fly | `gamification`, `review-mastery`, `insights` | B4.1–B4.5 | `opt-in` |

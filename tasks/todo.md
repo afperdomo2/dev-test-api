@@ -47,10 +47,12 @@
   - Hecho: 4ª pestaña **Temas** con rama `v-else-if` **antes** de la tarjeta de preguntas (si no, caería en la rejilla paginada) · `handleRefresh` invalida también `['progress','topics-mastery']` · el componente recibe `items` + `loading` (skeleton dentro de la tarjeta) · chip "Débil" con **texto + icono** (nunca solo color) y barra con `role="progressbar"` + `aria-label`/`aria-valuenow` · sin emojis estructurales (`mdi-*`)
   - ⚠️ **Desviación del spec**: no emite `select`. `SPEC-review-mastery.md` mencionaba "emite `select`" pero no existe acción definida para un tema (no hay drill-down ni filtro). Emitir sin consumidor sería código muerto; queda para cuando exista la acción.
   - Verificado: `make fe-format` ✅ · `make fe-check` ✅ · `make fe-lint` ✅ · `make fe-test` ✅ **291 tests / 49 archivos**. La comprobación visual real (barras, chip, vacío) la cubre el test montado de RM-8 — no la sustituye una revisión a ojo.
-- [ ] **RM-8** — Tests web + checks
+- [x] **RM-8** — Tests web + checks
   - Acceptance: tests de service, query y página (render, badge Débil, vacío); los 3 checks y la suite en verde
   - Verify: `make fe-format` → `make fe-check` → `make fe-lint` → `make fe-test`
   - Files: `apps/web/src/api/services/progress.service.test.ts`, `apps/web/src/queries/progress.queries.test.ts`, test de `ProgressPage`
+  - Hecho: **+12 tests** (1 service, 1 query, **6 de componente** en `TopicMasteryList.test.ts` — nuevo, no estaba previsto — y 4 de página) → suite **303 tests / 51 archivos** · `fe-format`/`fe-check`/`fe-lint`/`fe-test` = 0 · `shared typecheck` = 0
+  - Notas de implementación: (a) el `v-card` de Vuetify pinta un **loader interno** con `role="progressbar"` sin `aria-label`, así que los tests seleccionan `[role="progressbar"][aria-label]` para no confundirlo con las barras reales; (b) los tests respetan `noUncheckedIndexedAccess` (accesos con `?.`) y la regla que prohíbe `!` (helper `tabByLabel` que lanza si no encuentra la pestaña)
 
 ---
 
