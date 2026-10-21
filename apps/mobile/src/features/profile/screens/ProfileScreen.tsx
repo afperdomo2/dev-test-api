@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import Constants from 'expo-constants'
 
 import { useAuthStore } from '@/core/auth/auth.store'
+import { unregisterFromPush } from '@/core/push/register'
 import { formatDate } from '@devtest/shared'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
@@ -23,7 +24,12 @@ export default function ProfileScreen() {
         {
           text: 'Cerrar sesion',
           style: 'destructive',
-          onPress: () => void logout(),
+          onPress: () => {
+            void (async () => {
+              await unregisterFromPush()
+              await logout()
+            })()
+          },
         },
       ],
     )

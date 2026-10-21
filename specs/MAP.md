@@ -19,7 +19,7 @@
 | `mobile-progress` | 4ª pestaña **Progreso** + pantalla de Temas | `review-mastery` ✅ | nuevo (mobile) | `done` |
 | `mobile-weekly` | "Mi semana": KPIs del periodo dentro de Progreso | `insights` ✅ | nuevo (mobile) | `done` |
 | `mobile-badges` | Logros dentro de Progreso | `badges` (backend) | nuevo (mobile) | `done` |
-| `mobile-push` | Registrar el dispositivo y recibir/abrir push | `push` | nuevo (mobile) | `ready` |
+| `mobile-push` | Registrar el dispositivo y recibir/abrir push | `push` | nuevo (mobile) | `blocked` (EAS/dev build) |
 | `mobile-offline` | Reintento con aviso al fallar el envío de una respuesta | — | nuevo (mobile) | `done` |
 
 **Build order** (olas por dependencia; lo que no bloquea va en paralelo):

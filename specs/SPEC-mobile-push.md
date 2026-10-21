@@ -142,6 +142,16 @@ Los módulos nativos se mockean (`expo-notifications`, `expo-device`, `expo-cons
 5. Tocar una notificación abre Inicio; abrir la app desde una notificación en frío también.
 6. `typecheck`, `test:run` y `lint` en verde.
 
+## Notas de implementación (2026-10-20)
+
+- **Dependencias**: `expo-notifications@~57.0.23`, `expo-device@~57.0.2` (oficiales, MIT, compatibles con SDK 57); `expo-constants` ya estaba. Gate de `.agents/mobile/dependencies.md` OK.
+- **`eas.projectId` pendiente**: no se inventa un UUID; hay que ejecutar `eas init` con una cuenta EAS. Mientras falte, `getDevicePushToken()` devuelve `null` + `console.warn` y la app funciona sin push (degradación probada en tests).
+- **Canal Android** `default` con `AndroidImportance.DEFAULT` creado antes de `getExpoPushTokenAsync`.
+- **Wiring**: `app/_layout.tsx` dispara `registerForPush()` cuando hay token (guard de sesión en el módulo, no en cada render) y configura el handler/listener; `ProfileScreen` llama `unregisterFromPush()` **antes** de borrar el token. El registro nunca lanza.
+- **Navegación**: tocar una notificación (o abrir la app desde una en frío) hace `router.push('/')`, sin deep links inventados.
+- Tests: **18 nuevos** → suite mobile **129 tests / 28 archivos**; `typecheck` + `test:run` + `lint` (0 errores) en verde.
+- ⚠️ **Pendiente manual**: `eas init` + dev build (Expo Go no soporta push remoto desde SDK 53) + envío real desde el backend. Es el único bloqueo para cerrar MPUSH-1/MPUSH-3.
+
 ## Open Questions
 
 | # | Pregunta | Propuesta por defecto |

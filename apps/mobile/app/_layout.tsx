@@ -7,6 +7,8 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 
 import { useAuthStore } from '@/core/auth/auth.store'
 import { API_BASE_URL } from '@/core/config'
+import { configureNotificationHandling } from '@/core/push/notifications'
+import { registerForPush } from '@/core/push/register'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
 void SplashScreen.preventAutoHideAsync()
@@ -22,6 +24,14 @@ function AuthGate() {
   useEffect(() => {
     void bootstrap()
   }, [bootstrap])
+
+  // Registro de push una vez por sesión autenticada (nunca bloquea el arranque).
+  useEffect(() => {
+    if (token) void registerForPush()
+  }, [token])
+
+  // Tocar una notificación (o abrir la app desde una) lleva a Inicio.
+  useEffect(() => configureNotificationHandling(() => router.push('/')), [router])
 
   useEffect(() => {
     if (!ready || needsSetup === null) return

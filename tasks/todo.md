@@ -340,18 +340,23 @@
 
 ## Módulo `mobile-push` — `specs/SPEC-mobile-push.md`
 
-- [ ] **MPUSH-1** — Dependencias + `app.json` + canal Android
+- [~] **MPUSH-1** — Dependencias + `app.json` + canal Android
   - Acceptance: `expo-notifications`, `expo-device`, `expo-constants` instalados (gate documentado); plugin en `app.json`; `extra.eas.projectId` añadido; canal `default` creado antes del token
   - Verify: `pnpm --filter mobile typecheck`; comprobar que la app arranca en dev build
   - Files: `apps/mobile/app.json`, `apps/mobile/package.json`
-- [ ] **MPUSH-2** — Módulo de push + servicio HTTP + tests
+  - Hecho: `expo-notifications@~57.0.23` + `expo-device@~57.0.2` (oficiales, MIT; `expo-constants` ya estaba) · plugin `["expo-notifications", { color: "#22C55E" }]` en `app.json` · canal Android `default` creado justo antes de pedir el token
+  - ⚠️ **Pendiente**: `extra.eas.projectId`. Requiere `eas init` con una cuenta EAS (no se inventa un UUID). Sin él, `getDevicePushToken()` devuelve `null` y avisa por consola: la app funciona sin push (degradación cubierta por tests)
+- [x] **MPUSH-2** — Módulo de push + servicio HTTP + tests
   - Acceptance: `ensurePermission`, `getDevicePushToken` (null en emulador/sin projectId), `configureNotificationHandling`; `registerForPush`/`unregisterFromPush` que **nunca lanzan**; `push.service.ts` con register/unregister
   - Verify: `pnpm --filter mobile test:run` (mocks de `expo-notifications`/`expo-device`/`expo-constants`)
   - Files: `apps/mobile/src/core/push/{notifications,register}.ts` (+ tests), `apps/mobile/src/core/api/services/push.service.ts` (+ test)
-- [ ] **MPUSH-3** — Wiring + navegación al tocar + prueba real
+  - Hecho: permisos, token con `projectId`, canal Android, handler + listener + arranque en frío · `registerForPush` con guard de sesión y errores silenciosos · `unregisterFromPush` limpia el token en memoria · **18 tests** (servicio 2, register 7, notifications 9)
+- [~] **MPUSH-3** — Wiring + navegación al tocar + prueba real
   - Acceptance: registro una vez tras el bootstrap autenticado; baja en logout; tocar una notificación (y arranque en frío) abre Inicio
   - Verify: prueba en **dev build** con un envío real desde el backend (`push`); sin permiso la app funciona igual
   - Files: bootstrap de auth, pantalla de Perfil/logout, `app/_layout.tsx`
+  - Hecho: `app/_layout.tsx` registra al aparecer el token (una vez) y configura la navegación a Inicio · `ProfileScreen` da de baja el token antes del logout · suite mobile **129 tests / 28 archivos** · `typecheck` + `lint` (0 errores) en verde
+  - ⚠️ **Pendiente**: prueba real en **dev build** (Expo Go no soporta push remoto, N-09) + `eas.projectId` de MPUSH-1
 
 ---
 
