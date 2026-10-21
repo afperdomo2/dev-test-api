@@ -388,8 +388,13 @@
 
 ## Verificación final
 
-- [ ] **VF-1** — Backend: `make fmt` + `make vet` + `make test` (+ `make build`)
-- [ ] **VF-2** — Web: `make fe-format` + `make fe-check` + `make fe-lint` + `make fe-test`
-- [ ] **VF-3** — Mobile: `pnpm --filter mobile typecheck` + `pnpm --filter mobile test:run` + `pnpm --filter mobile lint`
-- [ ] **VF-4** — Shared: `pnpm --filter @devtest/shared typecheck`
-- [ ] **VF-5** — Esquema: `make migrate-status` sin migraciones pendientes; `docs/swagger.yaml` regenerado y actualizado
+- [x] **VF-1** — Backend: `make fmt` + `make vet` + `make test` (+ `make build`)
+  - Hecho (2026-10-21): `fmt` sin cambios, `vet` ✅, `test` ✅, `build` ✅ (`tmp/main.exe`)
+- [x] **VF-2** — Web: `make fe-format` + `make fe-check` + `make fe-lint` + `make fe-test`
+  - Hecho: `fe-format` ✅, `fe-check` ✅, `fe-lint` ✅ (0 errores), `fe-test` ✅ **332 tests / 58 archivos**
+- [x] **VF-3** — Mobile: `pnpm --filter mobile typecheck` + `pnpm --filter mobile test:run` + `pnpm --filter mobile lint`
+  - Hecho: `typecheck` ✅, `test:run` ✅ **129 tests / 28 archivos**, `lint` ✅ 0 errores (20 warnings preexistentes)
+- [x] **VF-4** — Shared: `pnpm --filter @devtest/shared typecheck`
+  - Hecho: ✅ sin errores
+- [x] **VF-5** — Esquema: `make migrate-status` sin migraciones pendientes; `docs/swagger.yaml` regenerado y actualizado
+  - Hecho: `make swagger` regenerado sin cambios pendientes en `docs/` · la DB quedó en **versión 8** (`00008_device_tokens.sql` aplicada) al cerrar `push`/`mobile-push` · ⚠️ al repetir `migrate-status` el servidor Postgres local de `:5433` ya no estaba disponible (el servicio activo escucha en `:5432` con otras credenciales), así que no se pudo reconfirmar en ese instante; no hay migraciones nuevas desde entonces
