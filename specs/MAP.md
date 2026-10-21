@@ -3,6 +3,8 @@
 > **Origen**: migrado desde `ROADMAP.md` el 2026-10-17. Las **fases 0–11 ya completadas no se migran** (quedan en el historial de git). `ROADMAP.md` se elimina en el mismo commit que estos artefactos.
 >
 > **Este archivo es el índice**. No describe implementación: para eso están `specs/SPEC-<id>.md` (contrato) y `tasks/` (plan + tareas). Las decisiones transversales viven en `specs/DECISIONS.md`.
+>
+> **Iniciativa separada**: el endurecimiento de seguridad tiene su propio mapa en `specs/MAP-security.md` y sus tareas en `tasks/security-todo.md`. No forma parte de este backlog funcional.
 
 ## Módulos
 
