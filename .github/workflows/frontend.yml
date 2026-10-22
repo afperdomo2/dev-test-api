@@ -2,10 +2,10 @@ name: Frontend CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths: ["apps/web/**", "packages/shared/**", ".github/workflows/frontend.yml"]
+  # Sin `paths`: ver la nota en backend.yml.
   pull_request:
-    paths: ["apps/web/**", "packages/shared/**", ".github/workflows/frontend.yml"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,7 +27,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
 
-  build:
+  web:
     runs-on: ubuntu-latest
     defaults:
       run:

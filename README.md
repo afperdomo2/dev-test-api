@@ -255,6 +255,14 @@ Instalación: `brew install gitleaks` (macOS), `choco install gitleaks` o `scoop
 
 Política de reporte, plazos y rotación de credenciales: [`SECURITY.md`](SECURITY.md).
 
+## 🌿 Ramas y releases
+
+- **`develop`**: trabajo diario y backup (no despliega).
+- **`main`**: producción, solo por PR desde `develop` y con checks obligatorios.
+- **Release semanal**: PR `develop` → `main` el mismo día del merge, tag `vX.Y.Z` después de verificar.
+
+Detalle (hotfix, rollback, migraciones, Dokploy): [`docs/branching.md`](docs/branching.md).
+
 ## 🧪 Primer uso
 
 ```bash

@@ -27,4 +27,7 @@ paths = [
 regexes = [
   '''(?i)(cambia-esto|placeholder|dummy|changeme|your[-_]?key)''',
 ]
-stopwords = ["seedDummyHash", "ExponentPushToken"]
+# La clave PEM ficticia que aparecía como ejemplo en SPEC-secrets-hygiene.md
+# (commit fec36b7) es de juguete y no protege nada. Se permite por su cuerpo
+# exacto para no silenciar claves reales; el texto ya no se usa como canario.
+stopwords = ["seedDummyHash", "ExponentPushToken", "7bq3vXk9mQ2sT8wZ1nR4cY6uJ0pL5hG3fD2aE9sK8mV7xN1oP"]
