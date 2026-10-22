@@ -138,7 +138,18 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Secretos y material sensible (cualquier nivel)
 .env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+.npmrc
+coverage/
 
 # Node / pnpm workspace
 node_modules/

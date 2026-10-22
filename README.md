@@ -242,6 +242,19 @@ Hooks de git (`lefthook.yml`) — todos los jobs se filtran por `glob`, así que
 - **pre-commit** (rápido, solo archivos staged): `gofmt` + `go vet` + `go test` **en los paquetes Go afectados**, `shared-typecheck`, web (prettier, eslint, vue-tsc, `vitest related`) y mobile (`jest --findRelatedTests`).
 - **pre-push** (completo, solo archivos empujados): backend (fmt/vet/build/test), web (format/lint/type/test/build) y mobile (`test:run`).
 
+## 🔒 Seguridad
+
+El repo escanea secretos con [gitleaks](https://github.com/gitleaks/gitleaks) en cada PR y push a `main` (reglas en `.gitleaks.toml`). Para comprobarlo en local antes de commitear:
+
+```bash
+gitleaks detect --source . --redact   # historia completa; debe salir "no leaks found"
+gitleaks protect --staged --redact    # solo lo que vas a commitear
+```
+
+Instalación: `brew install gitleaks` (macOS), `choco install gitleaks` o `scoop install gitleaks` (Windows), o el binario de la release oficial. `.env`, `*.pem` y `*.key` ya están en `.gitignore`.
+
+Política de reporte, plazos y rotación de credenciales: [`SECURITY.md`](SECURITY.md).
+
 ## 🧪 Primer uso
 
 ```bash

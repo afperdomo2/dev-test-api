@@ -1,0 +1,30 @@
+# gitleaks — configuración del repo
+#
+# Objetivo: detectar secretos en el árbol y en la historia completa sin
+# silenciar rutas de producción. La allowlist cubre únicamente ejemplos,
+# fixtures de test, seeds y documentación generada.
+#
+# Uso local:
+#   gitleaks detect --source . --redact --no-banner
+#   gitleaks protect --staged --redact
+#
+# Ver specs/SPEC-secrets-hygiene.md.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ejemplos, tests, seeds y documentación generada"
+paths = [
+  '''\.env\.example$''',
+  '''apps/[^/]+/\.env\.example$''',
+  '''(^|/)testdata/''',
+  '''(^|/)db/seeds/''',
+  '''(^|/)docs/swagger\.(json|yaml)$''',
+  '''(^|/).*\.test\.(ts|tsx)$''',
+  '''apps/web/e2e/fixtures\.ts$''',
+]
+regexes = [
+  '''(?i)(cambia-esto|placeholder|dummy|changeme|your[-_]?key)''',
+]
+stopwords = ["seedDummyHash", "ExponentPushToken"]

@@ -44,9 +44,14 @@ Git + GitHub Actions + [gitleaks](https://github.com/gitleaks/gitleaks) v8
 # verificación local (requiere gitleaks instalado)
 gitleaks detect --source . --redact --no-banner
 
-# canario: debe fallar (exit 1) y NO debe estar dentro del repo
-printf 'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\n' > "$TMPDIR/canary.txt"
-gitleaks detect --no-git --source "$TMPDIR" --redact --no-banner
+# canario: debe fallar (exit 1) y NO debe estar dentro del repo.
+# Se usa una clave PEM ficticia: gitleaks la detecta de forma determinista.
+# (El token de documentación `AKIA…EXAMPLE` NO dispara la regla por defecto
+# de gitleaks 8.30.1, por eso no se usa como canario.)
+canary="$(mktemp -d)"
+printf -- '-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA7bq3vXk9mQ2sT8wZ1nR4cY6uJ0pL5hG3fD2aE9sK8mV7xN1oP\n-----END RSA PRIVATE KEY-----\n' > "$canary/id_rsa.txt"
+gitleaks detect --no-git --source "$canary" --config .gitleaks.toml --redact --no-banner   # exit 1
+rm -rf "$canary"
 
 # comprobación de ignores
 git check-ignore -v .env.local .env.production apps/mobile/.env.preview cert.pem server.key
@@ -61,6 +66,7 @@ act -j secrets   # opcional
 .gitignore                       # MODIFICADO: variantes de .env + material criptográfico
 .gitleaks.toml                   # NUEVO: reglas + allowlist del repo
 SECURITY.md                      # NUEVO: canal de reporte y política
+README.md                        # MODIFICADO: sección "Seguridad" con el uso local
 .github/workflows/secrets.yml    # NUEVO: job de detección en push/PR
 specs/SPEC-secrets-hygiene.md    # este archivo
 ```
@@ -176,11 +182,13 @@ Reglas:
 ### 5. Hook local (opcional, documentado)
 
 `lefthook.yml` **no** se modifica por defecto (el binario no está garantizado en
-todas las máquinas y rompería el pre-commit). Se documenta en `SECURITY.md`:
+todas las máquinas y rompería el pre-commit). El uso local se documenta en
+`README.md` → sección **Seguridad** (y `SECURITY.md` enlaza allí, para no
+duplicar los comandos):
 
 ```bash
-brew install gitleaks        # o descarga el binario
-gitleaks protect --staged --redact
+gitleaks detect --source . --redact   # historia completa
+gitleaks protect --staged --redact    # solo lo staged
 ```
 
 Si más adelante se quiere automatizar, se añade el job con `only:`/`glob:` y un
@@ -188,10 +196,28 @@ guard `command -v gitleaks || exit 0`.
 
 ### 6. Configuración de GitHub (manual, checklist)
 
-- [ ] Settings → Code security → **Secret scanning**: On
-- [ ] **Push protection**: On (bloquea el push antes de que llegue)
-- [ ] **Dependabot alerts**: On (lo consume `deps-supply-chain`)
-- [ ] Verify: `git push` de un canario en una rama desechable debe ser rechazado
+Se aplica vía API (`gh api -X PATCH repos/{owner}/{repo} -f
+"security_and_analysis[...]"`) y se verifica leyendo el mismo objeto.
+
+- [x] **Secret scanning**: On
+- [x] **Push protection**: On
+- [x] **Dependabot alerts** y **security updates**: On (los consume `deps-supply-chain`)
+- [ ] **Non-provider patterns** / **validity checks**: el PATCH responde 200 pero
+      no aplica; requieren GitHub Secret Protection (plan de pago) y no están
+      disponibles para este repo público de usuario.
+
+**Alcance real de Push Protection**
+
+GitHub bloquea por defecto solo **patrones de proveedor** con formato válido. Los
+**patrones genéricos** (claves privadas, cadenas de conexión) no se bloquean
+salvo con Secret Protection. Verificado con 4 canarios (RSA PKCS#1, EC, RSA
+PKCS#8 y una API key de Google falsa): ninguno fue bloqueado y no se crearon
+alertas.
+
+Consecuencia: el canario con clave PEM **no** es una prueba válida en este repo y
+la cobertura de genéricos queda en manos de gitleaks (CI + `protect --staged`). No
+se debe "arreglar" esto cambiando la configuración de GitHub: es una limitación
+del plan.
 
 ## Testing strategy
 
@@ -204,7 +230,8 @@ comandos y por el canario.
 | `.env.example` **no** ignorado | `git check-ignore -v .env.example` | exit 1 (no ignorado) |
 | `.env.production` ignorado | idem | imprime la regla |
 | `*.pem` / `*.key` ignorados | idem | imprime la regla |
-| Canario detectado | `gitleaks detect --no-git --source "$TMPDIR"` | exit 1 + finding `aws-access-token` |
+| Canario detectado | `gitleaks detect --no-git --source "$canary"` (clave PEM ficticia) | exit 1 + finding de clave privada |
+| Allowlist acotada | mismo secreto en `db/seeds/` (esperado 0) y en `internal/` (esperado 1) | solo se silencia el path permitido |
 | Repo limpio | `gitleaks detect --source . --redact` | exit 0 |
 | CI | PR de prueba | job `gitleaks` verde |
 
@@ -223,7 +250,7 @@ comandos y por el canario.
 1. `git add -A` sobre un árbol con `.env.local`, `cert.pem` y `server.key` no los
    stagea.
 2. `gitleaks detect` sobre el repo completo devuelve 0 halls.
-3. El canario de AWS falla con exit 1 y `--redact` (no imprime el token).
+3. El canario PEM falla con exit 1 y `--redact` (no imprime la clave).
 4. `.github/workflows/secrets.yml` corre en PR y en push a `main` con
    `permissions: contents: read` y `fetch-depth: 0`.
 5. `SECURITY.md` cubre reporte, plazos y rotación.

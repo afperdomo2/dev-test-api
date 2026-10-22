@@ -10,24 +10,30 @@
 
 ## Módulo `secrets-hygiene` — `specs/SPEC-secrets-hygiene.md`
 
-- [ ] **SH-1** — `.gitignore`: variantes de `.env` y material criptográfico
+- [x] **SH-1** — `.gitignore`: variantes de `.env` y material criptográfico
   - Acceptance: el bloque de la spec está añadido en la raíz; `.env`, `.env.local`, `.env.production`, `apps/mobile/.env.preview`, `*.pem`, `*.key`, `*.p12`, `*.jks`, `*.keystore` y `.npmrc` quedan ignorados; `.env.example` (raíz, web y mobile) **no** queda ignorado; ningún archivo ya trackeado pasa a estar ignorado
   - Verify: `git check-ignore -v .env.local .env.production apps/mobile/.env.preview cert.pem server.key` imprime reglas; `git check-ignore -v .env.example apps/web/.env.example` no imprime nada; `git status --porcelain` limpio
   - Files: `.gitignore`
+  - Hecho: bloque añadido (`.env`, `.env.*`, `!**/.env.example`, `*.pem/*.key/*.p12/*.jks/*.keystore`, `.npmrc`, `coverage/`) → `git check-ignore` confirma las 8 rutas y los `.env.example` de raíz/web/mobile siguen sin ignorar → `git ls-files -ci --exclude-standard` vacío (ningún trackeado quedó ignorado) → `git status` solo muestra `.gitignore`
 
-- [ ] **SH-2** — `.gitleaks.toml` + canario local
+- [x] **SH-2** — `.gitleaks.toml` + canario local
   - Acceptance: extiende las reglas por defecto; allowlist solo de `*.env.example`, `testdata/`, `db/seeds/`, `docs/swagger.*`, `*.test.ts(x)` y `e2e/fixtures.ts`; no hay paths de producción (`internal/`, `apps/*/src/`) silenciados
-  - Verify: `gitleaks detect --source . --redact --no-banner` → exit 0; `printf 'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\n' > "$TMPDIR/canary.txt"` + `gitleaks detect --no-git --source "$TMPDIR" --redact` → exit 1 y finding `aws-access-token` sin imprimir el token; borrar el canario
+  - Verify: `gitleaks detect --source . --redact --no-banner` → exit 0; canario con clave PEM ficticia en un directorio temporal + `gitleaks detect --no-git --source <tmp> --config .gitleaks.toml --redact` → exit 1; el mismo secreto en `db/seeds/` → exit 0 y en `internal/` → exit 1; borrar los temporales
   - Files: `.gitleaks.toml`
+  - Hecho: TOML válido (`tomllib`: `useDefault=true`, 1 allowlist, 7 paths) → `gitleaks 8.30.1` (vía `go run`) escaneó **174 commits / 4.02 MB → no leaks found** (exit 0) → canario PEM en ruta normal → `leaks found: 1` (exit 1) → control de la allowlist: PEM en `db/seeds/` → exit 0 (silenciado) y en `internal/` → exit 1 (detectado), así que la allowlist no oculta producción. ⚠️ El token `AKIA…EXAMPLE` **no** dispara la regla por defecto de gitleaks 8.30.1; la spec se corrigió para usar una clave PEM como canario
 
-- [ ] **SH-3** — Workflow `Secrets` + `SECURITY.md`
+- [x] **SH-3** — Workflow `Secrets` + `SECURITY.md`
   - Acceptance: `.github/workflows/secrets.yml` corre en push a `main` y en PR; `permissions: contents: read`; `fetch-depth: 0`; versión de gitleaks pineada con `sha256sum -c`; `SECURITY.md` con las 6 secciones de la spec (reporte, plazos, alcance, rotación, allowlist, alcance del módulo)
-  - Verify: YAML parsea (`act -l` o `yq '.' .github/workflows/secrets.yml`); `gitleaks detect` local limpio; revisión manual de `SECURITY.md` contra los 6 puntos
-  - Files: `.github/workflows/secrets.yml`, `SECURITY.md`
+  - Verify: YAML parsea (`act -l` o `npx yaml valid`); `gitleaks detect` local limpio; revisión manual de `SECURITY.md` contra los 6 puntos
+  - Files: `.github/workflows/secrets.yml`, `SECURITY.md`, `README.md`
+  - Hecho: workflow `Secrets` con `permissions: contents: read`, `fetch-depth: 0`, gitleaks **8.30.1** + `sha256sum -c` (hash verificado contra la release) y `--exit-code 1`; `npx yaml valid` exit 0; `gitleaks 8.30.1` local (binario del usuario) → **174 commits / 4.02 MB, `no leaks found` en 2.59 s** y `gitleaks protect --staged` → exit 0; `SECURITY.md` con versiones, reporte, plazos, alcance, rotación, detección, riesgos aceptados y checklist de GitHub; añadida sección corta **README → Seguridad** con los dos comandos locales (el detalle de política vive solo en `SECURITY.md`, sin duplicar). **Pendiente SH-4** (activar Secret Scanning + Push Protection en GitHub)
 
-- [ ] **SH-4** — GitHub: Secret Scanning + Push Protection (manual)
-  - Acceptance: Secret scanning y Push protection activos (Settings → Code security); un push de canario a una rama desechable es **rechazado**; el checklist firmado con fecha queda en `SECURITY.md`
-  - Verify: `git switch -c test/canary && echo 'AKIAIOSFODNN7EXAMPLE' > canary.txt && git add . && git commit -m test && git push -u origin test/canary` → rechazado por push protection; borrar rama y archivo; `git push origin --delete test/canary`
+- [x] **SH-4** — GitHub: Secret Scanning + Push Protection (manual)
+  - Acceptance: Secret scanning y Push protection activos; Dependabot alerts + security updates activos; el estado queda documentado y firmado con fecha en `SECURITY.md`
+  - Verify: leer `security_and_analysis` del repo y los endpoints `vulnerability-alerts` (204) y `automated-security-fixes` (200); intentar un canario en una rama desechable y documentar el resultado
+  - Files: `SECURITY.md`
+  - Hecho: `gh api` confirma **secret scanning**, **push protection**, **Dependabot alerts** (204) y **security updates** (200) activos; checklist de `SECURITY.md` firmado el **2026-10-21**. Canarios probados en ramas desechables (RSA PKCS#1, EC, RSA PKCS#8 y API key de Google falsa): **ninguno bloqueado** y **0 alertas**; todas las ramas y archivos eliminados
+  - ⚠️ **Desviación del spec**: el criterio "un canario debe ser rechazado" no se cumple porque GitHub solo bloquea **patrones de proveedor**; los genéricos (claves privadas, connection strings) requieren **GitHub Secret Protection** y `secret_scanning_non_provider_patterns` no es configurable por API en un repo público de usuario (PATCH 200 sin efecto). Se documentó la limitación y se aceptó que la cobertura de genéricos la da **gitleaks en CI**. Consecuencia: el workflow `secrets.yml` deja de ser "extra" y pasa a ser la barrera principal para claves privadas
   - Files: `SECURITY.md` (checklist)
 
 ---
