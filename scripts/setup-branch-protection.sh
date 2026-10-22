@@ -3,6 +3,22 @@ set -Eeuo pipefail
 
 trap 'echo "❌ Error en ${BASH_SOURCE[0]} línea $LINENO" >&2' ERR
 
+# Binario de gh. En Git Bash de Windows no siempre está en PATH; se puede
+# apuntar explícitamente con:
+#   GH_BIN="/c/Program Files/GitHub CLI/gh.exe" bash scripts/setup-branch-protection.sh
+GH_BIN="${GH_BIN:-gh}"
+
+if ! command -v "$GH_BIN" >/dev/null 2>&1; then
+  for candidate in \
+    "/c/Program Files/GitHub CLI/gh.exe" \
+    "/c/Program Files (x86)/GitHub CLI/gh.exe"; do
+    if [[ -x "$candidate" ]]; then
+      GH_BIN="$candidate"
+      break
+    fi
+  done
+fi
+
 # Aplica la protección de ramas acordada:
 #   main    → PR + checks obligatorios + lineal + sin force-push/borrado + SIN bypass
 #   develop → sin force-push ni borrado (sin PR obligatorio)
@@ -17,7 +33,7 @@ MAIN_CHECKS=("backend" "shared" "web" "gitleaks")
 
 check_dependencies() {
   local -a missing=()
-  for cmd in gh; do
+  for cmd in "$GH_BIN"; do
     command -v "$cmd" &>/dev/null || missing+=("$cmd")
   done
   if [[ ${#missing[@]} -gt 0 ]]; then
@@ -28,14 +44,14 @@ check_dependencies() {
 
 check_dependencies
 
-REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
+REPO="$("$GH_BIN" repo view --json nameWithOwner --jq '.nameWithOwner')"
 echo "🔒 Configurando protección para $REPO"
 
 delete_ruleset_if_exists() {
   local name="$1" id
-  id="$(gh api "repos/$REPO/rulesets" --jq ".[] | select(.name == \"$name\") | .id" || true)"
+  id="$("$GH_BIN" api "repos/$REPO/rulesets" --jq ".[] | select(.name == \"$name\") | .id" || true)"
   if [[ -n "$id" ]]; then
-    gh api --method DELETE "repos/$REPO/rulesets/$id" >/dev/null
+    "$GH_BIN" api --method DELETE "repos/$REPO/rulesets/$id" >/dev/null
     echo "🗑️  Ruleset '$name' anterior eliminado (id $id)"
   fi
 }
@@ -48,7 +64,7 @@ create_main_ruleset() {
     checks_json+="{\"context\":\"$check\"}"
   done
 
-  gh api --method POST "repos/$REPO/rulesets" --input - >/dev/null <<JSON
+  "$GH_BIN" api --method POST "repos/$REPO/rulesets" --input - >/dev/null <<JSON
 {
   "name": "main-protection",
   "target": "branch",
@@ -88,7 +104,7 @@ JSON
 }
 
 create_develop_ruleset() {
-  gh api --method POST "repos/$REPO/rulesets" --input - >/dev/null <<'JSON'
+  "$GH_BIN" api --method POST "repos/$REPO/rulesets" --input - >/dev/null <<'JSON'
 {
   "name": "develop-protection",
   "target": "branch",
@@ -116,4 +132,4 @@ create_develop_ruleset
 
 echo
 echo "📋 Rulesets activos:"
-gh api "repos/$REPO/rulesets" --jq '.[] | "  - \(.name) (\(.target), \(.enforcement))"'
+"$GH_BIN" api "repos/$REPO/rulesets" --jq '.[] | "  - \(.name) (\(.target), \(.enforcement))"'
