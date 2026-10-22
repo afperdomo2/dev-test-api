@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/models"
+	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,6 +16,7 @@ import (
 type mockQuestionStore struct {
 	findPageFn               func(params ListQuestionsParams) ([]models.Question, int64, error)
 	findByIDFn               func(id uuid.UUID) (*models.Question, error)
+	findVisibleByIDFn        func(id, userID uuid.UUID, isAdmin bool) (*models.Question, error)
 	createFn                 func(q *models.Question) error
 	updateFn                 func(q *models.Question) error
 	deleteFn                 func(id uuid.UUID) error
@@ -32,10 +34,16 @@ func (m *mockQuestionStore) FindPage(p ListQuestionsParams) ([]models.Question, 
 }
 func (m *mockQuestionStore) FindAll() ([]models.Question, error)             { return nil, nil }
 func (m *mockQuestionStore) FindByID(id uuid.UUID) (*models.Question, error) { return m.findByIDFn(id) }
-func (m *mockQuestionStore) Create(q *models.Question) error                 { return m.createFn(q) }
-func (m *mockQuestionStore) Update(q *models.Question) error                 { return m.updateFn(q) }
-func (m *mockQuestionStore) Delete(id uuid.UUID) error                       { return m.deleteFn(id) }
-func (m *mockQuestionStore) Unpublish(id uuid.UUID) error                    { return m.unpublishFn(id) }
+func (m *mockQuestionStore) FindVisibleByID(id, userID uuid.UUID, isAdmin bool) (*models.Question, error) {
+	if m.findVisibleByIDFn != nil {
+		return m.findVisibleByIDFn(id, userID, isAdmin)
+	}
+	return nil, gorm.ErrRecordNotFound
+}
+func (m *mockQuestionStore) Create(q *models.Question) error { return m.createFn(q) }
+func (m *mockQuestionStore) Update(q *models.Question) error { return m.updateFn(q) }
+func (m *mockQuestionStore) Delete(id uuid.UUID) error       { return m.deleteFn(id) }
+func (m *mockQuestionStore) Unpublish(id uuid.UUID) error    { return m.unpublishFn(id) }
 func (m *mockQuestionStore) AddQuestionTopics(qID uuid.UUID, tIDs []uuid.UUID) error {
 	return m.addQuestionTopicsFn(qID, tIDs)
 }
@@ -136,31 +144,65 @@ func TestQuestionList(t *testing.T) {
 
 func TestQuestionGetByID(t *testing.T) {
 	id := uuid.New()
-	t.Run("found", func(t *testing.T) {
+	userID := uuid.New()
+
+	t.Run("found y reenvía id/userID/isAdmin", func(t *testing.T) {
+		var gotID, gotUser uuid.UUID
+		var gotAdmin bool
 		store := newQuestionMock()
-		store.findByIDFn = func(uuid.UUID) (*models.Question, error) {
+		store.findVisibleByIDFn = func(i, u uuid.UUID, admin bool) (*models.Question, error) {
+			gotID, gotUser, gotAdmin = i, u, admin
 			return &models.Question{Content: "hello"}, nil
 		}
 		svc := NewService(store, newTopicMock(), newUserMock(200))
-		got, err := svc.GetByID(id)
+
+		got, err := svc.GetByID(id, userID, false)
+
 		require.NoError(t, err)
 		assert.Equal(t, "hello", got.Content)
+		assert.Equal(t, id, gotID)
+		assert.Equal(t, userID, gotUser)
+		assert.False(t, gotAdmin)
 	})
 
-	t.Run("not found", func(t *testing.T) {
+	t.Run("admin reenvía isAdmin=true", func(t *testing.T) {
+		var gotAdmin bool
 		store := newQuestionMock()
+		store.findVisibleByIDFn = func(uuid.UUID, uuid.UUID, bool) (*models.Question, error) {
+			gotAdmin = true
+			return &models.Question{Content: "admin"}, nil
+		}
 		svc := NewService(store, newTopicMock(), newUserMock(200))
-		_, err := svc.GetByID(id)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "no encontrado")
+
+		_, err := svc.GetByID(id, userID, true)
+
+		require.NoError(t, err)
+		assert.True(t, gotAdmin)
+	})
+
+	t.Run("no visible (store filtra) → 404", func(t *testing.T) {
+		store := newQuestionMock() // findVisibleByIDFn devuelve ErrRecordNotFound
+		svc := NewService(store, newTopicMock(), newUserMock(200))
+
+		_, err := svc.GetByID(id, userID, false)
+
+		var apiErr *apierr.APIError
+		require.ErrorAs(t, err, &apiErr)
+		assert.Equal(t, 404, apiErr.Status)
 	})
 
 	t.Run("internal error", func(t *testing.T) {
 		store := newQuestionMock()
-		store.findByIDFn = func(uuid.UUID) (*models.Question, error) { return nil, errors.New("db") }
+		store.findVisibleByIDFn = func(uuid.UUID, uuid.UUID, bool) (*models.Question, error) {
+			return nil, errors.New("db")
+		}
 		svc := NewService(store, newTopicMock(), newUserMock(200))
-		_, err := svc.GetByID(id)
-		require.Error(t, err)
+
+		_, err := svc.GetByID(id, userID, false)
+
+		var apiErr *apierr.APIError
+		require.ErrorAs(t, err, &apiErr)
+		assert.Equal(t, 500, apiErr.Status)
 	})
 }
 

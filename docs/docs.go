@@ -1483,7 +1483,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene una pregunta por ID con todos sus detalles (opciones, código, temas)",
+                "description": "Obtiene una pregunta por ID con todos sus detalles (opciones, código, temas). Solo devuelve preguntas visibles para el usuario: públicas, generadas por IA o propias; el admin ve todas. Si no existe o no es visible responde 404.",
                 "produces": [
                     "application/json"
                 ],
@@ -2061,7 +2061,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina una sesión sin respuestas creada en las últimas 24 horas",
+                "description": "Elimina una sesión sin respuestas creada en las últimas 24 horas. Solo el dueño puede eliminarla: si la sesión no existe o pertenece a otro usuario responde 404.",
                 "produces": [
                     "application/json"
                 ],

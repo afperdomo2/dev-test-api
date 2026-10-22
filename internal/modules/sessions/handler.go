@@ -144,7 +144,14 @@ func (h *Handler) Get(c *gin.Context) {
 		return
 	}
 
-	session, err := h.service.GetByID(id)
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	session, err := h.service.GetByID(id, userID)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
@@ -156,7 +163,7 @@ func (h *Handler) Get(c *gin.Context) {
 }
 
 // @Summary      Eliminar sesión
-// @Description  Elimina una sesión sin respuestas creada en las últimas 24 horas
+// @Description  Elimina una sesión sin respuestas creada en las últimas 24 horas. Solo el dueño puede eliminarla: si la sesión no existe o pertenece a otro usuario responde 404.
 // @Tags         sessions
 // @Security     BearerAuth
 // @Produce      json
@@ -209,7 +216,14 @@ func (h *Handler) Finish(c *gin.Context) {
 		return
 	}
 
-	session, err := h.service.Finish(id)
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	session, err := h.service.Finish(id, userID)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
@@ -239,7 +253,14 @@ func (h *Handler) NextQuestion(c *gin.Context) {
 		return
 	}
 
-	next, err := h.service.NextQuestion(id)
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	next, err := h.service.NextQuestion(id, userID)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path
@@ -311,7 +332,14 @@ func (h *Handler) Summary(c *gin.Context) {
 		return
 	}
 
-	summary, err := h.service.Summary(id)
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	summary, err := h.service.Summary(id, userID)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path

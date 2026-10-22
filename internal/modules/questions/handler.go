@@ -75,7 +75,7 @@ func (h *Handler) List(c *gin.Context) {
 }
 
 // @Summary      Obtener pregunta
-// @Description  Obtiene una pregunta por ID con todos sus detalles (opciones, código, temas)
+// @Description  Obtiene una pregunta por ID con todos sus detalles (opciones, código, temas). Solo devuelve preguntas visibles para el usuario: públicas, generadas por IA o propias; el admin ve todas. Si no existe o no es visible responde 404.
 // @Tags         questions
 // @Security     BearerAuth
 // @Produce      json
@@ -91,7 +91,14 @@ func (h *Handler) Get(c *gin.Context) {
 		return
 	}
 
-	question, err := h.service.GetByID(id)
+	isAdmin, userID, apiErr := getUserRoleAndID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	question, err := h.service.GetByID(id, userID, isAdmin)
 	if err != nil {
 		e := err.(*apierr.APIError)
 		e.Instance = c.Request.URL.Path

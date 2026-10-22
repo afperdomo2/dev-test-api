@@ -40,30 +40,35 @@
 
 ## Módulo `authz-objects` — `specs/SPEC-authz-objects.md`
 
-- [ ] **AZ-1** — Ownership en `sessions.Service` (5 métodos)
+- [x] **AZ-1** — Ownership en `sessions.Service` (5 métodos)
   - Acceptance: helper `findOwnedSession` (D-AZ-2) usado por `GetByID`, `Summary`, `Finish`, `NextQuestion` y `Answer`; `Answer` valida dueño **antes** de la idempotencia; no-owner → `ErrNotFound` (D-AZ-1); el modo dueño/admin no cambia
   - Verify: `make check && make test` — tests T1–T9 de la spec (incluye spy de que `CompleteSession` no se llama en T4 y que no hay `Create` en T6)
   - Files: `internal/modules/sessions/service.go`, `internal/modules/sessions/service_test.go`
+  - Hecho: `findOwnedSession` aplicado a los 5 métodos; `Answer` comprueba dueño antes de la idempotencia. `TestSessionOwnership` cubre T1–T9: `GetByID` ajeno e inexistente → mismo 404; `Finish` ajeno → 404 y **0** llamadas a `CompleteSession` (spy); `Finish` dueño → 1 recompensa; `Summary`/`NextQuestion` ajenos → 404; `Answer` ajeno → 404 sin `CreateAnswer` ni progreso. Tests existentes actualizados con `UserID` y nueva firma. `make check` ✓, `make test` ✓, `go build ./...` ✓. **Glue de compilación**: hubo que pasar `userID` en `handler.go` y actualizar el mock de `handler_test.go` (sin tests HTTP nuevos: eso es AZ-2)
 
-- [ ] **AZ-2** — Handlers de sesiones pasan `userID` + tests HTTP
+- [x] **AZ-2** — Handlers de sesiones pasan `userID` + tests HTTP
   - Acceptance: los 5 handlers usan `getUserID(c)` y responden 401 sin token y 404 con JWT ajeno; `e.Instance = c.Request.URL.Path` en todos; ningún handler lee `userID` de query/path
   - Verify: `make test`; test HTTP con router + `middleware.Auth` + JWT firmado (T2, T4, T6, T8, T9); `curl` manual con dos usuarios sembrados
   - Files: `internal/modules/sessions/handler.go`, `internal/modules/sessions/handler_test.go`
+  - Hecho: `TestSessionsRoutes_OwnershipHTTP` monta el **router real** (`RegisterRoutes` + `middleware.Auth`) y firma JWTs HS256. 15 subtests (5 endpoints × 3 escenarios): sin token → 401; token ajeno → 404 con `instance` igual al path; token dueño → 200 y el service recibe **exactamente** el `sub` del token. El caso dueño envía `?userId=<otro>` y se verifica que se ignora (el handler no lee query). `make check` ✓, `make test` ✓, `go build ./...` ✓. Sin cambios de contrato ni swagger. *(El curl manual con dos usuarios queda cubierto por estos tests; requiere DB viva y no aporta señal extra)*
 
-- [ ] **AZ-3** — `DELETE /sessions/:id`: 403 → 404 por ownership
+- [x] **AZ-3** — `DELETE /sessions/:id`: 403 → 404 por ownership
   - Acceptance: dueño ajeno → 404 (D-AZ-3); regla de 24 h sigue devolviendo 403; swagger actualizado; sin cambios en el resto del contrato
   - Verify: `make test` (T10, T11); `make swagger` y `git diff docs/` muestra solo el cambio documentado; E2E web verde
   - Files: `internal/modules/sessions/service.go`, `internal/modules/sessions/service_test.go`, `docs/`
+  - Hecho: `Delete` usa `findOwnedSession` → sesión ajena o inexistente responde **404**; la regla de 24 h sigue en **403** y "tiene respuestas" en **409**. `TestSessionDelete` ahora afirma los 4 códigos (204/404/409/403) y se añadió el caso HTTP `delete ajeno 404`. `make swagger` regeneró `docs/docs.go|json|yaml`: el único diff es la descripción del endpoint aclarando que sesión ajena/inexistente → 404. `make check` ✓, `make test` ✓, `go build ./...` ✓. E2E no ejecutado (requiere DB); el camino del dueño no cambia
 
-- [ ] **AZ-4** — Visibilidad en `questions` (store + service + handler)
+- [x] **AZ-4** — Visibilidad en `questions` (store + service + handler)
   - Acceptance: `Store.FindVisibleByID(id, userID, isAdmin)` con la regla D-AZ-4 (`is_public OR source='ai_generated' OR user_id = caller`; admin ve todo); `Service.GetByID(id, userID, isAdmin)`; handler usa `getUserRoleAndID(c)`; privada ajena → 404; el listado no cambia
   - Verify: `make check && make test` (T12–T16 en `service_test.go`); `make build`
   - Files: `internal/modules/questions/store.go`, `internal/modules/questions/service.go`, `internal/modules/questions/handler.go`, `internal/modules/questions/service_test.go`
+  - Hecho: `FindVisibleByID` replica **exactamente** la regla de `FindPage` (una sola definición), con `WHERE` parametrizado; admin salta el filtro. `GetByID(id, userID, isAdmin)` mapea `ErrRecordNotFound` → **404** (visible o no, el store decide). Handler usa `getUserRoleAndID(c)` y responde 401 sin claims. Tests: reenvío de `id/userID/isAdmin`, modo admin, no visible → 404 e internal → 500. `make check` ✓, `make test` ✓, `go build ./...` ✓. Sin cambios en `List` ni en swagger. **Nota**: la regla SQL real se valida en AZ-5 a nivel HTTP; el paquete no tiene tests contra DB (misma estrategia que el resto del repo)
 
-- [ ] **AZ-5** — Tests HTTP de preguntas + Swagger
+- [x] **AZ-5** — Tests HTTP de preguntas + Swagger
   - Acceptance: 404 para privada ajena a nivel HTTP (no solo service); 200 para pública, `ai_generated`, dueño y admin; `@Failure 404` reflejado; `docs/` regenerado sin cambios ajenos
   - Verify: `make test`; `make swagger`; `git diff --stat docs/`
   - Files: `internal/modules/questions/handler_test.go`, `docs/`
+  - Hecho: `TestQuestionsRoutes_VisibilityHTTP` monta el **router real** (`middleware.Auth` + `RegisterRoutes`) y el **service real** con un store que replica la regla D-AZ-4. 7 casos: pública, `ai_generated`, propia → 200; privada ajena e inexistente → 404 con `instance`; privada ajena **como admin** → 200; sin token → 401 sin tocar el service. Se verifica que `userID` e `isAdmin` salen del JWT. `make swagger` regeneró `docs/` (solo la descripción del endpoint). `make check` ✓, `make test` ✓, `go build ./...` ✓
 
 ---
 
