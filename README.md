@@ -89,11 +89,16 @@ cp .env.example .env
 | `DB_HOST` | `localhost` | Host de PostgreSQL |
 | `DB_PORT` | `5432` | Puerto de PostgreSQL |
 | `DB_USER` | `postgres` | Usuario de la DB |
-| `DB_PASSWORD` | `secret` | Contraseña de la DB |
+| `DB_PASSWORD` | — | Contraseña de la DB (obligatoria) |
 | `DB_NAME` | `dev_test_api` | Nombre de la base de datos |
 | `DB_SSL_MODE` | `disable` | SSL mode |
-| `JWT_SECRET` | — | Secreto para firmar JWTs |
+| `JWT_SECRET` | — | Secreto para firmar JWTs (obligatorio) |
 | `JWT_EXPIRY_HOURS` | `24` | Expiración del token |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Orígenes permitidos, separados por coma |
+| `MAX_BODY_BYTES` | `1048576` | Límite del body JSON (1 MiB) |
+| `TRUSTED_PROXIES` | — | IPs/CIDR del reverse proxy; vacío = no confiar en `X-Forwarded-For` |
+| `HSTS_ENABLED` | `true` | Emitir `Strict-Transport-Security` (solo si el borde sirve HTTPS) |
+| `SWAGGER_ENABLED` | — | Swagger UI; vacío = on en debug, off en release |
 
 ## 🛠️ Scripts (Makefile)
 

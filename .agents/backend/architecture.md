@@ -10,7 +10,7 @@
 | `main.go` | Server entrypoint (config.Load + db.Connect + server.Run) | Rarely |
 | `internal/config/config.go` | Env var loading | Rarely — add new env vars only |
 | `internal/database/database.go` | GORM connection + goose migrations + seed | Rarely |
-| `internal/middleware/` | Cross-cutting: JWT auth, logging | Rarely |
+| `internal/middleware/` | Cross-cutting: JWT auth, security headers, body limit, rate limit, logging | Rarely — solo lo transversal |
 | `pkg/` | Shared utilities: response, apierr | Rarely |
 | `docs/` | Swagger auto-generated | **NEVER** — use `make swagger` |
 | `tmp/` | Air build output | **NEVER** |
@@ -99,6 +99,42 @@ xmod.RegisterRoutes(protected, xHandler)
 ```
 
 Always create stores first, then services, then handlers. Modules that depend on other modules pass the interface (e.g., `auth.NewService(userStore, ...)`).
+
+## HTTP hardening & security
+
+### Middleware chain (order matters)
+
+`server.Run()` registra, en este orden:
+
+1. `middleware.SecurityHeaders(cfg.HSTSEnabled)` — cabeceras en **todas** las respuestas.
+2. `middleware.Logger()` — log de acceso.
+3. `middleware.BodyLimit(cfg.MaxBodyBytes)` — `http.MaxBytesReader` global (1 MiB por defecto).
+4. `middleware.CORS(cfg.Cors.AllowedOrigins)` — allowlist exacta.
+5. Rate limit **solo** en `/auth/setup` y `/auth/login` (auth hardening).
+
+`SecurityHeaders` y `BodyLimit` van **antes** de CORS y de las rutas: cualquier
+endpoint nuevo hereda ambos. `BodyLimit` acota la memoria; un handler que necesite
+más (p. ej. import) usa su propio tope explícito y responde **413** con
+`apierr.ErrPayloadTooLarge`.
+
+### Server (`http.Server`)
+
+| Ajuste | Valor |
+|---|---|
+| `ReadHeaderTimeout` / `ReadTimeout` | 5 s / 30 s |
+| `WriteTimeout` / `IdleTimeout` | 60 s / 120 s |
+| `MaxHeaderBytes` | 1 MiB |
+| Proxies | `SetTrustedProxies(nil)` si `TRUSTED_PROXIES` está vacío; `Fatal` si es inválida |
+| Swagger | solo si `SWAGGER_ENABLED` (default: `false` en release) |
+
+Variables: `MAX_BODY_BYTES`, `TRUSTED_PROXIES`, `HSTS_ENABLED`, `SWAGGER_ENABLED`
+(ver `.env.example`).
+
+### Object-level authorization
+
+Toda operación por ID comprueba el dueño **en el service** y devuelve **404** si no
+existe o es de otro usuario. Reglas y excepciones: `.agents/backend/responses.md`
+→ "Object-level authorization" + D-37 en `specs/DECISIONS.md`.
 
 ## Goose migrations
 

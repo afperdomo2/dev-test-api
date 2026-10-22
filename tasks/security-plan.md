@@ -99,6 +99,12 @@ comparten archivos con `auth-hardening` salvo `package.json`/lock
    acoplado del mismo módulo.
 5. No mezclar módulos en un mismo commit salvo que compartan archivo
    (`server.go`, `package.json`).
+6. **Doc sync**: si el cambio consolida una convención, contrato, comando o
+   variable, actualizar su fuente de verdad (`.agents/`, `specs/DECISIONS.md`,
+   `README.md`) y la referencia en `AGENTS.md`. Una tarea no está terminada si la
+   documentación quedó con el estado anterior.
+7. Antes de proponer trabajo nuevo, comprobar `specs/`, `tasks/` y `git log`: si
+   ya está hecho o decidido, no se rehace.
 
 ## 7. Mapeo spec → tareas
 

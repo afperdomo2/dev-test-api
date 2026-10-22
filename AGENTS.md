@@ -8,6 +8,23 @@ Fullstack monorepo: **Go + Gin** REST API + **Vue 3 + Vite + Vuetify** web SPA +
 
 Cada ecosystem tiene su propio `AGENTS.md` rápido (`apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md`) y archivos detallados en `.agents/<ecosystem>/`.
 
+## Rule: doc sync (el cambio no termina hasta documentarlo)
+
+Antes de proponer o cerrar un cambio:
+
+1. **Busca si ya existe**: `specs/`, `tasks/`, `.agents/` y `git log` son el
+   histórico. Si una tarea o spec ya lo cubre, no lo rehagas: actualízala o
+   continúa desde ahí.
+2. **Actualiza la fuente de verdad**: convención o contrato nuevo →
+   `.agents/<ecosystem>/`; decisión → `specs/DECISIONS.md`; alcance → spec +
+   tasks (`[x]` + línea `Hecho:`).
+3. **Actualiza el índice**: `AGENTS.md` (o el de la app) solo si cambia una regla
+   que el agente deba aplicar; `README.md` si cambian comandos o variables.
+4. **Nunca dupliques**: `AGENTS.md` referencia, `.agents/` detalla.
+
+Si el código cambia una convención y la doc no, el siguiente agente decide con
+contexto viejo: rehará trabajo o romperá algo que ya estaba resuelto.
+
 ## Commands
 
 ### Backend (root)
@@ -75,6 +92,7 @@ Always run `make fe-format`, `make fe-check` and `make fe-lint` after any web ch
 - **NEVER create commits, push or open/merge PRs** — son manuales. Solo stage, diff y sugiere los comandos.
 - **Secrets** — never hardcode keys, passwords, or tokens. Use `.env` for Go, `VITE_*` env vars for web. Never commit `.env`.
 - **Ramas** — trabajar en `develop`; `main` solo por PR desde `develop` (checks obligatorios, sin bypass). Flujo, release semanal, hotfix y rollback: `docs/branching.md`.
+- **Seguridad (convenciones)** — autorización por objeto en el **service** → **404** (nunca 403 para ocultar existencia); payload grande → **413** con `ErrPayloadTooLarge`; orden de middlewares y timeouts en `.agents/backend/architecture.md`; contrato de errores en `.agents/backend/responses.md`.
 - **`internal/` is Go-private** — the compiler blocks external imports.
 - **DB schema is goose-migrated** — `internal/database/migrations/*.sql` is the source of truth (base `00001_init.sql`); migrations run on server start (embedded) and via `make migrate-*`. **Any schema/DDL change = new migration file**, never AutoMigrate. `goose` is a Go tool (`go tool goose`).
 - **`tmp/` is auto-generated and gitignored; `docs/` is auto-generated but IS versioned** — never edit either manually (`make swagger` regenera `docs/swagger.yaml|json|docs.go`).
@@ -218,6 +236,7 @@ Each fact has a **single source of truth**. Other files reference it, not duplic
 | Sync rules (backend ↔ shared ↔ apps) | `.agents/shared/architecture.md` ("Sync" section) | this file |
 | Directory structure | `README.md` (root) | this file (light reference) |
 | Ramas, releases y hotfix | `docs/branching.md` | `README.md`, this file |
+| Convenciones de seguridad (authz 404, 413, middleware/timeouts) | `.agents/backend/architecture.md` + `.agents/backend/responses.md` | this file |
 | Commands | `Makefile` + `package.json` scripts | README.md, this file |
 | Dependency safety | per-ecosystem: `.agents/{backend,web,mobile}/dependencies.md` | this file |
 | Data model (backend) | `.agents/backend/data-model.md` | `.agents/backend/architecture.md`, this file |

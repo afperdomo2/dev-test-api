@@ -5,6 +5,7 @@
 > **Leyenda**: `[ ]` pendiente → `[~]` en progreso → `[x]` hecha → `[-]` descartada (con motivo).
 > **Commits**: manuales, uno por tarea o por grupo acoplado del mismo módulo.
 > **Regla**: al terminar, añadir una línea `Hecho:` con lo verificado (como en `tasks/todo.md`).
+> **Doc sync**: si la tarea consolida una convención/contrato/variable, actualizar su fuente de verdad (`.agents/`, `specs/DECISIONS.md`, `README.md`) y la referencia en `AGENTS.md` en el mismo cambio.
 
 ---
 
@@ -207,6 +208,14 @@
   - Files: — (verificación)
 
 ---
+
+## Sincronización de documentación
+
+- [x] **DOC-1** — Sincronizar convenciones de seguridad en `.agents/` + AGENTS/README
+  - Acceptance: `responses.md` documenta 413 y la regla 404 por ownership; `architecture.md` documenta la cadena de middlewares, timeouts, proxies y gate de Swagger; `AGENTS.md` referencia sin duplicar; `README.md` lista las variables nuevas; el proceso de doc sync queda escrito en AGENTS y en el plan
+  - Verify: revisión de los 5 documentos; `git diff --stat`
+  - Files: `.agents/backend/responses.md`, `.agents/backend/architecture.md`, `AGENTS.md`, `README.md`, `tasks/security-plan.md`, `tasks/security-todo.md`
+  - Hecho: `responses.md` añade `ErrPayloadTooLarge` (413) y la sección "Object-level authorization (404, no 403)" con la excepción de política; `architecture.md` documenta la cadena `SecurityHeaders → Logger → BodyLimit → CORS`, timeouts 5/30/60/120 s, `MaxHeaderBytes`, `TRUSTED_PROXIES`, gate de Swagger y la regla de ownership; `AGENTS.md` gana la regla **doc sync**, una línea de convenciones de seguridad y la fila del Documentation map; `README.md` lista `CORS_*` y las 4 variables de hardening (y corrige el default de `DB_PASSWORD`); el plan y el encabezado de este archivo incorporan el doc sync como regla de ejecución
 
 ## Orden recomendado de ejecución
 
