@@ -1,0 +1,4 @@
+# Los scripts de shell deben quedarse en LF aunque el repo se clone en Windows
+# (core.autocrlf=true los convertiría a CRLF y rompería `set -o pipefail`).
+*.sh text eol=lf
+*.bash text eol=lf
