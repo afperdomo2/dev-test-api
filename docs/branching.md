@@ -119,3 +119,21 @@ SemVer: `vMAJOR.MINOR.PATCH`.
 - Auto-deploy activado en cada push a `main`.
 - Healthcheck: `GET /health`.
 - Las migraciones goose corren al arrancar el contenedor.
+
+## Protección de ramas
+
+`scripts/setup-branch-protection.sh` aplica (o reaplica) las reglas de esta
+página. Es idempotente y requiere `gh` autenticado con permiso de administración.
+
+```bash
+# Linux / macOS / WSL con gh instalado
+bash scripts/setup-branch-protection.sh
+```
+
+En **Windows** hay que ejecutarlo con **Git Bash**
+(`C:\Program Files\Git\bin\bash.exe`), no con el `bash` de WSL: `gh` está
+instalado en Windows y WSL no lo ve. Si no lo encuentra:
+
+```bash
+GH_BIN="/c/Program Files/GitHub CLI/gh.exe" bash scripts/setup-branch-protection.sh
+```
