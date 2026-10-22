@@ -45,11 +45,11 @@ Git + GitHub Actions + [gitleaks](https://github.com/gitleaks/gitleaks) v8
 gitleaks detect --source . --redact --no-banner
 
 # canario: debe fallar (exit 1) y NO debe estar dentro del repo.
-# Se usa una clave PEM ficticia: gitleaks la detecta de forma determinista.
+# La clave se genera en runtime para no dejar material tipo PEM en el repo.
 # (El token de documentación `AKIA…EXAMPLE` NO dispara la regla por defecto
 # de gitleaks 8.30.1, por eso no se usa como canario.)
 canary="$(mktemp -d)"
-printf -- '-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA7bq3vXk9mQ2sT8wZ1nR4cY6uJ0pL5hG3fD2aE9sK8mV7xN1oP\n-----END RSA PRIVATE KEY-----\n' > "$canary/id_rsa.txt"
+node -e "const c=require('crypto');require('fs').writeFileSync(process.argv[1],c.generateKeyPairSync('rsa',{modulusLength:2048,privateKeyEncoding:{type:'pkcs1',format:'pem'},publicKeyEncoding:{type:'spki',format:'pem'}}).privateKey)" "$canary/id_rsa.txt"
 gitleaks detect --no-git --source "$canary" --config .gitleaks.toml --redact --no-banner   # exit 1
 rm -rf "$canary"
 
