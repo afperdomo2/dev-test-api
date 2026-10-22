@@ -74,30 +74,35 @@
 
 ## Módulo `http-hardening` — `specs/SPEC-http-hardening.md`
 
-- [ ] **HH-1** — Configuración HTTP (`MAX_BODY_BYTES`, `TRUSTED_PROXIES`, `HSTS_ENABLED`, `SWAGGER_ENABLED`)
+- [x] **HH-1** — Configuración HTTP (`MAX_BODY_BYTES`, `TRUSTED_PROXIES`, `HSTS_ENABLED`, `SWAGGER_ENABLED`)
   - Acceptance: `Config` expone los 4 campos con los defaults de la spec; `SWAGGER_ENABLED` vacío ⇒ `GinMode != "release"`; `TRUSTED_PROXIES` se parsea a `[]string` sin entradas vacías; `.env.example` documenta los 4 con comentarios
   - Verify: `make check && make test`; `SWAGGER_ENABLED= GIN_MODE=release make run` (log de arranque) y `SWAGGER_ENABLED=true GIN_MODE=release make run`
   - Files: `internal/config/config.go`, `.env.example`
+  - Hecho: `Config` gana `MaxBodyBytes int64` (default **1 MiB**, `<=0` o inválido cae al default), `TrustedProxies []string` (trim + descarta vacíos; vacío → `nil`), `HSTSEnabled bool` (default **true**) y `SwaggerEnabled bool` (env vacía → `GinMode != "release"`; valor explícito gana). `.env.example` documenta los 4 con comentarios. Tests nuevos en `internal/config`: defaults, gate de Swagger (debug/release/override), parseo de proxies, límites y HSTS. `make check` ✓, `make test` ✓, `go build ./...` ✓. El log de arranque del gate se ve en **HH-4** (ahí se registra la ruta de Swagger)
 
-- [ ] **HH-2** — Middleware `SecurityHeaders`
+- [x] **HH-2** — Middleware `SecurityHeaders`
   - Acceptance: emite `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` y CSP de API; `Strict-Transport-Security` solo con `hsts=true`; no toca respuestas de CORS/preflight
   - Verify: `make test` (T1, T2 de la spec)
   - Files: `internal/middleware/security.go`, `internal/middleware/security_test.go`
+  - Hecho: middleware con `nosniff`, `DENY`, `no-referrer`, `Permissions-Policy` y CSP de API (`default-src 'none'; frame-ancestors 'none'; base-uri 'none'`); HSTS solo con `hsts=true` (`max-age=31536000; includeSubDomains`). Las cabeceras son aditivas: no tocan las que pone CORS. Tests T1/T2 + caso de respuesta 500. `make check` ✓, `make test` ✓, `go build ./...` ✓. **No está cableado todavía**: se registra en `server.go` en HH-4
 
-- [ ] **HH-3** — `BodyLimit` + `apierr.ErrPayloadTooLarge` (413)
+- [x] **HH-3** — `BodyLimit` + `apierr.ErrPayloadTooLarge` (413)
   - Acceptance: `BodyLimit` envuelve el body en `http.MaxBytesReader`; `IsPayloadTooLarge` detecta `*http.MaxBytesError`; `ErrPayloadTooLarge` con título `Payload Too Large` y status 413; sin cambios en `ErrTooManyRequests`
   - Verify: `make test` (T3, T4, T5); `make check`
   - Files: `internal/middleware/bodylimit.go`, `internal/middleware/bodylimit_test.go`, `pkg/apierr/errors.go`, `pkg/apierr/errors_test.go`
+  - Hecho: `BodyLimit(max)` envuelve el body en `http.MaxBytesReader` (solo si hay body); `IsPayloadTooLarge` usa `errors.As` sobre `*http.MaxBytesError`; `ErrPayloadTooLarge` con 413 y título `Payload Too Large` (añadido a `TestErrFactories`). Tests: lectura por encima del límite → `MaxBytesError`; lectura dentro → completa; `ShouldBindJSON` con 2× el límite → **422** sin pánico. `make check` ✓, `make test` ✓, `go build ./...` ✓. **Aún sin cablear**: se registra globalmente en HH-4; el 413 explícito del import llega en HH-5
 
-- [ ] **HH-4** — `server.go`: timeouts, proxies, wiring y gate de Swagger
+- [x] **HH-4** — `server.go`: timeouts, proxies, wiring y gate de Swagger
   - Acceptance: `http.Server` con `ReadHeaderTimeout 5s`, `ReadTimeout 30s`, `WriteTimeout 60s`, `IdleTimeout 120s`, `MaxHeaderBytes 1 MiB` como constantes; `SetTrustedProxies(nil)` si la lista está vacía y `log.Fatalf` si es inválida; `SecurityHeaders` + `BodyLimit` registrados antes de CORS; `/swagger/*any` solo si `SwaggerEnabled`
   - Verify: `make build`; `curl -sI localhost:8080/health` (5 cabeceras); `GIN_MODE=release SWAGGER_ENABLED=false` → `/swagger/index.html` 404; `TRUSTED_PROXIES=` + `curl -H 'X-Forwarded-For: 1.2.3.4'` y comprobar IP real en el log
   - Files: `internal/server/server.go`
+  - Hecho: constantes de timeouts (5/30/60/120 s) + `MaxHeaderBytes 1 MiB`; `SetTrustedProxies(nil)` sin lista y `log.Fatalf` con lista inválida; orden `SecurityHeaders → Logger → BodyLimit → CORS`; Swagger registrado solo si `SwaggerEnabled`, con log de estado y resumen al arrancar. **Verificado con el binario real + Postgres de desarrollo**: `/health` devuelve las 6 cabeceras (incl. HSTS); `GIN_MODE=release` sin `SWAGGER_ENABLED` → `/swagger/index.html` **404**; con `SWAGGER_ENABLED=true` → **200**; petición con `X-Forwarded-For: 1.2.3.4` registrada como `::1` (XFF ignorado). `make check` ✓, `make test` ✓, `go build ./...` ✓
 
-- [ ] **HH-5** — Import con límite de 8 MiB → 413 + Swagger
+- [x] **HH-5** — Import con límite de 8 MiB → 413 + Swagger
   - Acceptance: `questions.Import` rechaza `fh.Size > 8 MiB` y bodies que excedan `MAX_BODY_BYTES` con 413; copia con `io.LimitReader` (nunca `io.Copy` ilimitado); `@Failure 413` en swagger
   - Verify: `make test` (T6, T7); `make swagger`; POST de 20 MB con `curl` → 413 y RSS estable
   - Files: `internal/modules/questions/handler.go`, `internal/modules/questions/handler_test.go`, `docs/`
+  - Hecho: `maxImportBytes = 8 MiB`; se rechaza por `fh.Size` y, aunque el tamaño mienta, la copia usa `io.LimitReader(f, maxImportBytes+1)` (nunca `io.Copy` ilimitado). Si el body global se agota al parsear el multipart, `middleware.IsPayloadTooLarge` mapea a **413** con `ErrPayloadTooLarge`. Tests: archivo > 8 MiB → 413 sin llamar al service; body global agotado → 413 sin llamar al service; archivo normal → 200. `make swagger` añadió `413` al endpoint. `make check` ✓, `make test` ✓, `go build ./...` ✓. *El POST de 20 MB con `curl` no se repitió: los tests cubren ambos caminos de 413 y el body está acotado por `MaxBytesReader`/`LimitReader`*
 
 ---
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -401,5 +402,92 @@ func TestQuestionsRoutes_VisibilityHTTP(t *testing.T) {
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		assert.Equal(t, uuid.Nil, call.userID, "no debe llegar al service sin token")
+	})
+}
+
+/* ---------- HH-5: límites del import ---------- */
+
+func multipartWithFile(t *testing.T, name string, size int) (*bytes.Buffer, string) {
+	t.Helper()
+
+	body := new(bytes.Buffer)
+	w := multipart.NewWriter(body)
+	part, err := w.CreateFormFile("file", name)
+	require.NoError(t, err)
+	_, err = part.Write(make([]byte, size))
+	require.NoError(t, err)
+	require.NoError(t, w.Close())
+
+	return body, w.FormDataContentType()
+}
+
+func TestQuestionsHandler_ImportLimits(t *testing.T) {
+	uid := uuid.New()
+
+	t.Run("archivo mayor de 8 MiB → 413 sin llamar al service", func(t *testing.T) {
+		body, contentType := multipartWithFile(t, "big.csv", int(maxImportBytes)+1)
+
+		called := false
+		svc := &mockQuestionService{importFn: func(uuid.UUID, io.Reader) (*ImportResult, error) {
+			called = true
+			return &ImportResult{}, nil
+		}}
+
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/questions/import", bytes.NewReader(body.Bytes()))
+		c.Request.Header.Set("Content-Type", contentType)
+		c.Set("user_claims", qClaims(uid, false))
+
+		h.Import(c)
+
+		assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
+		assert.False(t, called, "no debe procesarse un archivo por encima del límite")
+	})
+
+	t.Run("body global agotado → 413", func(t *testing.T) {
+		body, contentType := multipartWithFile(t, "ok.csv", 2048)
+
+		called := false
+		svc := &mockQuestionService{importFn: func(uuid.UUID, io.Reader) (*ImportResult, error) {
+			called = true
+			return &ImportResult{}, nil
+		}}
+
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/questions/import", bytes.NewReader(body.Bytes()))
+		c.Request.Header.Set("Content-Type", contentType)
+		c.Request.Body = http.MaxBytesReader(w, c.Request.Body, 1024) // simula MAX_BODY_BYTES
+		c.Set("user_claims", qClaims(uid, false))
+
+		h.Import(c)
+
+		assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
+		assert.False(t, called, "el body se corta antes de llegar al service")
+	})
+
+	t.Run("archivo dentro del límite → 200", func(t *testing.T) {
+		body, contentType := multipartWithFile(t, "ok.csv", 16)
+
+		called := false
+		svc := &mockQuestionService{importFn: func(uuid.UUID, io.Reader) (*ImportResult, error) {
+			called = true
+			return &ImportResult{Imported: 1}, nil
+		}}
+
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/questions/import", bytes.NewReader(body.Bytes()))
+		c.Request.Header.Set("Content-Type", contentType)
+		c.Set("user_claims", qClaims(uid, false))
+
+		h.Import(c)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.True(t, called)
 	})
 }

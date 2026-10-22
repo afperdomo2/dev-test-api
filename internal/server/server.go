@@ -36,6 +36,14 @@ import (
 )
 
 func Run(cfg *config.Config, db *gorm.DB) {
+	const (
+		readHeaderTimeout = 5 * time.Second
+		readTimeout       = 30 * time.Second
+		writeTimeout      = 60 * time.Second
+		idleTimeout       = 120 * time.Second
+		maxHeaderBytes    = 1 << 20 // 1 MiB
+	)
+
 	topicStore := topics.NewStore(db)
 	topicService := topics.NewService(topicStore)
 	topicHandler := topics.NewHandler(topicService)
@@ -118,11 +126,31 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	opencodeHandler := opencodeModule.NewHandler(opencodeSvc)
 
 	r := gin.Default()
+
+	// Si no hay proxies configurados no se confía en X-Forwarded-For: así
+	// ClientIP() no se puede falsear. Con lista inválida, mejor no arrancar.
+	if len(cfg.TrustedProxies) == 0 {
+		if err := r.SetTrustedProxies(nil); err != nil {
+			log.Printf("⚠️ No se pudo desactivar la confianza en proxies: %v", err)
+		}
+	} else if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		log.Fatalf("❌ TRUSTED_PROXIES inválido: %v", err)
+	}
+
+	r.Use(middleware.SecurityHeaders(cfg.HSTSEnabled))
 	r.Use(middleware.Logger())
+	r.Use(middleware.BodyLimit(cfg.MaxBodyBytes))
 	r.Use(middleware.CORS(cfg.Cors.AllowedOrigins))
 
+	log.Printf("🛡️ HTTP hardening: body≤%d B, proxies=%d, hsts=%t, swagger=%t",
+		cfg.MaxBodyBytes, len(cfg.TrustedProxies), cfg.HSTSEnabled, cfg.SwaggerEnabled)
+
 	r.GET("/health", healthCheck)
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	if cfg.SwaggerEnabled {
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	} else {
+		log.Println("🔒 Swagger deshabilitado (SWAGGER_ENABLED=false)")
+	}
 
 	api := r.Group("/api/v1")
 
@@ -156,8 +184,13 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	}
 
 	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: r,
+		Addr:              ":" + cfg.Port,
+		Handler:           r,
+		ReadHeaderTimeout: readHeaderTimeout,
+		ReadTimeout:       readTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       idleTimeout,
+		MaxHeaderBytes:    maxHeaderBytes,
 	}
 
 	quit := make(chan os.Signal, 1)

@@ -7,12 +7,16 @@ import (
 	"strings"
 
 	"github.com/felipe/dev-test-api/internal/common"
+	"github.com/felipe/dev-test-api/internal/middleware"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/felipe/dev-test-api/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
+
+// maxImportBytes es el tope del archivo CSV pegado o subido (8 MiB).
+const maxImportBytes int64 = 8 << 20
 
 type Handler struct {
 	service Service
@@ -242,6 +246,7 @@ func (h *Handler) Delete(c *gin.Context) {
 // @Success      200  {object}  ImportResult
 // @Failure      401  {object}  apierr.APIError
 // @Failure      403  {object}  apierr.APIError
+// @Failure      413  {object}  apierr.APIError
 // @Failure      422  {object}  apierr.APIError
 // @Failure      429  {object}  apierr.APIError
 // @Router       /api/v1/questions/import [post]
@@ -255,19 +260,39 @@ func (h *Handler) Import(c *gin.Context) {
 
 	var reader io.Reader
 
-	if fh, err := c.FormFile("file"); err == nil {
-		f, err2 := fh.Open()
-		if err2 != nil {
+	fh, fileErr := c.FormFile("file")
+	switch {
+	case fileErr == nil:
+		if fh.Size > maxImportBytes {
+			response.Problem(c, apierr.ErrPayloadTooLarge(
+				"El archivo supera el máximo de 8 MiB", c.Request.URL.Path))
+			return
+		}
+
+		f, err := fh.Open()
+		if err != nil {
 			response.ValidationError(c, "No se pudo leer el archivo", c.Request.URL.Path)
 			return
 		}
 		defer f.Close()
+
 		buf := new(bytes.Buffer)
-		if _, err2 := io.Copy(buf, f); err2 != nil {
-			response.ValidationError(c, "No se pudo leer el archivo", c.Request.URL.Path)
+		buf.Grow(int(fh.Size))
+		// Nunca io.Copy ilimitado: aunque fh.Size mienta o el body venga
+		// troceado, se lee como mucho maxImportBytes+1.
+		n, err := io.Copy(buf, io.LimitReader(f, maxImportBytes+1))
+		if err != nil || n > maxImportBytes {
+			response.Problem(c, apierr.ErrPayloadTooLarge(
+				"El archivo supera el máximo de 8 MiB", c.Request.URL.Path))
 			return
 		}
 		reader = buf
+
+	case middleware.IsPayloadTooLarge(fileErr):
+		// El body global (MAX_BODY_BYTES) se agotó al parsear el multipart.
+		response.Problem(c, apierr.ErrPayloadTooLarge(
+			"Request demasiado grande", c.Request.URL.Path))
+		return
 	}
 
 	if reader == nil {

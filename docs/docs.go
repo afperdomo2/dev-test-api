@@ -1399,6 +1399,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/apierr.APIError"
                         }
                     },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {

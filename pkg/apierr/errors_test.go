@@ -36,6 +36,7 @@ func TestErrFactories(t *testing.T) {
 		{"forbidden", func() *APIError { return ErrForbidden("denied", "/f") }, http.StatusForbidden, "Forbidden"},
 		{"unauthorized", func() *APIError { return ErrUnauthorized("nope", "/a") }, http.StatusUnauthorized, "Unauthorized"},
 		{"internal", func() *APIError { return ErrInternal("oops", "/i") }, http.StatusInternalServerError, "Internal Server Error"},
+		{"payload_too_large", func() *APIError { return ErrPayloadTooLarge("big", "/p") }, http.StatusRequestEntityTooLarge, "Payload Too Large"},
 	}
 
 	for _, tt := range tests {
