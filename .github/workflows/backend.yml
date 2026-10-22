@@ -2,17 +2,18 @@ name: Backend CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths: ["**.go", "go.mod", "go.sum", ".github/workflows/backend.yml"]
+  # Sin `paths`: un PR que solo toca docs también debe reportar este check
+  # obligatorio (si no, la rama queda "Expected" y no se puede mergear).
   pull_request:
-    paths: ["**.go", "go.mod", "go.sum", ".github/workflows/backend.yml"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  backend:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,3 +32,6 @@ jobs:
 
       - name: Build
         run: go build ./...
+
+      - name: Test
+        run: go test -short -count=1 ./...
