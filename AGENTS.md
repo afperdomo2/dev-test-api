@@ -143,8 +143,10 @@ suite is a close/CI check, not something to run after every edit.
 - **`tmp/` is auto-generated and gitignored; `docs/` is auto-generated but IS versioned** — never edit either manually (`make swagger` regenera `docs/swagger.yaml|json|docs.go`).
 - **Air** and **Lefthook** are Go project tools in `go.mod` — invoke via `go tool air`, `go tool lefthook`, or their `make` targets.
 - **Git hooks** (lefthook, `lefthook.yml`) — todos los jobs se filtran por `glob`, así que un cambio de docs/markdown no dispara nada:
-  - **pre-commit** (rápido, sobre los archivos staged): `gofmt` + `go vet` + `go test -short` **solo en los paquetes Go afectados**; `shared-typecheck`; web (`prettier --write`, `eslint`, `vue-tsc`, `vitest related`); mobile (`jest --findRelatedTests`).
-  - **pre-push** (completo, sobre los archivos empujados): gofmt check + `go vet ./...` + `go build ./...` + `go test -short ./...`; web (format-check, lint, type-check, `test:run`, build); mobile (`test:run`).
+  - **pre-commit** (rápido, sobre los archivos staged): `gofmt` + `go vet` + `go test -short` **solo en los paquetes Go afectados**; `shared-typecheck`; web (`prettier --write`, `eslint`, `vue-tsc`, `vitest related`); mobile (`tsc`, `eslint`, `jest --findRelatedTests`).
+  - **pre-push** (completo, sobre los archivos empujados): 3 **grupos** en paralelo — backend (fmt check + build + `go test -short`, en serie), web (format-check con `--cache`, `test:run` con 6 workers) y mobile (typecheck, `test:run`) —. Los jobs de cada grupo corren en serie para no saturar los 8 vCPU: antes 13 jobs a la vez provocaban timeouts en tests lentos y el `worker failed to exit gracefully`. **No repite lo que ya cubren pre-commit/CI**: sin `fe-build`, `eslint .`, `go vet ./...` ni `vue-tsc --build` completos.
+  - Jest de mobile limita a `maxWorkers: 50%` + `workerIdleMemoryLimit` (`apps/mobile/jest.config.js`).
+  - `.gitattributes` fuerza `eol=lf` en `*.go`/`*.ts`/`*.vue`/etc.: un editor en Windows que guarde CRLF hacía fallar `gofmt -l` y `prettier --check` en pre-push sin que el archivo se hubiera tocado.
   - Run `make setup` after clone.
 - **CI** (`.github/workflows/`): `backend.yml` (fmt, vet, build, tests), `frontend.yml` (format, lint, type-check, test, build) y `secrets.yml` (gitleaks) corren en push a `main`/`develop` y en PRs. Checks obligatorios de `main`: `backend`, `shared`, `web`, `gitleaks`.
 - **Swagger UI** at `/swagger/index.html` when server is running.

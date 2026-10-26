@@ -14,4 +14,10 @@ module.exports = {
   // El primer render de cada archivo paga el arranque de React Native + React 19
   // (transform + setup) y supera los 5 s por defecto en máquinas lentas.
   testTimeout: 30000,
+  // 8 vCPU => Jest abriría 7 workers y cada uno carga RN + React 19 (~500 MB).
+  // Con hooks en paralelo eso agotaba memoria y disparaba timeouts en los tests
+  // más lentos (TopicPicker) además del "worker failed to exit gracefully".
+  maxWorkers: '50%',
+  // Recicla workers que acumulan heap entre archivos en vez de morir por OOM.
+  workerIdleMemoryLimit: '512MB',
 }

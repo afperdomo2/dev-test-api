@@ -3,6 +3,19 @@
 *.sh text eol=lf
 *.bash text eol=lf
 
+# Código fuente: `gofmt` y `prettier` (endOfLine: lf) fallan si el editor guarda
+# CRLF en Windows. Forzar LF en checkout evita que pre-push marque archivos que
+# ni siquiera se tocaron en el cambio.
+*.go text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.vue text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+
 # Docker interpreta los saltos de línea de Dockerfile/compose/nginx: forzar LF
 # evita que un checkout en Windows meta CRLF en un `RUN ... \` o en un YAML.
 Dockerfile* text eol=lf
