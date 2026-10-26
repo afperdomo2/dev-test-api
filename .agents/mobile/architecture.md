@@ -64,7 +64,8 @@ app/
 ├── login.tsx · setup.tsx          # auth (fuera de tabs)
 └── (tabs)/
     ├── index.tsx                  # Inicio      → features/home
-    ├── sesiones/                  # lista → [id] → summary
+    ├── sesiones/                  # lista → nueva → [id] → summary
+    │   └── nueva.tsx              #   Nueva sesión de estudio (temas + cantidad)
     ├── progreso/                  # dashboard   → features/progress
     │   ├── index.tsx              #   Progreso (dashboard seccionado)
     │   ├── temas.tsx              #   Temas (rejilla de anillos + filtro)
@@ -146,6 +147,12 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 - `expo-constants` for app version (`Constants.expoConfig?.version`).
 - Componentes/helpers compartidos entre dominios viven en `src/core/` (`LevelLine`, `charts.ts`, `utils/icons.ts`, `utils/numbers.ts`): un dominio no importa de otro.
 
+### Formularios de estudio
+- **Selector de temas** (`features/sessions/components/TopicPicker`): chips de selección + `Modal` propio con buscador. Reglas: `listTopics({ hasQuestions: true })` (nunca ofrecer temas vacíos), debounce de 400 ms en la búsqueda lanzada desde handlers (no desde un `effect`, para no encadenar renders), máximo 8 temas, filas ≥56 pt con `accessibilityRole="checkbox"`.
+- **Nueva sesión** (`features/sessions/screens/StudySessionScreen`): dificultad en rejilla 2×2 y cantidad en una fila `10/25/50/Sin límite`. Cantidad ilimitada = **omitir `questionLimit`** (el backend usa `nil`); el límite máximo del contrato es 50.
+- **422 por disponibilidad** (`Solo hay N preguntas disponibles…`): no es un dead-end; la pantalla ofrece reintentar **sin límite** además de cambiar la cantidad.
+- El nombre se autogenera (`Estudio · Tema1, Tema2 +N`) y deja de regenerarse cuando el usuario lo edita (`nameDirty`).
+
 ### Pre-delivery checklist
 Before delivering any mobile UI, verify against `pro-rules.md`:
 - [ ] No emojis as icons
@@ -205,6 +212,8 @@ The mobile app uses `fetch` (not axios). The client must:
 4. On 401: delete token and redirect to login
 
 The envelope/error contract is defined in `.agents/backend/responses.md` — the mobile client implements the consuming side.
+
+Servicios por dominio en `src/core/api/services/` (`sessions`, `topics`, `gamification`, `insights`, `progress`, `questions`, `push`, `auth`). Cada uno es una función fina sobre `apiClient`; las pantallas no llaman a `apiClient` directamente.
 
 ## Push notifications
 

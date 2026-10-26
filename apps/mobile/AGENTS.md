@@ -19,7 +19,7 @@ src/features/   # Dominios: auth, home, sessions, profile (screens/, components/
 src/core/       # theme (tokens), components (Screen, MarkdownText), api (client + services), auth, utils
 ```
 
-Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Inicio (index), Sesiones (con sub-rutas), **Progreso** (dashboard + `temas`, `actividad`, `logros`) y Perfil, más `+not-found`.
+Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Inicio (index), Sesiones (lista, `nueva`, detalle y resumen), **Progreso** (dashboard + `temas`, `actividad`, `logros`) y Perfil, más `+not-found`.
 
 ## Key facts
 

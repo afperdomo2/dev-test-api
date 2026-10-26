@@ -34,7 +34,7 @@ function buildSession(overrides: Partial<Session> = {}): Session {
   }
 }
 
-function mockList(sessions: Array<Session>) {
+function mockList(sessions: Session[]) {
   jest.mocked(listSessions).mockResolvedValue({
     data: sessions,
     meta: { total: sessions.length, page: 1, perPage: 20 },

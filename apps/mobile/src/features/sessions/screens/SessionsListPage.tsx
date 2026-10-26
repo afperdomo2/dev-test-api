@@ -162,7 +162,18 @@ export default function SessionsListPage() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sesiones</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Sesiones</Text>
+        <Pressable
+          style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
+          onPress={() => router.push('/(tabs)/sesiones/nueva')}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Nueva sesión de estudio"
+        >
+          <MaterialCommunityIcons name="plus" size={22} color={colors.primary} />
+        </Pressable>
+      </View>
 
       {resumeSession && (
         <Pressable
@@ -401,13 +412,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingTop: spacing.xl,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
   title: {
+    flex: 1,
     fontSize: typography.size['2xl'],
     fontWeight: typography.weight.bold,
     letterSpacing: -0.5,
     color: colors.foreground,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+  },
+  addButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   pressed: {
     opacity: 0.7,

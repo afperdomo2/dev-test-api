@@ -200,6 +200,20 @@ export default function HomeScreen() {
 
       {dailyError && <Text style={styles.error}>{dailyError}</Text>}
 
+      <Pressable
+        style={({ pressed }) => [styles.secondaryCta, pressed && styles.pressed]}
+        onPress={() => router.push('/(tabs)/sesiones/nueva')}
+        accessibilityRole="button"
+        accessibilityLabel="Crear sesión de estudio"
+      >
+        <MaterialCommunityIcons name="plus-circle-outline" size={24} color={colors.primary} />
+        <View style={styles.ctaText}>
+          <Text style={styles.secondaryTitle}>Sesión de estudio</Text>
+          <Text style={styles.secondarySubtitle}>Elige temas y cuántas preguntas</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedForeground} />
+      </Pressable>
+
       {overview ? (
         <View style={styles.section}>
           <SectionHeader title="Tu día" />
@@ -302,6 +316,26 @@ const styles = StyleSheet.create({
   error: {
     fontSize: typography.size.sm,
     color: colors.destructive,
+  },
+  secondaryCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: 64,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  secondaryTitle: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.foreground,
+  },
+  secondarySubtitle: {
+    fontSize: typography.size.xs,
+    color: colors.mutedForeground,
   },
   section: {
     gap: spacing.sm,

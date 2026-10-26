@@ -24,6 +24,7 @@
 | `mobile-progress-ux` | Progreso como dashboard (anillos, actividad, logros) + Inicio acción-first | `mobile-progress` ✅, `mobile-weekly` ✅, `mobile-badges` ✅ | nuevo (mobile) | `done` |
 | `mobile-push` | Registrar el dispositivo y recibir/abrir push | `push` | nuevo (mobile) | `blocked` (EAS/dev build) |
 | `mobile-offline` | Reintento con aviso al fallar el envío de una respuesta | — | nuevo (mobile) | `done` |
+| `study-sessions` | Sesión de estudio a medida en mobile (temas + dificultad + 10/25/50/∞) | — (`POST /sessions` ya existía) | nuevo (mobile) | `done` |
 
 **Build order** (olas por dependencia; lo que no bloquea va en paralelo):
 
@@ -124,3 +125,4 @@ Los módulos mobile son alcance nuevo (D-26); no tienen IDs heredados del `ROADM
 | `mobile-progress-ux` | `SPEC-mobile-progress-ux.md` | `MUX-1…` |
 | `mobile-push` | `SPEC-mobile-push.md` | `MPUSH-1…` |
 | `mobile-offline` | `SPEC-mobile-offline.md` | `MOFF-1…` |
+| `study-sessions` | `SPEC-study-sessions.md` | `tasks/study-sessions.md` |
