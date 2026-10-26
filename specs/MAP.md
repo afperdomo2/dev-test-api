@@ -21,6 +21,7 @@
 | `mobile-progress` | 4ª pestaña **Progreso** + pantalla de Temas | `review-mastery` ✅ | nuevo (mobile) | `done` |
 | `mobile-weekly` | "Mi semana": KPIs del periodo dentro de Progreso | `insights` ✅ | nuevo (mobile) | `done` |
 | `mobile-badges` | Logros dentro de Progreso | `badges` (backend) | nuevo (mobile) | `done` |
+| `mobile-progress-ux` | Progreso como dashboard (anillos, actividad, logros) + Inicio acción-first | `mobile-progress` ✅, `mobile-weekly` ✅, `mobile-badges` ✅ | nuevo (mobile) | `done` |
 | `mobile-push` | Registrar el dispositivo y recibir/abrir push | `push` | nuevo (mobile) | `blocked` (EAS/dev build) |
 | `mobile-offline` | Reintento con aviso al fallar el envío de una respuesta | — | nuevo (mobile) | `done` |
 
@@ -120,5 +121,6 @@ Los módulos mobile son alcance nuevo (D-26); no tienen IDs heredados del `ROADM
 | `mobile-progress` | `SPEC-mobile-progress.md` | `MPROG-1…` |
 | `mobile-weekly` | `SPEC-mobile-weekly.md` | `MWEEK-1…` |
 | `mobile-badges` | `SPEC-mobile-badges.md` | `MBADGE-1…` |
+| `mobile-progress-ux` | `SPEC-mobile-progress-ux.md` | `MUX-1…` |
 | `mobile-push` | `SPEC-mobile-push.md` | `MPUSH-1…` |
 | `mobile-offline` | `SPEC-mobile-offline.md` | `MOFF-1…` |

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native'
 import type { InsightSummary } from '@devtest/shared'
 
-import WeeklySummaryScreen from './WeeklySummaryScreen'
+import ActivityScreen from './ActivityScreen'
 import { getInsightSummary } from '@/core/api/services/insights.service'
 
 jest.mock('@/core/api/services/insights.service', () => ({
@@ -35,36 +35,36 @@ const summary: InsightSummary = {
   ],
 }
 
-describe('WeeklySummaryScreen', () => {
+describe('ActivityScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.mocked(getInsightSummary).mockResolvedValue(summary)
   })
 
-  it('muestra los KPIs, los temas y la actividad', async () => {
-    await render(<WeeklySummaryScreen />)
+  it('resume el periodo, los temas y la actividad', async () => {
+    await render(<ActivityScreen />)
 
     expect(await screen.findByText('5')).toBeOnTheScreen()
-    expect(screen.getByText('Sesiones')).toBeOnTheScreen()
+    expect(screen.getByText('preguntas en 2 sesiones')).toBeOnTheScreen()
     expect(screen.getByText('60%')).toBeOnTheScreen()
     expect(screen.getByText('12 min')).toBeOnTheScreen()
-    expect(screen.getByText('75')).toBeOnTheScreen()
-    expect(screen.getByText('3 días')).toBeOnTheScreen()
+    expect(screen.getByText('+75')).toBeOnTheScreen()
 
     expect(screen.getByText('Más practicados')).toBeOnTheScreen()
     expect(screen.getByText('Go')).toBeOnTheScreen()
-    expect(screen.getByText('Temas débiles')).toBeOnTheScreen()
+    expect(screen.getByText('Puntos a reforzar')).toBeOnTheScreen()
     expect(screen.getByText('SQL')).toBeOnTheScreen()
     expect(screen.getByLabelText('2026-10-19: 5 preguntas')).toBeOnTheScreen()
   })
 
-  it('al cambiar a Mes vuelve a consultar', async () => {
-    await render(<WeeklySummaryScreen />)
-    await screen.findByText('Sesiones')
+  it('al cambiar a Mes consulta el periodo y pinta el mapa de calor', async () => {
+    await render(<ActivityScreen />)
+    await screen.findByText('Más practicados')
 
     await fireEvent.press(screen.getByLabelText('Mes'))
 
     expect(getInsightSummary).toHaveBeenCalledWith('month')
+    expect(await screen.findByTestId('heat-cell-2026-10-19')).toBeOnTheScreen()
   })
 
   it('sin actividad muestra el aviso', async () => {
@@ -77,11 +77,11 @@ describe('WeeklySummaryScreen', () => {
       dailyActivity: [],
     })
 
-    await render(<WeeklySummaryScreen />)
+    await render(<ActivityScreen />)
 
     expect(await screen.findByText('No hay actividad en este periodo.')).toBeOnTheScreen()
-    expect(screen.getByText('Sin datos en este periodo.')).toBeOnTheScreen()
-    expect(screen.queryByText('Temas débiles')).toBeNull()
+    expect(screen.queryByText('Más practicados')).toBeNull()
+    expect(screen.queryByText('Puntos a reforzar')).toBeNull()
   })
 
   it('si falla la carga permite reintentar', async () => {
@@ -90,13 +90,13 @@ describe('WeeklySummaryScreen', () => {
       .mockRejectedValueOnce({ title: 'Network Error', status: 500, detail: 'Sin conexión' })
       .mockResolvedValueOnce(summary)
 
-    await render(<WeeklySummaryScreen />)
+    await render(<ActivityScreen />)
 
     expect(await screen.findByText('Sin conexión')).toBeOnTheScreen()
 
     await fireEvent.press(screen.getByLabelText('Reintentar'))
 
-    expect(await screen.findByText('Sesiones')).toBeOnTheScreen()
+    expect(await screen.findByText('Más practicados')).toBeOnTheScreen()
     expect(getInsightSummary).toHaveBeenCalledTimes(2)
   })
 })

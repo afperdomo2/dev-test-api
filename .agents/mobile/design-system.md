@@ -47,6 +47,14 @@
 - Código (`code_completion`, code challenges): monospace (`Menlo` iOS / `monospace` Android en tokens; JetBrains Mono si se cargan fuentes custom).
 - Títulos grandes: tracking negativo (p.ej. `-0.5`), leading compacto.
 
+## Data viz
+
+- **Anillo** = dominio global de un tema (contra 100 %). `TopicRing`, SVG con `strokeDasharray`, **64 px**, `strokeWidth` 6, % escrito en el centro. Si el tema es débil: arco y número en `accent`, **sin icono** (el % es el dato y "tema débil" queda en la etiqueta accesible y en el filtro Débiles). Rejilla de 3 columnas con `rowGap: spacing.lg` (24 px): el aire separa las filas, sin líneas.
+- **Barra compacta** = comparación dentro de un periodo. `TopicCompactRow`, 4 px de alto, misma barra para "Más practicados" y "Puntos a reforzar".
+- **Heatmap** = 30 días, celdas 18 px, 4 niveles (`HEAT_COLORS` en `src/core/theme/charts.ts`) derivados de `primary` sobre `muted`; `heatLevel(valor, máximo)` decide el tramo.
+- **Sparkline** = 7 barras de 28 px (sin etiquetas) para el resumen del dashboard.
+- Reglas: el dato siempre se puede leer sin color (%, número o texto); nada de librería de charts; alturas proporcionales calculadas con `Math.max`/redondeo, nunca valores fijos por dato.
+
 ## Anti-patterns (no usar)
 
 - ❌ Fondos blancos puros.

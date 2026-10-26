@@ -386,6 +386,58 @@
 
 ---
 
+## Módulo `mobile-progress-ux` — `specs/SPEC-mobile-progress-ux.md`
+
+- [x] **MUX-1** — Dependencia + primitivas de data-viz
+  - Acceptance: `react-native-svg` con la versión del SDK (gate de dependencias); `TopicRing` (anillo + % escrito), `TopicRingGrid` (3 columnas), `TopicCompactRow` (barra ~46 px), `ActivityHeatmap` (30 días), `ActivitySparkline`, `StatRow`, `LevelLine`; helpers `toPercent`/`formatDurationMs`/`heatLevel`/`toMcIcon` en `core`
+  - Verify: `pnpm --filter mobile typecheck` + `jest` de los componentes
+  - Files: `apps/mobile/package.json`, `src/core/{components/LevelLine.tsx,theme/charts.ts,utils/{numbers,icons}.ts}`, `features/progress/components/{TopicRing,TopicRingGrid,TopicCompactRow,ActivityHeatmap,ActivitySparkline,StatRow}.tsx` (+ tests)
+  - Hecho: `expo install react-native-svg@15.15.4` (oficial, incluida en Expo Go) · anillo con `strokeDasharray`/`strokeDashoffset` y % centrado (nunca solo color) · heatmap con `View` puro, 4 niveles de `HEAT_COLORS` y celda etiquetada por día · `toMcIcon` sale de `BadgeCard` a `core/utils/icons.ts` · **7 tests** nuevos de primitivas
+- [x] **MUX-2** — Progreso como dashboard
+  - Acceptance: sustituir el hub por nivel + 6 anillos + resumen de actividad + logros; carga y error **por sección** con reintento propio; pull-to-refresh; acciones "Ver todos"/"Ver detalle"
+  - Verify: tests de pantalla + prueba manual
+  - Files: `app/(tabs)/progreso/{index.tsx,_layout.tsx}`, `features/progress/screens/ProgressDashboardScreen.tsx` (+ test), borrados `ProgressHubScreen`/`ProgressHubRow`
+  - Hecho: hook local `useSection` (loading/error/data independientes) + `Promise.allSettled` en el refresh · etiquetas `Ver todos temas`, `Ver detalle actividad`, `Ver todos logros` · "y N temas más" cuando hay más de 6 · **5 tests**
+- [x] **MUX-3** — Temas con anillos y filtro
+  - Acceptance: rejilla de 3 columnas, sin reordenar (backend), chips `Todos / Débiles`, resumen "X de Y temas flojos", pull-to-refresh, estados vacío/error, mensaje cuando no hay débiles
+  - Verify: tests de pantalla
+  - Files: `features/progress/screens/TopicMasteryScreen.tsx` (+ test)
+  - Hecho: ~100 px → ~100 px por **celda** (3 columnas): 9-12 temas en media pantalla · conteo de aciertos movido al `accessibilityLabel` · **5 tests**
+- [x] **MUX-4** — "Mi semana" → Actividad
+  - Acceptance: ruta `actividad`; hero + `StatRow` (3 métricas) en vez de 6 KPI cards; Semana = barras, Mes = heatmap; temas en filas compactas; fuera el KPI "Racha" (`streakDays` no es del periodo); rango de fechas legible
+  - Verify: tests de pantalla
+  - Files: `app/(tabs)/progreso/actividad.tsx` (ex `semana.tsx`), `features/progress/screens/ActivityScreen.tsx` (+ test), borrados `WeeklySummaryScreen`/`KpiCard`
+  - Hecho: ~1.100 px → ~560 px · `formatDurationMs`/`toPercent` de `core` · heatmap solo en Mes · "Puntos a reforzar" en lugar de "Temas débiles" · **4 tests**
+- [x] **MUX-5** — Logros compactos y agrupados
+  - Acceptance: cards de 140 px, secciones Conseguidos / En progreso (orden por % desc), contador + barra global, estados vacío/error
+  - Verify: tests de pantalla
+  - Files: `features/progress/screens/AchievementsScreen.tsx`, `features/progress/components/BadgeCard.tsx`
+  - Hecho: `ScrollView` con dos secciones (antes `FlatList` de 2 columnas) · `toMcIcon` reutilizado desde `core` · sin recalcular `earned`
+- [x] **MUX-6** — Inicio acción-first
+  - Acceptance: `LevelLine` (nivel + barra) en lugar del badge + card "Progreso"; card "Tu día" (racha + 7 días pulsables + meta + freeze); teaser de logros; **sin** la card "Temas"; si `overview` falla, reintento sin bloquear el CTA
+  - Verify: tests de `HomeScreen` + componentes
+  - Files: `features/home/screens/HomeScreen.tsx`, `features/home/components/{TodayCard,DayStreakStrip,AchievementsTeaser}.tsx` (+ tests)
+  - Hecho: ~600-700 px → ~380 px (cabe sin scroll) · Inicio hace 3 peticiones (`overview`, `insights?week`, `badges`) y las dos últimas degradan en silencio · la tira de 7 días navega a `actividad` con etiqueta `Ver tu actividad: practicaste N de los últimos 7 días` · **10 tests**
+- [x] **MUX-7** — Docs y verificación
+  - Acceptance: spec + decisión + índice + rutas documentadas; `typecheck`, `test:run`, `lint` en verde
+  - Verify: `pnpm --filter mobile typecheck` + `test:run` + `lint`
+  - Files: `specs/{SPEC-mobile-progress-ux,DECISIONS,MAP}.md`, `tasks/todo.md`, `.agents/mobile/{architecture,design-system}.md`, `apps/mobile/AGENTS.md`
+  - Hecho: **158 tests / 36 archivos** (antes 129/28) · `typecheck` ✅ · `lint` 0 errores (42 warnings, todos preexistentes del repo) · D-48 registra la regla de propiedad Inicio/Progreso/detalle
+  - ⚠️ **Pendiente**: pasada visual en dispositivo (los anillos usan `react-native-svg`, módulo nativo → recompilar el APK con `make mobile-apk`)
+
+---
+
+## Módulo `mobile-progress-ux` (ajustes de UI)
+
+- [x] **MUX-8** — Widget de logros unificado + anillos más aireados
+  - Acceptance: Inicio y Progreso usan el mismo `BadgeStrip` (compacto vs `detailed`); header de sección compartido; anillos de 64 px con 24 px entre filas; aviso de "débil" inline dentro del anillo (sin punto flotante)
+  - Verify: `pnpm --filter mobile typecheck` + `test:run` + `lint`
+  - Files: `src/core/components/{BadgeStrip,SectionHeader}.tsx` (+ test), `features/home/screens/HomeScreen.tsx` (+ test), `features/progress/screens/ProgressDashboardScreen.tsx`, `features/progress/components/{TopicRing,TopicRingGrid}.tsx` (+ test), borrado `features/home/components/AchievementsTeaser.tsx` (+ test)
+  - Hecho: `BadgeStrip` en `core` con `max`/`detailed` (Inicio 4 iconos + `+N` + "4 de 8"; Progreso con "Siguiente" + barra) · `SectionHeader` compartido (etiquetas `Ver todos temas`, `Ver detalle actividad`, `Ver todos logros`) · anillo 76→64 px, stroke 7→6, `rowGap` 12→24 px reales (2 filas ≈ 220 px) · tema débil con arco y % en `accent`, **sin icono** · test del freeze envuelto en `act` (se fue el warning) · **160 tests / 36 archivos**
+  - ⚠️ **Pendiente**: pasada visual en dispositivo (sin recompilar APK: solo cambia JS)
+
+---
+
 ## Verificación final
 
 - [x] **VF-1** — Backend: `make fmt` + `make vet` + `make test` (+ `make build`)

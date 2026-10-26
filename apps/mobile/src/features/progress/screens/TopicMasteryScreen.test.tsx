@@ -30,17 +30,42 @@ const items: Array<TopicMasteryItem> = [
 describe('TopicMasteryScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    jest.mocked(getTopicMastery).mockResolvedValue(items)
   })
 
-  it('muestra una fila por tema', async () => {
-    jest.mocked(getTopicMastery).mockResolvedValue(items)
-
+  it('muestra un anillo por tema con su resumen', async () => {
     await render(<TopicMasteryScreen />)
 
     expect(await screen.findByText('Go')).toBeOnTheScreen()
     expect(screen.getByText('Vue')).toBeOnTheScreen()
-    expect(screen.getByText('2/5 aciertos')).toBeOnTheScreen()
-    expect(screen.getByText('Débil')).toBeOnTheScreen()
+    expect(screen.getByText('1 de 2 temas flojos')).toBeOnTheScreen()
+    expect(
+      screen.getByLabelText('Go: 40% de acierto, tema débil, 2 de 5 aciertos'),
+    ).toBeOnTheScreen()
+    expect(
+      screen.getByLabelText('Vue: 80% de acierto, 4 de 5 aciertos'),
+    ).toBeOnTheScreen()
+  })
+
+  it('el filtro "Débiles" deja solo los temas flojos', async () => {
+    await render(<TopicMasteryScreen />)
+    await screen.findByText('Go')
+
+    await fireEvent.press(screen.getByLabelText('Filtrar por Débiles'))
+
+    expect(screen.getByText('Go')).toBeOnTheScreen()
+    expect(screen.queryByText('Vue')).toBeNull()
+  })
+
+  it('sin temas débiles explica que no hay ninguno', async () => {
+    jest.mocked(getTopicMastery).mockResolvedValue([items[1]!])
+
+    await render(<TopicMasteryScreen />)
+    await screen.findByText('Vue')
+
+    await fireEvent.press(screen.getByLabelText('Filtrar por Débiles'))
+
+    expect(screen.getByText('Sin temas débiles')).toBeOnTheScreen()
   })
 
   it('sin datos muestra el estado vacío', async () => {

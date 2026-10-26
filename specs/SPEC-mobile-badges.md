@@ -9,6 +9,8 @@
 | Migración goose | Ninguna |
 | Dependencia nueva | **Ninguna** |
 
+> **Actualizado por** `SPEC-mobile-progress-ux.md` (D-48): las cards bajan a 140 px y se agrupan en **Conseguidos / En progreso**; el hub desapareció y en Inicio hay un teaser. El endpoint y las reglas de estado no cambian.
+
 ## Objective
 
 Que el usuario vea en el móvil sus **logros**: cuáles tiene, cuáles le faltan y cuánto le queda para el siguiente.

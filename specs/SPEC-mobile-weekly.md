@@ -9,6 +9,8 @@
 | Migración goose | Ninguna |
 | Dependencia nueva | **Ninguna** |
 
+> **Actualizado por** `SPEC-mobile-progress-ux.md` (D-48): la ruta `semana` pasó a `actividad`, las 6 KPI cards a hero + `StatRow` y las barras se complementan con un **heatmap** en el periodo Mes. El servicio y los estados se mantienen.
+
 ## Objective
 
 Que el usuario vea en el móvil un resumen de **su última semana o mes**: cuánto practicó, con qué acierto, en qué temas, cuánto XP ganó y cómo va su racha.

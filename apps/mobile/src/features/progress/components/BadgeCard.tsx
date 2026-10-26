@@ -1,26 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { StyleSheet, Text, View } from 'react-native'
-import type { ComponentProps } from 'react'
 import type { Badge } from '@devtest/shared'
 
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
-
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name']
-
-const FALLBACK_ICON: IconName = 'trophy-outline'
-
-/**
- * El backend manda nombres `mdi-*`; MaterialCommunityIcons los usa sin prefijo.
- * Si el nombre no existe en la fuente, se cae al trofeo en vez de romper la pantalla.
- */
-export function toMcIcon(name: string): IconName {
-  const stripped = name.replace(/^mdi-/, '')
-  const glyphMap = MaterialCommunityIcons.glyphMap as Record<string, number> | undefined
-
-  if (glyphMap && !(stripped in glyphMap)) return FALLBACK_ICON
-
-  return stripped as IconName
-}
+import { toMcIcon } from '@/core/utils/icons'
 
 function percent(badge: Badge): number {
   if (badge.target <= 0) return 0
@@ -47,7 +30,7 @@ export function BadgeCard({ badge }: BadgeCardProps) {
         <View style={[styles.iconWrap, badge.earned ? styles.iconEarned : styles.iconLocked]}>
           <MaterialCommunityIcons
             name={toMcIcon(badge.icon)}
-            size={24}
+            size={20}
             color={badge.earned ? colors.primary : colors.mutedForeground}
           />
         </View>
@@ -86,9 +69,9 @@ export function BadgeCard({ badge }: BadgeCardProps) {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    minHeight: 172,
+    minHeight: 140,
     gap: spacing.sm,
-    padding: spacing.md,
+    padding: spacing.sm + 4,
     borderWidth: 1,
     borderRadius: radius.md,
   },
@@ -106,8 +89,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   iconWrap: {
-    width: 40,
-    height: 40,
+    width: 34,
+    height: 34,
     borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
@@ -127,7 +110,7 @@ const styles = StyleSheet.create({
   description: {
     flex: 1,
     fontSize: typography.size.xs,
-    lineHeight: 18,
+    lineHeight: 16,
     color: colors.mutedForeground,
   },
   earnedRow: {

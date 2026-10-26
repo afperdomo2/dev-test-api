@@ -15,10 +15,18 @@ import { getTopicMastery } from '@/core/api/services/progress.service'
 import { getErrorDetail } from '@/core/utils/errors'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
-import { TopicMasteryRow } from '../components/TopicMasteryRow'
+import { TopicRingGrid } from '../components/TopicRingGrid'
+
+type Filter = 'all' | 'weak'
+
+const FILTERS: Array<{ value: Filter; title: string }> = [
+  { value: 'all', title: 'Todos' },
+  { value: 'weak', title: 'Débiles' },
+]
 
 export default function TopicMasteryScreen() {
   const [items, setItems] = useState<Array<TopicMasteryItem> | null>(null)
+  const [filter, setFilter] = useState<Filter>('all')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -72,6 +80,8 @@ export default function TopicMasteryScreen() {
   }
 
   const list = items ?? []
+  const weakCount = list.filter((item) => item.isWeak).length
+  const visible = filter === 'weak' ? list.filter((item) => item.isWeak) : list
 
   return (
     <ScrollView
@@ -97,18 +107,50 @@ export default function TopicMasteryScreen() {
           <Text style={styles.emptyText}>Responde preguntas para ver tu dominio por tema.</Text>
         </View>
       ) : (
-        <View style={styles.list}>
-          {list.map((item) => (
-            <TopicMasteryRow
-              key={item.topicId}
-              topicName={item.topicName}
-              attempts={item.attempts}
-              accuracy={item.accuracy}
-              isWeak={item.isWeak}
-              correctCount={item.correctCount}
-            />
-          ))}
-        </View>
+        <>
+          <View style={styles.toolbar}>
+            <Text style={styles.summary}>
+              {weakCount} de {list.length} {list.length === 1 ? 'tema flojo' : 'temas flojos'}
+            </Text>
+
+            <View style={styles.filters}>
+              {FILTERS.map((option) => {
+                const active = option.value === filter
+                return (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => setFilter(option.value)}
+                    hitSlop={{ top: 4, bottom: 4 }}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      active && styles.chipActive,
+                      pressed && styles.chipPressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`Filtrar por ${option.title}`}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                      {option.title}
+                    </Text>
+                  </Pressable>
+                )
+              })}
+            </View>
+          </View>
+
+          {visible.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <MaterialCommunityIcons name="check-decagram" size={32} color={colors.primary} />
+              <Text style={styles.emptyTitle}>Sin temas débiles</Text>
+              <Text style={styles.emptyText}>Ningún tema baja del 60% de acierto. Buen trabajo.</Text>
+            </View>
+          ) : (
+            <View style={styles.card}>
+              <TopicRingGrid items={visible} />
+            </View>
+          )}
+        </>
       )}
     </ScrollView>
   )
@@ -121,10 +163,52 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
+    gap: spacing.md,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.sm,
   },
-  list: {
+  summary: {
+    flex: 1,
+    fontSize: typography.size.xs,
+    color: colors.mutedForeground,
+  },
+  filters: {
+    flexDirection: 'row',
     gap: spacing.sm,
+  },
+  chip: {
+    minHeight: 36,
+    paddingHorizontal: spacing.sm + 4,
+    justifyContent: 'center',
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipPressed: {
+    opacity: 0.7,
+  },
+  chipText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.medium,
+    color: colors.mutedForeground,
+  },
+  chipTextActive: {
+    color: colors.onPrimary,
+  },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
   },
   center: {
     flex: 1,

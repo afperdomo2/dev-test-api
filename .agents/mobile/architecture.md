@@ -56,10 +56,46 @@ Screen → apiClient (fetch + SecureStore JWT) → backend
 ## Routing & navigation
 
 - Routes live in `app/`. Each file exports a default component (thin re-export of the feature screen).
-- `app/(tabs)/_layout.tsx` renders `<NativeTabs>` with 3 triggers: `index` (Inicio), `sesiones` (Sesiones), `perfil` (Perfil).
+- `app/(tabs)/_layout.tsx` renders `<NativeTabs>` with 4 triggers: `index` (Inicio), `sesiones` (Sesiones), `progreso` (Progreso), `perfil` (Perfil).
+- Route tree:
+
+```
+app/
+├── login.tsx · setup.tsx          # auth (fuera de tabs)
+└── (tabs)/
+    ├── index.tsx                  # Inicio      → features/home
+    ├── sesiones/                  # lista → [id] → summary
+    ├── progreso/                  # dashboard   → features/progress
+    │   ├── index.tsx              #   Progreso (dashboard seccionado)
+    │   ├── temas.tsx              #   Temas (rejilla de anillos + filtro)
+    │   ├── actividad.tsx          #   Actividad (semana/mes + heatmap)
+    │   └── logros.tsx             #   Logros (conseguidos / en progreso)
+    └── perfil.tsx
+```
+
 - Nested tabs use Stack navigators (e.g. `app/(tabs)/sesiones/` has `_layout.tsx` with `<Stack>` for list → study → summary).
 - NativeTabs render no headers — screens show their title via the shared `Screen` primitive or custom header. When a tab needs sub-screens, nest a `<Stack>` group for that tab.
 - Tab icons: SF Symbols (`sf`) + Material (`md`). Keep labels in Spanish.
+
+### Ownership: Inicio vs Progreso (D-48)
+
+| Nivel | Pregunta | Contenido |
+|---|---|---|
+| **Inicio** | ¿qué hago ahora? | CTA de repaso + "Tu día" (racha, 7 días, meta, freeze) + teaser de logros |
+| **Progreso** | ¿cómo voy? | nivel, anillos de temas, resumen de actividad, logros |
+| **Detalle** | dame el todo | lista completa, filtros, heatmap mensual |
+
+- **Progreso es un dashboard, no un hub de botones.** La pestaña muestra el dato; las pantallas de detalle se alcanzan con `Ver todos` / `Ver detalle`.
+- El mismo dato no se repite con el mismo peso en dos pantallas (por eso `overview.topicXp` salió de Inicio).
+- Cada sección del dashboard carga y falla por su cuenta (hook `useSection`): un endpoint caído no vacía la pestaña.
+
+### Data viz
+
+- **Anillo** (`TopicRing`, `react-native-svg` + `strokeDasharray`, 64 px) = dominio **global** de un tema. El % va escrito en el centro: el color (`accent` si es débil) es la única señal visual, sin icono; "tema débil" vive en la etiqueta accesible y en el filtro de la pantalla Temas.
+- **Barra compacta** (`TopicCompactRow`, ~46 px) = ranking de temas **dentro de un periodo** (Actividad).
+- **Heatmap** (`ActivityHeatmap`, `View` puro, 30 días × celdas 18 px) usa `HEAT_COLORS`/`heatLevel()` de `src/core/theme/charts.ts`; cada celda lleva etiqueta `"lun 19: 8 preguntas"`.
+- **Sin librería de gráficas**: SVG solo para el anillo; barras, sparkline y heatmap son `View` con anchos/alturas proporcionales.
+- **Widgets de sección compartidos**: `SectionHeader` (título + "Ver todos") y `BadgeStrip` (iconos de logros, `detailed` en Progreso) viven en `src/core/components/` porque los usan Inicio y Progreso.
 
 ## UX conventions
 
@@ -106,7 +142,9 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 ### Components
 - `@gorhom/bottom-sheet` for action menus (requires `react-native-reanimated` + `react-native-gesture-handler`, both SDK-compatible via `expo install`).
 - `react-native-markdown-display` for rendering markdown content (questions, explanations).
+- `react-native-svg` **solo** para anillos de progreso (`TopicRing`). Cualquier otra librería de charts necesita pasar por `.agents/mobile/dependencies.md`.
 - `expo-constants` for app version (`Constants.expoConfig?.version`).
+- Componentes/helpers compartidos entre dominios viven en `src/core/` (`LevelLine`, `charts.ts`, `utils/icons.ts`, `utils/numbers.ts`): un dominio no importa de otro.
 
 ### Pre-delivery checklist
 Before delivering any mobile UI, verify against `pro-rules.md`:
@@ -118,6 +156,7 @@ Before delivering any mobile UI, verify against `pro-rules.md`:
 - [ ] Status uses icon + color + text
 - [ ] Design tokens used (no hardcoded colors)
 - [ ] Progress bars for multi-step flows
+- [ ] Data viz: el anillo lleva el % escrito y cada celda del heatmap su etiqueta
 
 ## Design system
 

@@ -2,89 +2,89 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
+import { toPercent } from '@/core/utils/numbers'
 
-type TopicMasteryRowProps = {
+type TopicCompactRowProps = {
   topicName: string
   attempts: number
+  /** 0..1 */
   accuracy: number
-  /** Solo en la pantalla de Temas; en informes no se pinta el chip. */
   isWeak?: boolean
-  /** Si se omite, no se pinta la línea "x/y aciertos". */
   correctCount?: number
 }
 
-/** `accuracy` llega como 0..1; la barra trabaja en porcentaje entero. */
-function percent(accuracy: number): number {
-  return Math.round(accuracy * 100)
-}
-
-export function TopicMasteryRow({
+/**
+ * Fila compacta (~46px) para comparar temas **dentro de un periodo**.
+ * El estado global de un tema usa `TopicRing`.
+ */
+export function TopicCompactRow({
   topicName,
   attempts,
   accuracy,
   isWeak = false,
   correctCount,
-}: TopicMasteryRowProps) {
-  const value = percent(accuracy)
+}: TopicCompactRowProps) {
+  const value = toPercent(accuracy)
+  const counts =
+    correctCount !== undefined ? `, ${correctCount} de ${attempts} aciertos` : ''
+  const label = `${topicName}: ${value}% de acierto en ${attempts} respuestas${
+    isWeak ? ', tema débil' : ''
+  }${counts}`
 
   return (
-    <View style={styles.row}>
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={label}
+      accessibilityValue={{ min: 0, max: 100, now: value }}
+      style={styles.row}
+    >
       <View style={styles.header}>
         <Text style={styles.name} numberOfLines={1}>
           {topicName}
         </Text>
 
         {isWeak ? (
-          <View style={styles.chip} accessibilityLabel="Tema débil">
+          <View style={styles.chip}>
             <MaterialCommunityIcons name="alert-outline" size={12} color={colors.accent} />
             <Text style={styles.chipText}>Débil</Text>
           </View>
         ) : null}
+
+        <Text style={styles.meta}>
+          {attempts} resp · {value}%
+        </Text>
       </View>
 
-      <View
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel={`${topicName}: ${value}% de acierto`}
-        accessibilityValue={{ min: 0, max: 100, now: value }}
-        style={styles.track}
-      >
+      <View style={styles.track}>
         <View
           style={[
             styles.fill,
-            { width: `${value}%`, backgroundColor: isWeak ? colors.accent : colors.primary },
+            {
+              width: `${value}%`,
+              backgroundColor: isWeak ? colors.accent : colors.primary,
+            },
           ]}
         />
       </View>
-
-      {correctCount !== undefined ? (
-        <Text style={styles.counts}>
-          {correctCount}/{attempts} aciertos
-        </Text>
-      ) : null}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   row: {
-    gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
+    gap: spacing.xs + 2,
+    paddingVertical: spacing.sm + 2,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.sm,
   },
   name: {
     flex: 1,
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
     color: colors.foreground,
   },
   chip: {
@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
     borderRadius: radius.sm,
     backgroundColor: `${colors.accent}22`,
   },
@@ -101,18 +100,18 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.semibold,
     color: colors.accent,
   },
+  meta: {
+    fontSize: typography.size.xs,
+    color: colors.mutedForeground,
+  },
   track: {
-    height: 8,
-    borderRadius: radius.sm,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: colors.muted,
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
-    borderRadius: radius.sm,
-  },
-  counts: {
-    fontSize: typography.size.xs,
-    color: colors.mutedForeground,
+    borderRadius: 2,
   },
 })

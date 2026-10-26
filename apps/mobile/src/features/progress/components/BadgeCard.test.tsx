@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react-native'
 import type { Badge } from '@devtest/shared'
 
-import { BadgeCard, toMcIcon } from './BadgeCard'
+import { toMcIcon } from '@/core/utils/icons'
+
+import { BadgeCard } from './BadgeCard'
 
 const earnedBadge: Badge = {
   id: 'first_session',
