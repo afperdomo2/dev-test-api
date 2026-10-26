@@ -52,6 +52,7 @@
 | D-40 | Bloqueada | **Vigilancia de dependencias.** `govulncheck` y `pnpm audit --prod --audit-level high` son gates de CI. Solo se permiten `pnpm.overrides` de transitivas, nunca `pnpm up` global (rompe el pinning de Expo). Cada `ignoreCves` exige motivo y fecha de revisión en `SECURITY.md`. |
 | D-41 | Bloqueada | **HTTPS obligatorio en mobile de producción.** `EXPO_PUBLIC_API_BASE_URL` debe empezar por `https://` cuando `__DEV__ === false`; si no, el módulo de config lanza al importarse y la app no envía ninguna petición. `http://localhost` sigue permitido en desarrollo. |
 | D-42 | Bloqueada | **El JWT se queda en `localStorage` (web).** Migrar a cookie `httpOnly` exige CSRF y cambios de contrato: fuera de alcance. Mitigaciones obligatorias: CSP estricta en el borde, `removeToken()` en 401 y TTL recomendada de 8–12 h. Un XSS sigue siendo el riesgo residual aceptado. |
+| D-43 | Bloqueada | **Listado de sesiones = lista-fila híbrida, no `v-data-table`.** Una fila por sesión (~68px) con columnas alineadas (chip de estado · nombre/meta · progreso · temas · CTA + menú), CTA explícito y `sortBy`/`sortOrder` server-side. El estado se comunica solo con el chip (icono + color + texto): sin barra de acento lateral, que es un recurso de card y en una lista continua se lee como borde de tabla. La sesión es una entidad accionable (continuar/ver resumen), no un conjunto de valores escalares comparables. En mobile: máx. 3 líneas por card, filtros en una sola fila con `ScrollView horizontal` y banner "Continuar" si hay una sesión `in_progress`. Detalle: `.agents/web/patterns.md` y `.agents/mobile/architecture.md`. |
 
 ## Convenciones del repo rescatadas (no estaban en `.agents/`)
 
@@ -79,6 +80,7 @@
 | X-09 | IA por usuario en sesiones (`mode=generate`) | D-14. |
 | X-10 | Cuota de IA por usuario (`users.daily_ai_limit`) | D-15. |
 | X-11 | Cola offline persistente (guardar respuestas en disco y sincronizar al volver la red) | D-31: exige idempotencia en el backend para no duplicar respuestas; se resuelve con reintento explícito. |
+| X-12 | Toggle tabla/card (o "vista mixta") en el listado de sesiones | D-43: duplica componente, tests y preferencia persistida para elegir entre dos vistas peores que una fila híbrida; el problema real era jerarquía y densidad, no el contenedor. |
 
 ## Notas de implementación relevantes para el backlog
 

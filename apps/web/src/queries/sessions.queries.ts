@@ -1,31 +1,27 @@
-import { queryOptions, infiniteQueryOptions } from '@tanstack/vue-query'
+import { queryOptions } from '@tanstack/vue-query'
 import * as sessionsService from '@/api/services/sessions.service'
-import type { PaginatedResponse } from '@/types/api.types'
-import type { Session } from '@/types/session.types'
 
-export function sessionsListOptions(page: () => number, perPage: () => number) {
+type Getter<T> = () => T
+
+export function sessionsListOptions(
+  page: Getter<number>,
+  perPage: Getter<number>,
+  status: Getter<string | undefined>,
+  sortBy: Getter<string | undefined>,
+  sortOrder: Getter<string | undefined>,
+) {
   return queryOptions({
-    queryKey: ['sessions', 'list', page, perPage],
-    queryFn: () => sessionsService.listSessions(page(), perPage()),
+    queryKey: ['sessions', 'list', page, perPage, status, sortBy, sortOrder],
+    queryFn: () => sessionsService.listSessions(page(), perPage(), status(), sortBy(), sortOrder()),
     staleTime: 30 * 1000,
   })
 }
 
-const SESSIONS_PER_PAGE = 20
-
-export function sessionsInfiniteOptions(status: () => string | undefined) {
-  return infiniteQueryOptions({
-    queryKey: ['sessions', 'list', 'infinite', status],
-    queryFn: ({ pageParam = 1 }) =>
-      sessionsService.listSessions(pageParam as number, SESSIONS_PER_PAGE, status()),
-    getNextPageParam: (
-      lastPage: PaginatedResponse<Session>,
-      allPages: Array<PaginatedResponse<Session>>,
-    ) => {
-      const totalFetched = allPages.reduce((sum, p) => sum + p.data.length, 0)
-      return totalFetched < lastPage.meta.total ? allPages.length + 1 : undefined
-    },
-    initialPageParam: 1,
+/** Sesión en curso más reciente, para el banner "Continuar". */
+export function sessionsResumeOptions() {
+  return queryOptions({
+    queryKey: ['sessions', 'list', 'resume'],
+    queryFn: () => sessionsService.listSessions(1, 1, 'in_progress', 'started_at', 'desc'),
     staleTime: 30 * 1000,
   })
 }

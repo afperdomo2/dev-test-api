@@ -81,6 +81,17 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 - `accessibilityState` for dynamic states (selected, disabled, busy).
 - Screen reader focus order must match visual order.
 
+### List rows (sessions)
+- **Máximo 3 líneas por card**: nombre / badges (estado + modo + dificultad) / meta (tiempo relativo + progreso + score). Si una card crece a 4–5 líneas, sobra información: muévela al detalle. Los temas no van en la card: el nombre de la sesión ya los insinúa y el resumen los muestra.
+- Una sola línea de badges (`flexDirection: 'row'`, sin `flexWrap`) y **sin más de 3 badges**: un cuarto badge con `flexShrink` colapsa a un "punto con borde" ilegible.
+- Filtros: **una sola fila con `ScrollView horizontal`**. Nunca `flexWrap`: 4 chips en español no caben y dejan una huérfana en la segunda fila.
+  - El `ScrollView` necesita **`flexGrow: 0` + `flexShrink: 0` + `height` explícita**. RN aplica por dentro `flexGrow: 1, flexShrink: 1`; si solo anulas el grow, la lista comprime el contenedor cuando tiene items y los chips se recortan (se ven "cuadrados"). Con `height` fija no depende del contenido.
+  - `showsHorizontalScrollIndicator={false}`, gap/padding en `contentContainerStyle` y `paddingRight` corto para que asome el siguiente chip.
+- Chips de filtro: **versión compacta** (visual 36pt, `typography.size.xs`, `paddingHorizontal: 12`) con `hitSlop={{ top: 4, bottom: 4 }}` para que el target táctil siga siendo ≥44pt.
+- Si hay una sesión `in_progress`, banner de reanudación arriba (nombre + progreso + botón 44pt): es la acción principal de la pantalla.
+- Los colores de estado salen de `SESSION_STATUS_COLORS` (shared) traducidos a tokens con un `Record<SessionStatus, string>` — el compilador detecta estados nuevos.
+
+
 ### Layout & Spacing
 - Use design tokens from `src/core/theme/tokens.ts` — never hardcode hex values.
 - 8dp spacing rhythm (spacing.xs=4, sm=8, md=16, lg=24, xl=32).

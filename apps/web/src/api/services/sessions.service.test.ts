@@ -42,6 +42,14 @@ describe('sessions.service', () => {
     })
   })
 
+  it('listSessions with status and sort', async () => {
+    mockedGet.mockResolvedValue({ data: {} })
+    await listSessions(2, 20, 'completed', 'score', 'desc')
+    expect(mockedGet).toHaveBeenCalledWith('/api/v1/sessions', {
+      params: { page: 2, perPage: 20, status: 'completed', sortBy: 'score', sortOrder: 'desc' },
+    })
+  })
+
   it('getSessionById extracts session', async () => {
     const session = { id: '1' }
     mockedGet.mockResolvedValue({ data: { session } })

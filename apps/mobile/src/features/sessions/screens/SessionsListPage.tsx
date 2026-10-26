@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -14,10 +15,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { BottomSheetModal } from '@gorhom/bottom-sheet'
 import type { Session, SessionDifficulty, SessionStatus } from '@devtest/shared'
 import {
-  SESSION_STATUS_LABELS,
-  SESSION_MODE_LABELS,
-  SESSION_STATUS_FILTERS,
   SESSION_DIFFICULTY_LABELS,
+  SESSION_MODE_LABELS,
+  SESSION_STATUS_LABELS,
+  SESSION_STATUS_FILTERS,
 } from '@devtest/shared'
 
 import { listSessions, deleteSession, finishSession } from '@/core/api/services/sessions.service'
@@ -28,13 +29,18 @@ import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
 const PER_PAGE = 20
 
-const STATUS_COLORS: Record<string, string> = {
+/**
+ * Los nombres de color viven en `SESSION_STATUS_COLORS` (shared); aquí solo se
+ * traducen a design tokens del tema dark. `Record<SessionStatus, string>` hace
+ * que el compilador avise si aparece un estado nuevo.
+ */
+const STATUS_COLORS: Record<SessionStatus, string> = {
   in_progress: colors.accent,
   completed: colors.primary,
-  cancelled: colors.destructive,
+  cancelled: colors.mutedForeground,
 }
 
-const STATUS_ICON_NAMES: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
+const STATUS_ICON_NAMES: Record<SessionStatus, keyof typeof MaterialCommunityIcons.glyphMap> = {
   in_progress: 'progress-clock',
   completed: 'check-circle',
   cancelled: 'close-circle',
@@ -101,6 +107,11 @@ export default function SessionsListPage() {
     void load(1, status, 'initial')
   }, [load, status])
 
+  const resumeSession = useMemo(
+    () => sessions.find((session) => session.status === 'in_progress') ?? null,
+    [sessions],
+  )
+
   const openActions = useCallback((session: Session) => {
     setSelectedSession(session)
     bottomSheetRef.current?.present()
@@ -153,7 +164,38 @@ export default function SessionsListPage() {
     <View style={styles.container}>
       <Text style={styles.title}>Sesiones</Text>
 
-      <View style={styles.filters}>
+      {resumeSession && (
+        <Pressable
+          style={({ pressed }) => [styles.resumeBanner, pressed && styles.pressed]}
+          onPress={() => handleContinue(resumeSession.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`Continuar sesion ${resumeSession.name}, ${resumeSession.answerCount} de ${resumeSession.questionLimit ?? 'ilimitadas'} preguntas respondidas`}
+        >
+          <MaterialCommunityIcons name="play-circle" size={22} color={colors.accent} />
+          <View style={styles.resumeBody}>
+            <Text style={styles.resumeTitle} numberOfLines={1}>
+              Continuar: {resumeSession.name}
+            </Text>
+            <Text style={styles.resumeMeta}>
+              {resumeSession.answerCount}
+              {resumeSession.questionLimit ? `/${resumeSession.questionLimit}` : ''} preguntas
+              respondidas
+            </Text>
+          </View>
+          <View style={styles.resumeButton}>
+            <Text style={styles.resumeButtonLabel}>Continuar</Text>
+          </View>
+        </Pressable>
+      )}
+
+      <ScrollView
+        horizontal
+        style={styles.filters}
+        contentContainerStyle={styles.filtersContent}
+        showsHorizontalScrollIndicator={false}
+        alwaysBounceHorizontal={false}
+        accessibilityLabel="Filtros por estado"
+      >
         {SESSION_STATUS_FILTERS.map((filter) => {
           const active = status === filter.value
           return (
@@ -165,15 +207,21 @@ export default function SessionsListPage() {
                 pressed && styles.chipPressed,
               ]}
               onPress={() => setStatus(filter.value)}
+              hitSlop={{ top: 4, bottom: 4 }}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               accessibilityLabel={`Filtrar por ${filter.title}`}
             >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{filter.title}</Text>
+              <Text
+                style={[styles.chipText, active && styles.chipTextActive]}
+                numberOfLines={1}
+              >
+                {filter.title}
+              </Text>
             </Pressable>
           )
         })}
-      </View>
+      </ScrollView>
 
       {loading ? (
         <View style={styles.center}>
@@ -240,9 +288,10 @@ export default function SessionsListPage() {
             const difficultyLabel = SESSION_DIFFICULTY_LABELS[item.difficulty] ?? item.difficulty
             const statusLabel = SESSION_STATUS_LABELS[item.status] ?? item.status
             const modeLabel = SESSION_MODE_LABELS[item.mode] ?? item.mode
-            const shownTopics = item.topics.slice(0, 2)
-            const hiddenTopics = item.topics.length - shownTopics.length
             const showScore = item.status === 'completed'
+            const progressLabel = item.questionLimit
+              ? `${item.answerCount}/${item.questionLimit}`
+              : `${item.answerCount}`
 
             return (
               <Pressable
@@ -287,9 +336,7 @@ export default function SessionsListPage() {
                         size={12}
                         color={statusColor}
                       />
-                      <Text style={[styles.statusText, { color: statusColor }]}>
-                        {statusLabel}
-                      </Text>
+                      <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
                     </View>
                     <View style={styles.modeBadge}>
                       <MaterialCommunityIcons
@@ -311,33 +358,23 @@ export default function SessionsListPage() {
                     </View>
                   </View>
 
-                  {shownTopics.length > 0 && (
-                    <View style={styles.cardTopics}>
-                      {shownTopics.map((topic, idx) => (
-                        <View key={`${topic}-${idx}`} style={styles.topicChip}>
-                          <Text style={styles.topicChipText} numberOfLines={1}>
-                            {topic}
-                          </Text>
-                        </View>
-                      ))}
-                      {hiddenTopics > 0 && (
-                        <View style={styles.topicChip}>
-                          <Text style={styles.topicChipText}>+{hiddenTopics}</Text>
-                        </View>
+                  <View style={styles.cardMeta}>
+                    <View style={styles.cardMetaLeft}>
+                      <Text style={styles.metaText}>{formatRelativeTime(item.createdAt)}</Text>
+                      <Text style={styles.metaDot}>·</Text>
+                      <Text style={styles.metaText}>{progressLabel} respuestas</Text>
+                      {showScore && (
+                        <>
+                          <Text style={styles.metaDot}>·</Text>
+                          <Text style={styles.metaScore}>{item.score} pts</Text>
+                        </>
                       )}
                     </View>
-                  )}
-
-                  <View style={styles.cardMeta}>
-                    <Text style={styles.metaDate}>{formatRelativeTime(item.createdAt)}</Text>
-                    <Text style={styles.metaDot}>·</Text>
-                    <Text style={styles.metaText}>{item.answerCount} respuestas</Text>
-                    {showScore && (
-                      <>
-                        <Text style={styles.metaDot}>·</Text>
-                        <Text style={styles.metaScore}>{item.score} pts</Text>
-                      </>
-                    )}
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={18}
+                      color={colors.mutedForeground}
+                    />
                   </View>
                 </View>
               </Pressable>
@@ -372,20 +409,71 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
-  filters: {
+  pressed: {
+    opacity: 0.7,
+  },
+  resumeBanner: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    minHeight: 56,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: `${colors.accent}40`,
+    backgroundColor: `${colors.accent}14`,
+  },
+  resumeBody: {
+    flex: 1,
+    gap: 2,
+  },
+  resumeTitle: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.foreground,
+  },
+  resumeMeta: {
+    fontSize: typography.size.xs,
+    color: colors.mutedForeground,
+  },
+  resumeButton: {
+    minHeight: 44,
+    minWidth: 88,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resumeButtonLabel: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.onPrimary,
+  },
+  filters: {
+    flexGrow: 0,
+    flexShrink: 0,
+    height: 36,
     marginBottom: spacing.md,
   },
+  filtersContent: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingRight: spacing.sm,
+    alignItems: 'center',
+  },
   chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm + 4,
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    minHeight: 36,
+    height: 36,
     justifyContent: 'center',
   },
   chipActive: {
@@ -396,7 +484,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   chipText: {
-    fontSize: typography.size.sm,
+    fontSize: typography.size.xs,
     fontWeight: typography.weight.medium,
     color: colors.mutedForeground,
   },
@@ -476,7 +564,8 @@ const styles = StyleSheet.create({
   },
   cardBody: {
     flex: 1,
-    padding: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.sm + 4,
     gap: spacing.xs,
   },
   cardHeader: {
@@ -497,16 +586,16 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: -spacing.xs,
-    marginVertical: -spacing.sm,
+    marginRight: -spacing.sm,
+    marginVertical: -spacing.md,
   },
   menuButtonPressed: {
     opacity: 0.6,
   },
   cardBadges: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -540,37 +629,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: radius.sm,
-    backgroundColor: `${colors.muted}`,
+    backgroundColor: colors.muted,
     gap: spacing.xs,
   },
   difficultyText: {
     fontSize: typography.size.xs,
     fontWeight: typography.weight.medium,
   },
-  cardTopics: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  topicChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  topicChipText: {
-    fontSize: typography.size.xs,
-    color: colors.mutedForeground,
-    maxWidth: 140,
-  },
   cardMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xs,
+    justifyContent: 'space-between',
+    gap: spacing.sm,
   },
-  metaDate: {
+  cardMetaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+  },
+  metaText: {
     fontSize: typography.size.xs,
     color: colors.mutedForeground,
   },
@@ -578,10 +655,6 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xs,
     color: colors.mutedForeground,
     marginHorizontal: spacing.xs,
-  },
-  metaText: {
-    fontSize: typography.size.xs,
-    color: colors.mutedForeground,
   },
   metaScore: {
     fontSize: typography.size.xs,

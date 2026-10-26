@@ -35,14 +35,16 @@ describe('formatRelativeTime', () => {
   })
 
   it('returns days under a week', () => {
-    expect(formatRelativeTime(ago(3 * 24 * 3_600_000))).toBe('Hace 3 dias')
+    expect(formatRelativeTime(ago(3 * 24 * 3_600_000))).toBe('Hace 3 días')
   })
 
   it('returns day + short month for older dates in the current year', () => {
-    expect(formatRelativeTime(new Date('2026-03-05T12:00:00.000Z').toISOString())).toBe('5 mar.')
+    expect(formatRelativeTime(new Date('2026-03-05T12:00:00.000Z').toISOString())).toBe('5 mar')
   })
 
   it('includes the year for older dates', () => {
-    expect(formatRelativeTime(new Date('2024-03-05T12:00:00.000Z').toISOString())).toBe('5 mar. 2024')
+    expect(formatRelativeTime(new Date('2024-03-05T12:00:00.000Z').toISOString())).toBe(
+      '5 mar 2024',
+    )
   })
 })

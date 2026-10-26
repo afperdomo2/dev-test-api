@@ -168,7 +168,7 @@ Use `v-data-table` with a `#bottom` slot containing `<PaginatedFooter>`:
 
 The `#bottom` slot replaces the built-in data table footer.
 
-### For card-based pages (Questions, Sessions, Progress)
+### For card-based pages (Questions, Progress)
 
 Place `<PaginatedFooter>` after the card grid:
 
@@ -182,6 +182,31 @@ Place `<PaginatedFooter>` after the card grid:
   @update:per-page="perPage = $event"
 />
 ```
+
+### For the sessions list (hybrid row list)
+
+Sessions use a **row list, not a card grid and not a `v-data-table`**: one row per
+session (~68px), aligned columns so the eye can scan state → name → progress →
+topics → action. Reason: sessions are an actionable history (continue / review),
+not a set of comparable scalar values.
+
+```
+SessionRow.vue   (presentational: props + emits, no queries/mutations)
+  props  session, busy
+  emits  open | finish | delete
+
+SessionsListPage.vue
+  useQuery(sessionsListOptions(page, perPage, status, sortBy, sortOrder))
+  useQuery(sessionsResumeOptions())        → banner "Continuar"
+  mutations (finish/delete) live here      → single confirm dialog
+  usePagination() + PaginatedFooter :in-table="true" inside the card
+```
+
+- Sorting is **server-side**: `sortBy`/`sortOrder` go through the service and into
+  the `queryKey`, never a client-side `computed().sort()`.
+- The CTA is a real `v-btn :to` and the name is a `RouterLink` — don't make the
+  row itself a focusable button (nested interactive elements).
+- Row click (`emit('open')`) is only a mouse convenience on top of those links.
 
 ### Empty state standard
 

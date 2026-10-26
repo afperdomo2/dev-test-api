@@ -10,7 +10,7 @@
 |---|---|
 | TypeScript interfaces (DTOs, API contracts) | Vue/Nuxt components or composables |
 | Pure validation predicates (`isValidEmail`, `isRequired`) | Vuetify validation rules (`requiredRule`, `emailRule`) |
-| Format functions (`formatDateTime`, `formatScore`) | Anything using `localStorage`, `import.meta.env`, DOM APIs |
+| Format functions (`formatDateTime`, `formatScore`, `formatRelativeTime`, `formatDuration`) | Anything using `localStorage`, `import.meta.env`, DOM APIs |
 | Constants (`ITEMS_PER_PAGE_OPTIONS`, `DEFAULT_PER_PAGE`) | Anything using `document`, `window`, `navigator` |
 | Type-only re-exports from Swagger (`ApiError`, `PaginatedResponse`) | Platform-specific storage (SecureStore, AsyncStorage) |
 
@@ -32,7 +32,7 @@ packages/shared/src/
 │   ├── generation.types.ts     # GenerationJob, GenerationStats, Setting
 │   └── opencode.types.ts       # OpenCodeUsage
 ├── utils/
-│   ├── format.ts           # formatDateTime, formatDate, formatShortDateTime, formatScore, formatTimeUntil
+│   ├── format.ts           # formatDateTime, formatDate, formatShortDateTime, formatScore, formatTimeUntil, formatRelativeTime, formatDuration
 │   └── validators.ts       # isValidEmail, isValidPassword, isRequired, isMinLength, isMaxLength
 ├── constants/
 │   ├── index.ts            # ITEMS_PER_PAGE_OPTIONS, DEFAULT_PER_PAGE, REFRESH_COOLDOWN_MS

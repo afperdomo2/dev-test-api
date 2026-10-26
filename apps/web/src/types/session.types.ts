@@ -9,11 +9,15 @@ export {
   SESSION_MODE_DESCRIPTIONS,
   SESSION_DIFFICULTIES,
   SESSION_STATUS_FILTERS,
+  SESSION_SORT_OPTIONS,
+  DEFAULT_SESSION_SORT,
 } from '@devtest/shared'
 export type {
   SessionStatus,
   SessionMode,
   SessionDifficulty,
+  SessionSortBy,
+  SessionSortOption,
   Session,
   CreateSessionRequest,
   SubmitAnswerRequest,

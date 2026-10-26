@@ -15,9 +15,13 @@ export async function listSessions(
   page: number,
   perPage: number,
   status?: string,
+  sortBy?: string,
+  sortOrder?: string,
 ): Promise<PaginatedResponse<Session>> {
   const params: Record<string, string | number> = { page, perPage }
   if (status) params.status = status
+  if (sortBy) params.sortBy = sortBy
+  if (sortOrder) params.sortOrder = sortOrder
   const res = await apiClient.get<PaginatedResponse<Session>>('/api/v1/sessions', {
     params,
   })

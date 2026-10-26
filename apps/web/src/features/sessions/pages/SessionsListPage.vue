@@ -1,35 +1,155 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { sessionsInfiniteOptions, createSessionMutation } from '@/queries/sessions.queries'
+import { useRouter } from 'vue-router'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import {
+  sessionsListOptions,
+  sessionsResumeOptions,
+  createSessionMutation,
+  finishSessionMutation,
+  deleteSessionMutation,
+} from '@/queries/sessions.queries'
 import { useAppStore } from '@/stores/app.store'
+import { usePagination } from '@/composables/usePagination'
 import ListPageHeader from '@/components/ListPageHeader.vue'
+import PaginatedFooter from '@/components/PaginatedFooter.vue'
 import DifficultySelect from '@/components/DifficultySelect.vue'
-import SessionCard from '../components/SessionCard.vue'
-import type { Session, CreateSessionRequest, SessionStatus } from '@/types/session.types'
-import { SESSION_STATUS_FILTERS } from '@/types/session.types'
-import { requiredRule, validateRules } from '@/utils/validators'
 import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
+import SessionRow from '../components/SessionRow.vue'
+import type { Session, CreateSessionRequest, SessionStatus } from '@/types/session.types'
+import {
+  SESSION_STATUS_FILTERS,
+  SESSION_SORT_OPTIONS,
+  DEFAULT_SESSION_SORT,
+} from '@/types/session.types'
+import { requiredRule, validateRules } from '@/utils/validators'
 
 const appStore = useAppStore()
 const queryClient = useQueryClient()
+const router = useRouter()
+
+const { page, perPage, reset: resetPagination } = usePagination()
 
 const selectedStatus = ref<SessionStatus | undefined>(undefined)
+const selectedSortTitle = ref<string>(DEFAULT_SESSION_SORT.title)
+const sortOption = computed(
+  () =>
+    SESSION_SORT_OPTIONS.find((option) => option.title === selectedSortTitle.value) ??
+    DEFAULT_SESSION_SORT,
+)
+const sortTitles = SESSION_SORT_OPTIONS.map((option) => option.title)
 
-const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery(
-  sessionsInfiniteOptions(() => selectedStatus.value),
+const { data, isLoading, refetch } = useQuery(
+  sessionsListOptions(
+    () => page.value,
+    () => perPage.value,
+    () => selectedStatus.value,
+    () => sortOption.value.sortBy,
+    () => sortOption.value.sortOrder,
+  ),
 )
 
-const sessionList = computed<Array<Session>>(() => data.value?.pages.flatMap((p) => p.data) ?? [])
+const { data: resumeData } = useQuery(sessionsResumeOptions())
 
-function onIntersect(isIntersecting: boolean) {
-  if (isIntersecting && hasNextPage.value && !isFetchingNextPage.value) {
-    fetchNextPage()
-  }
+const sessionList = computed<Array<Session>>(() => data.value?.data ?? [])
+const totalSessions = computed(() => data.value?.meta?.total ?? 0)
+const resumeSession = computed<Session | undefined>(() => resumeData.value?.data?.[0])
+
+function selectStatus(status: SessionStatus | undefined) {
+  selectedStatus.value = status
+  resetPagination()
+}
+
+function selectSort(title: string) {
+  selectedSortTitle.value = title
+  resetPagination()
+}
+
+function onPerPageChange(val: number) {
+  perPage.value = val
+  page.value = 1
 }
 
 function handleRefresh() {
-  queryClient.invalidateQueries({ queryKey: ['sessions', 'list', 'infinite'] })
+  resetPagination()
+  queryClient.invalidateQueries({ queryKey: ['sessions', 'list'] })
+  refetch()
+}
+
+function openSession(session: Session) {
+  if (session.status === 'completed') {
+    router.push(`/sessions/${session.id}/review`)
+    return
+  }
+  router.push(`/sessions/${session.id}/study`)
+}
+
+const finishMut = useMutation(finishSessionMutation())
+const deleteMut = useMutation(deleteSessionMutation())
+
+const actionTarget = ref<Session | null>(null)
+const actionType = ref<'finish' | 'delete' | null>(null)
+
+const actionDialog = computed({
+  get: () => actionType.value !== null,
+  set: (value: boolean) => {
+    if (!value) {
+      actionType.value = null
+      actionTarget.value = null
+    }
+  },
+})
+
+const actionPending = computed(() => finishMut.isPending.value || deleteMut.isPending.value)
+
+const actionTitle = computed(() =>
+  actionType.value === 'delete' ? '¿Eliminar sesión?' : '¿Finalizar sesión?',
+)
+
+const actionMessage = computed(() =>
+  actionType.value === 'delete'
+    ? 'Esta acción no se puede deshacer. La sesión se borrará permanentemente.'
+    : 'Al finalizar se cerrará la sesión y podrás ver tu resumen de respuestas.',
+)
+
+function askFinish(session: Session) {
+  actionTarget.value = session
+  actionType.value = 'finish'
+}
+
+function askDelete(session: Session) {
+  actionTarget.value = session
+  actionType.value = 'delete'
+}
+
+function getErrorDetail(err: unknown, fallback: string) {
+  return err && typeof err === 'object' && 'detail' in err
+    ? (err as { detail: string }).detail
+    : fallback
+}
+
+async function confirmAction() {
+  if (!actionTarget.value || !actionType.value) return
+  const action = actionType.value
+  const target = actionTarget.value
+  try {
+    if (action === 'finish') {
+      await finishMut.mutateAsync(target.id)
+    } else {
+      await deleteMut.mutateAsync(target.id)
+    }
+    await queryClient.invalidateQueries({ queryKey: ['sessions', 'list'] })
+    appStore.showSnackbar(action === 'finish' ? 'Sesión finalizada' : 'Sesión eliminada')
+    actionDialog.value = false
+  } catch (err: unknown) {
+    appStore.showSnackbar(
+      getErrorDetail(
+        err,
+        action === 'finish' ? 'Error al finalizar sesión' : 'Error al eliminar sesión',
+      ),
+      'error',
+    )
+  }
 }
 
 const createDialog = ref(false)
@@ -99,16 +219,12 @@ async function handleCreate() {
   creating.value = true
   try {
     await createMut.mutateAsync(createForm.value)
-    queryClient.invalidateQueries({ queryKey: ['sessions', 'list', 'infinite'] })
+    await queryClient.invalidateQueries({ queryKey: ['sessions', 'list'] })
     createDialog.value = false
     resetCreateForm()
     appStore.showSnackbar('Sesión creada')
   } catch (err: unknown) {
-    const detail =
-      err && typeof err === 'object' && 'detail' in err
-        ? (err as { detail: string }).detail
-        : 'Error al crear sesión'
-    appStore.showSnackbar(detail, 'error')
+    appStore.showSnackbar(getErrorDetail(err, 'Error al crear sesión'), 'error')
   } finally {
     creating.value = false
   }
@@ -124,45 +240,103 @@ async function handleCreate() {
       @create="openCreateDialog"
     />
 
-    <div class="d-flex ga-2 mb-4 flex-wrap">
+    <v-card v-if="resumeSession" variant="flat" border class="mb-4">
+      <div class="d-flex align-center flex-wrap ga-3 pa-3">
+        <v-icon color="warning" size="24">mdi-progress-clock</v-icon>
+        <div class="flex-grow-1" style="min-width: 200px">
+          <div class="text-body-2 font-weight-medium">Continuar: {{ resumeSession.name }}</div>
+          <div class="text-caption text-medium-emphasis">
+            {{ resumeSession.answerCount }}
+            <template v-if="resumeSession.questionLimit">
+              / {{ resumeSession.questionLimit }}
+            </template>
+            preguntas respondidas
+          </div>
+        </div>
+        <v-btn color="primary" size="small" class="text-none" @click="openSession(resumeSession)">
+          Continuar
+        </v-btn>
+      </div>
+    </v-card>
+
+    <div class="d-flex flex-wrap align-center ga-2 mb-4">
       <v-chip
         v-for="filter in SESSION_STATUS_FILTERS"
         :key="filter.value ?? 'all'"
         :variant="selectedStatus === filter.value ? 'flat' : 'outlined'"
         :color="selectedStatus === filter.value ? 'primary' : undefined"
         filter
-        @click="selectedStatus = filter.value"
+        @click="selectStatus(filter.value)"
       >
         {{ filter.title }}
       </v-chip>
+
+      <v-spacer />
+
+      <v-select
+        :model-value="selectedSortTitle"
+        :items="sortTitles"
+        label="Ordenar por"
+        density="compact"
+        variant="outlined"
+        hide-details
+        style="max-width: 220px"
+        @update:model-value="selectSort($event as string)"
+      />
     </div>
 
-    <v-row v-if="isLoading">
-      <v-col v-for="n in 4" :key="n" cols="12" sm="6">
-        <v-skeleton-loader type="card" />
-      </v-col>
-    </v-row>
+    <v-card variant="flat" border>
+      <div v-if="isLoading" class="pa-2">
+        <v-skeleton-loader v-for="n in 6" :key="n" type="list-item-two-line" />
+      </div>
 
-    <v-row v-else-if="sessionList.length">
-      <v-col v-for="session in sessionList" :key="session.id" cols="12" sm="6" lg="4">
-        <SessionCard :session="session" />
-      </v-col>
-    </v-row>
+      <template v-else-if="sessionList.length">
+        <SessionRow
+          v-for="session in sessionList"
+          :key="session.id"
+          :session="session"
+          :busy="actionPending"
+          @open="openSession"
+          @finish="askFinish"
+          @delete="askDelete"
+        />
+        <PaginatedFooter
+          :page="page"
+          :per-page="perPage"
+          :total="totalSessions"
+          :in-table="true"
+          @update:page="page = $event"
+          @update:per-page="onPerPageChange"
+        />
+      </template>
 
-    <div v-else class="text-center py-8">
-      <v-icon size="48" color="grey-lighten-1" class="mb-2"> mdi-play-circle-outline </v-icon>
-      <p class="text-body-1 text-medium-emphasis">No hay sesiones aún</p>
-    </div>
+      <v-card-text v-else class="text-center py-8">
+        <v-icon size="48" color="grey-lighten-1" class="mb-2"> mdi-play-circle-outline </v-icon>
+        <p class="text-body-1 text-medium-emphasis">
+          {{ selectedStatus ? 'No hay sesiones en este estado' : 'No hay sesiones aún' }}
+        </p>
+      </v-card-text>
+    </v-card>
 
-    <div v-intersect="onIntersect" class="d-flex justify-center py-4">
-      <v-progress-circular v-if="isFetchingNextPage" indeterminate color="primary" size="32" />
-      <span
-        v-else-if="!hasNextPage && sessionList.length > 0"
-        class="text-caption text-medium-emphasis"
-      >
-        No hay más sesiones
-      </span>
-    </div>
+    <v-dialog v-model="actionDialog" max-width="420">
+      <v-card>
+        <v-card-title>{{ actionTitle }}</v-card-title>
+        <v-card-text>{{ actionMessage }}</v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" :disabled="actionPending" @click="actionDialog = false">
+            Cancelar
+          </v-btn>
+          <v-btn
+            :color="actionType === 'delete' ? 'error' : 'primary'"
+            :loading="actionPending"
+            @click="confirmAction"
+          >
+            {{ actionType === 'delete' ? 'Eliminar' : 'Finalizar' }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="createDialog" max-width="640">
       <v-card>
