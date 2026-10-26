@@ -1,0 +1,172 @@
+# Entorno de DESARROLLO con hot reload (Compose Watch).
+#
+# Uso:
+#   cp docker/env/.env.dev.example docker/.env
+#   make docker-dev          # = docker compose -f docker/compose.dev.yaml watch
+#
+# URLs:
+#   web     http://localhost:3030
+#   API     http://localhost:8082  (Swagger en /swagger/index.html)
+#   DB      localhost:5435
+#
+# No hay bind mounts: `watch` sincroniza las fuentes al contenedor. Así se evita
+# el problema clásico de inotify con bind mounts de Docker Desktop en Windows.
+
+name: devtest-dev
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend-env: &backend-env
+  TZ: ${TZ:-America/Bogota}
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_USER: ${DB_USER:-devtest}
+  DB_PASSWORD: ${DB_PASSWORD:?define DB_PASSWORD en docker/.env}
+  DB_NAME: ${DB_NAME:-dev_test_api}
+  DB_SSL_MODE: disable
+  JWT_SECRET: ${JWT_SECRET:?define JWT_SECRET en docker/.env}
+  JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-24}
+  SETUP_TOKEN: ${SETUP_TOKEN:-}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3030}
+  HSTS_ENABLED: "false"
+  TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12}
+  AI_API_URL: ${AI_API_URL:-}
+  AI_API_KEY: ${AI_API_KEY:-}
+  AI_MODEL: ${AI_MODEL:-}
+  AI_REQUEST_TIMEOUT: ${AI_REQUEST_TIMEOUT:-120}
+  EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-devtest}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?define DB_PASSWORD en docker/.env}
+      POSTGRES_DB: ${DB_NAME:-dev_test_api}
+      TZ: ${TZ:-America/Bogota}
+    ports:
+      # 5435 para no chocar con un Postgres local en 5432/5433/5434.
+      - "${DB_PORT_HOST:-5435}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    shm_size: "256mb"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    logging: *default-logging
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile
+      target: dev
+    restart: unless-stopped
+    init: true
+    environment:
+      <<: *backend-env
+      PORT: "8080"
+      GIN_MODE: debug
+      SWAGGER_ENABLED: "true"
+    ports:
+      - "${API_PORT_HOST:-8082}:8080"
+    volumes:
+      # Módulos y caché de compilación fuera de la imagen: rebuilds rápidos y
+      # arranques siguientes de segundos. `docker-dev-reset` los borra.
+      - go-mod-cache:/go/pkg/mod
+      - go-cache:/root/.cache/go-build
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 10
+      # El primer arranque descarga módulos y compila; luego usa los volúmenes.
+      start_period: 300s
+    logging: *default-logging
+    develop:
+      watch:
+        - path: ../main.go
+          action: sync
+          target: /src/main.go
+        - path: ../internal
+          action: sync
+          target: /src/internal
+        - path: ../pkg
+          action: sync
+          target: /src/pkg
+        - path: ../docs
+          action: sync
+          target: /src/docs
+        - path: ../go.mod
+          action: rebuild
+        - path: ../go.sum
+          action: rebuild
+        - path: ../docker/backend/air.toml
+          action: sync+restart
+          target: /src/docker/backend/air.toml
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/web/Dockerfile
+      target: dev
+    restart: unless-stopped
+    init: true
+    environment:
+      TZ: ${TZ:-America/Bogota}
+      # Vacío = same-origin: el navegador llama a /api y Vite lo proxya al API.
+      VITE_API_BASE_URL: ""
+      VITE_PROXY_TARGET: http://api:8080
+    ports:
+      - "${WEB_PORT_HOST:-3030}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 3s
+      retries: 10
+      start_period: 120s
+    volumes:
+      - vite-cache:/app/apps/web/node_modules/.vite
+    logging: *default-logging
+    develop:
+      watch:
+        - path: ../apps/web/src
+          action: sync
+          target: /app/apps/web/src
+        - path: ../apps/web/index.html
+          action: sync
+          target: /app/apps/web/index.html
+        - path: ../packages/shared/src
+          action: sync
+          target: /app/packages/shared/src
+        - path: ../apps/web/vite.config.ts
+          action: sync+restart
+          target: /app/apps/web/vite.config.ts
+        - path: ../apps/web/tsconfig.json
+          action: sync+restart
+          target: /app/apps/web/tsconfig.json
+        - path: ../apps/web/package.json
+          action: rebuild
+        - path: ../packages/shared/package.json
+          action: rebuild
+        - path: ../pnpm-lock.yaml
+          action: rebuild
+
+volumes:
+  db-data:
+  go-cache:
+  go-mod-cache:
+  vite-cache:

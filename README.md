@@ -17,6 +17,32 @@
 | Node.js    | 20+     |
 | pnpm       | —       |
 | make       | —       |
+| Docker + Compose | 29+ (opcional, recomendado) |
+
+## 🐳 Docker
+
+Tres entornos listos para usar (guía completa: [`docker/README.md`](docker/README.md)):
+
+| Entorno | Comando | URL | Para qué |
+|---|---|---|---|
+| **dev** | `make docker-dev` | http://localhost:3030 | Hot reload (Air + Vite HMR) |
+| **prod-local** | `make docker-prod` | http://localhost:8088 | Ensayo real en la PC (DB incluida) |
+| **Dokploy** | `docker/compose.dokploy.yaml` | `https://tu-dominio` | Deploy en VPS |
+
+```bash
+make docker-env         # crea docker/.env (dev)
+make docker-dev         # levanta dev con Compose Watch
+make docker-env-prod    # crea docker/.env.prod (prod-local)
+make docker-prod        # build + up + healthchecks
+make docker-smoke       # verifica API, SPA y cabeceras
+```
+
+La primera vez: editá `docker/.env.prod`, levantá prod-local, creá el admin con
+el `SETUP_TOKEN`, vacialo y redeployá. La DB no se publica; backup/restore con
+`make docker-backup` / `make docker-restore FILE=…`.
+
+Mobile no corre en Docker: Metro en el host y APK manual con EAS cloud
+([`docs/mobile-apk.md`](docs/mobile-apk.md)).
 
 ## 📁 Estructura del proyecto
 
@@ -146,6 +172,23 @@ cp .env.example .env
 | `make mobile-web` | Abrir en web (Expo) |
 | `make mobile-typecheck` | TypeScript check |
 | `make mobile-lint` | Lint |
+| `make mobile-apk` | Preflight + APK manual en EAS cloud ([runbook](docs/mobile-apk.md)) |
+
+### Docker
+
+| Comando | Descripción |
+|---------|-------------|
+| `make docker-env` / `docker-env-prod` | Crea `docker/.env` / `docker/.env.prod` desde los ejemplos |
+| `make docker-dev` | Dev con hot reload (Compose Watch) |
+| `make docker-dev-up` / `docker-dev-down` / `docker-dev-reset` | Dev en background / bajar / borrar datos |
+| `make docker-prod` | Prod-local: build + up + healthchecks (`:8088`) |
+| `make docker-prod-down` / `docker-prod-reset` / `docker-prod-logs` | Operación de prod-local |
+| `make docker-build` | Construye las imágenes de producción |
+| `make docker-config` | Valida los 3 compose |
+| `make docker-seed` | Siembra las 50 preguntas en dev |
+| `make docker-smoke` | Verifica nginx, API, SPA y cabeceras |
+| `make docker-backup` / `docker-restore FILE=…` | Backup / restore de la DB |
+| `make e2e-docker` | Playwright contra prod-local |
 
 Equivalentes directos con pnpm:
 

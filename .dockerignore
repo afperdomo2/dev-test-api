@@ -1,0 +1,43 @@
+# Fallback global. Cada Dockerfile tiene su propio `<Dockerfile>.dockerignore`
+# (docker/backend/Dockerfile.dockerignore y docker/web/Dockerfile.dockerignore)
+# para minimizar el contexto de build. Este archivo solo aplica si se agrega un
+# Dockerfile nuevo sin el suyo.
+
+.git
+.gitignore
+.gitattributes
+.github
+.vscode
+.idea
+.opencode
+.agents
+
+node_modules
+**/node_modules
+**/dist
+**/coverage
+**/.expo
+**/.expo-shared
+**/playwright-report
+**/test-results
+**/e2e/.auth
+
+tmp
+coverage.out
+status.out
+*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+!**/.env.example
+!**/.env.*.example
+
+# Documentación y tooling que no entra en ninguna imagen
+specs
+tasks
+docs/*.md
+*.md
+Makefile
+lefthook.yml
+skills-lock.json

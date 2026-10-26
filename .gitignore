@@ -143,6 +143,7 @@ $RECYCLE.BIN/
 .env.*
 !.env.example
 !**/.env.example
+!**/.env.*.example
 *.pem
 *.key
 *.p12
@@ -161,6 +162,9 @@ coverage.out
 apps/web/e2e/.auth/
 apps/web/playwright-report/
 apps/web/test-results/
+
+# Backups locales de Docker (nunca commitear dumps con datos)
+docker/backups/
 
 # IA
 .agents/skills/

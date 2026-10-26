@@ -43,6 +43,9 @@ feedback rápido; no ejecuta suites completas por cambios menores.
 - **Sí ejecutar**: `make swagger` cuando cambian anotaciones/contrato; suites
   completas solo si el humano lo pide, si el cambio toca `packages/shared` o el
   contrato de API, o antes de una release.
+- **Si tocás `docker/`, Dockerfiles o compose**: `make docker-config` siempre;
+  `make docker-prod` + `make docker-smoke` si cambia runtime/nginx/env. No
+  levantar los 3 stacks para un cambio de docs.
 
 ## Commands
 
@@ -105,6 +108,25 @@ Always run `make fmt` after any backend change to format Go code, then `make vet
 | `pnpm web` | Start web dev server |
 | `pnpm mobile` | Start Expo dev server |
 
+### Docker (`docker/`)
+
+Guía completa: `docker/README.md` · invariantes para agentes: `.agents/devops/containers.md`.
+
+| Command | Action |
+|---------|--------|
+| `make docker-env` / `docker-env-prod` | Crea `docker/.env` / `docker/.env.prod` desde los ejemplos |
+| `make docker-dev` | Stack dev con **Compose Watch** (Air + Vite HMR) |
+| `make docker-dev-down` / `docker-dev-reset` | Baja dev (reset = `down -v`, borra datos) |
+| `make docker-prod` | Build + up + healthchecks de prod-local (`:8088`) |
+| `make docker-prod-down` / `docker-prod-reset` | Baja prod-local (reset borra datos) |
+| `make docker-build` | Construye las 2 imágenes de producción (`--pull`) |
+| `make docker-config` | Valida los 3 compose con sus env de ejemplo |
+| `make docker-seed` | Siembra las 50 preguntas en la DB de dev |
+| `make docker-smoke` | Verifica nginx, API, SPA y cabeceras |
+| `make docker-backup` / `docker-restore FILE=…` | Backup / restore de la DB de prod-local |
+| `make e2e-docker` | Playwright contra prod-local |
+| `make mobile-apk` | Preflight + APK manual en EAS cloud |
+
 Format the web files you touch with Prettier and let `make staged-check` run
 `vue-tsc`/eslint/vitest for the staged set. Do **not** run `make fe-build` outside
 CI/deploy: it's slow and adds no signal over type-check + lint. The full web
@@ -137,6 +159,8 @@ suite is a close/CI check, not something to run after every edit.
 - **Context7 MCP** — available for Gin, GORM, jwt, swag docs. Always `resolve-library-id` first, then `query-docs`.
 - **Vuetify MCP** — available via `opencode.json`. Query component APIs with `vuetify_get_component_api_by_version` or `vuetify_get_feature_guide`.
 - **Bash defensive patterns** — any `.sh` script must follow strict mode (`set -Eeuo pipefail`). See skill `bash-defensive-patterns` in the Skills section below.
+- **Contenedores** — 3 entornos: dev (`docker/compose.dev.yaml`, Compose Watch), prod-local (`docker/compose.prod.yaml`, same-origin `:8088`) y Dokploy (`docker/compose.dokploy.yaml`, DB en el stack). Detalles e invariantes en `.agents/devops/containers.md`. Nunca publicar la DB en prod/Dokploy, nunca `down -v` fuera de dev, y `TRUSTED_PROXIES` siempre con el CIDR del proxy.
+- **APK manual** — `EXPO_PUBLIC_API_BASE_URL` se compila en el APK (EAS cloud lee `apps/mobile/eas.json`, no el shell) y debe ser HTTPS. Si cambia el backend, recompilar. Ver `docs/mobile-apk.md`.
 - **Log icons** — prefix Go `log.*` calls with emoji (❌ errors, ✅ success, 🚀 startup, 🛢️ database, 🌱 seed). Pick the most descriptive icon per context.
 - **Tests** — backend: `testing` + `testify` unit tests (mocked `Store`). `make test` (unit, no DB), `make test-cover`. Lefthook pre-commit runs `go test -short`.
 
@@ -248,6 +272,12 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 |------|---------|
 | `architecture.md` | What goes in shared vs app, barrel exports, re-export pattern in web, CodeChallenge dedup, sync flow (swagger → shared → apps) |
 
+### DevOps: `.agents/devops/`
+
+| File | Purpose |
+|------|---------|
+| `containers.md` | **SOURCE OF TRUTH** de Docker: 3 entornos, mapa de archivos, invariantes (non-root, DB no publicada, same-origin, TZ, `TRUSTED_PROXIES`), Compose Watch, Dokploy y troubleshooting |
+
 ## Documentation map
 
 Each fact has a **single source of truth**. Other files reference it, not duplicate it.
@@ -264,6 +294,8 @@ Each fact has a **single source of truth**. Other files reference it, not duplic
 | Dependency safety | per-ecosystem: `.agents/{backend,web,mobile}/dependencies.md` | this file |
 | Data model (backend) | `.agents/backend/data-model.md` | `.agents/backend/architecture.md`, this file |
 | Design system (mobile) | `.agents/mobile/design-system.md` | `apps/mobile/src/core/theme/tokens.ts`, `.agents/mobile/architecture.md`, `apps/mobile/README.md`, this file |
+| Docker / entornos / Dokploy | `.agents/devops/containers.md` + `docker/README.md` | this file, `README.md` |
+| Build del APK (URL compilada, EAS) | `docs/mobile-apk.md` | this file, `apps/mobile/README.md` |
 | Per-project quick context | `apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md` | `opencode.json` (`instructions`), this file |
 
 **When updating architecture**: touch the source of truth, then update every file that references it. Never duplicate the same fact in two places.

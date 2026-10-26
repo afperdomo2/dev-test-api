@@ -1,0 +1,108 @@
+# Entorno PROD-LOCAL: imágenes release reales, DB dentro del compose y un solo
+# origen. Sirve para ensayar el despliegue en la PC antes de tocar el VPS.
+#
+# Uso:
+#   cp docker/env/.env.prod.example docker/.env
+#   make docker-prod          # build + up + espera healthchecks
+#
+# URL única: http://localhost:8088  (SPA + /api + /health vía nginx)
+# La DB NO se publica al host.
+#
+# No hay bind mounts ni watch: esto se comporta como producción.
+
+name: devtest-prod
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend-env: &backend-env
+  TZ: ${TZ:-America/Bogota}
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_USER: ${DB_USER:-devtest}
+  DB_PASSWORD: ${DB_PASSWORD:?define DB_PASSWORD en docker/.env}
+  DB_NAME: ${DB_NAME:-dev_test_api}
+  DB_SSL_MODE: disable
+  PORT: "8080"
+  GIN_MODE: release
+  JWT_SECRET: ${JWT_SECRET:?define JWT_SECRET en docker/.env}
+  JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-12}
+  SETUP_TOKEN: ${SETUP_TOKEN:-}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8088}
+  HSTS_ENABLED: ${HSTS_ENABLED:-false}
+  SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+  TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12}
+  AI_API_URL: ${AI_API_URL:-}
+  AI_API_KEY: ${AI_API_KEY:-}
+  AI_MODEL: ${AI_MODEL:-}
+  AI_REQUEST_TIMEOUT: ${AI_REQUEST_TIMEOUT:-120}
+  EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-devtest}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?define DB_PASSWORD en docker/.env}
+      POSTGRES_DB: ${DB_NAME:-dev_test_api}
+      TZ: ${TZ:-America/Bogota}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    shm_size: "256mb"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    logging: *default-logging
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile
+      target: runtime
+    image: devtest-api:local
+    restart: unless-stopped
+    init: true
+    environment:
+      <<: *backend-env
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 45s
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/web/Dockerfile
+      target: runtime
+      args:
+        VITE_API_BASE_URL: ""
+    image: devtest-web:local
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT_HOST:-8088}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *default-logging
+
+volumes:
+  db-data:

@@ -40,6 +40,9 @@ EXPO_PUBLIC_API_BASE_URL=http://192.168.1.x:8080
 ```
 
 > En iOS simulator / Android emulator `localhost` funciona directamente. En dispositivo real necesitas la IP de tu máquina en la LAN.
+>
+> Con el stack Docker (`make docker-dev`) el API está en `:8082`; con el backend
+> nativo (`make dev`) en `:8080`.
 
 ## 📁 Estructura
 
@@ -92,6 +95,19 @@ Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/backend/respo
 | `pnpm --filter mobile typecheck` | TypeScript check (`tsc --noEmit`) |
 | `pnpm --filter mobile android` | Iniciar en Android |
 | `pnpm --filter mobile ios` | Iniciar en iOS |
+
+## 📱 APK manual (Android)
+
+El APK se compila a mano con **EAS cloud** (no hay CI de APK). La URL del API se
+**compila dentro del APK**: se configura en `eas.json` → `build.preview.env`,
+no en `.env`, y debe ser HTTPS.
+
+```bash
+make mobile-apk      # preflight + eas build -p android --profile preview
+```
+
+Runbook completo, checklist de versión y cómo conectarse a la DB de la nube:
+[`docs/mobile-apk.md`](../../docs/mobile-apk.md).
 
 ## 📚 Convenciones
 

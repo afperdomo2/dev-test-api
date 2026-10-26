@@ -2,3 +2,11 @@
 # (core.autocrlf=true los convertiría a CRLF y rompería `set -o pipefail`).
 *.sh text eol=lf
 *.bash text eol=lf
+
+# Docker interpreta los saltos de línea de Dockerfile/compose/nginx: forzar LF
+# evita que un checkout en Windows meta CRLF en un `RUN ... \` o en un YAML.
+Dockerfile* text eol=lf
+*.dockerignore text eol=lf
+*.conf text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

@@ -1,0 +1,122 @@
+# Entorno DOKPLOY: stack completo (web + api + Postgres) para desplegar en un
+# VPS con Dokploy + Traefik.
+#
+# Configuración en Dokploy:
+#   1. Project → Create Service → Docker Compose.
+#   2. Compose Path: docker/compose.dokploy.yaml
+#   3. Environment: pegar las variables de docker/env/.env.dokploy.example
+#      (con secretos reales) en la pestaña Environment del servicio.
+#   4. Domains: agregar el dominio al servicio `web`, puerto 8080.
+#   5. Deploy. El primer arranque exige SETUP_TOKEN (DB vacía): crear el admin,
+#      luego borrar SETUP_TOKEN y redeployar.
+#
+# La DB NO se publica: api y db hablan por la red interna del compose.
+# web se une a dokploy-network para que Traefik lo alcance.
+#
+# Backup: volumen nombrado `db-data`. Activar Volume Backup en Dokploy o usar
+# `make docker-backup` contra este stack (ver docker/README.md).
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-devtest}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?configura DB_PASSWORD en Dokploy}
+      POSTGRES_DB: ${DB_NAME:-dev_test_api}
+      TZ: ${TZ:-America/Bogota}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    shm_size: "256mb"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    init: true
+    environment:
+      TZ: ${TZ:-America/Bogota}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER:-devtest}
+      DB_PASSWORD: ${DB_PASSWORD:?configura DB_PASSWORD en Dokploy}
+      DB_NAME: ${DB_NAME:-dev_test_api}
+      DB_SSL_MODE: disable
+      PORT: "8080"
+      GIN_MODE: release
+      JWT_SECRET: ${JWT_SECRET:?configura JWT_SECRET en Dokploy}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-12}
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
+      CORS_ALLOWED_ORIGINS: ${APP_ORIGIN:?configura APP_ORIGIN en Dokploy}
+      HSTS_ENABLED: "true"
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12,10.0.0.0/8}
+      AI_API_URL: ${AI_API_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_REQUEST_TIMEOUT: ${AI_REQUEST_TIMEOUT:-120}
+      EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
+    expose:
+      - "8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 45s
+    depends_on:
+      db:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/web/Dockerfile
+      target: runtime
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    restart: unless-stopped
+    expose:
+      - "8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - default
+      - dokploy-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  db-data:
+
+networks:
+  dokploy-network:
+    external: true

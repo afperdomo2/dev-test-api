@@ -2,8 +2,11 @@
         staged-check \
         migrate-up migrate-down migrate-status migrate-create \
         fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover \
-        e2e e2e-ui e2e-report \
-        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint
+        e2e e2e-ui e2e-report e2e-docker \
+        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint mobile-apk \
+        docker-env docker-env-prod docker-dev docker-dev-up docker-dev-down docker-dev-reset \
+        docker-prod docker-prod-down docker-prod-reset docker-prod-logs \
+        docker-build docker-config docker-seed docker-smoke docker-backup docker-restore
 
 # ── Backend ──────────────────────────────────────────────
 
@@ -202,3 +205,85 @@ mobile-lint:
 	@echo "🔍 Linting mobile..."
 	pnpm --filter mobile lint
 	@echo "✅ Mobile lint OK"
+
+mobile-apk:
+	@echo "📱 Preflight del APK (URL HTTPS + backend vivo)..."
+	@bash scripts/preflight-apk.sh
+	@echo "🏗️  Compilando APK en EAS cloud (perfil preview)..."
+	cd apps/mobile && npx --yes eas-cli@latest build -p android --profile preview
+
+# ── Docker ────────────────────────────────────────────────
+# Guía completa: docker/README.md
+# Dev usa docker/.env; prod-local usa docker/.env.prod (archivos distintos para
+# poder tener los dos stacks levantados sin pisarse puertos ni secretos).
+
+DEV_COMPOSE = docker compose -f docker/compose.dev.yaml
+DEV_ENV = --env-file docker/.env
+PROD_COMPOSE = docker compose -f docker/compose.prod.yaml
+PROD_ENV = --env-file docker/.env.prod
+DOKPLOY_COMPOSE = docker compose -f docker/compose.dokploy.yaml
+E2E_BASE_URL ?= http://localhost:8088
+
+docker-env:
+	@bash scripts/docker-env.sh dev
+
+docker-env-prod:
+	@bash scripts/docker-env.sh prod
+
+docker-dev: docker-env
+	@echo "🔥 Docker dev con hot reload (Ctrl+C para salir)..."
+	$(DEV_COMPOSE) $(DEV_ENV) watch
+
+docker-dev-up: docker-env
+	@echo "🚀 Levantando dev en segundo plano (sin watch)..."
+	$(DEV_COMPOSE) $(DEV_ENV) up -d --build --wait --wait-timeout 600
+
+docker-dev-down:
+	@echo "🛑 Bajando dev..."
+	$(DEV_COMPOSE) $(DEV_ENV) down
+
+docker-dev-reset:
+	@echo "💣 Borrando contenedores y volumen de dev..."
+	$(DEV_COMPOSE) $(DEV_ENV) down -v --remove-orphans
+
+docker-prod: docker-env-prod
+	@echo "🏭 Levantando prod-local (build + healthchecks)..."
+	$(PROD_COMPOSE) $(PROD_ENV) up -d --build --wait --wait-timeout 180
+	@echo "🌐 prod-local listo (puerto WEB_PORT_HOST de docker/.env.prod)"
+
+docker-prod-down:
+	@echo "🛑 Bajando prod-local..."
+	$(PROD_COMPOSE) $(PROD_ENV) down
+
+docker-prod-reset:
+	@echo "💣 Borrando contenedores y volumen de prod-local..."
+	$(PROD_COMPOSE) $(PROD_ENV) down -v --remove-orphans
+
+docker-prod-logs:
+	$(PROD_COMPOSE) $(PROD_ENV) logs -f --tail=100
+
+docker-build:
+	@echo "📦 Construyendo imágenes de producción (--pull)..."
+	$(PROD_COMPOSE) $(PROD_ENV) build --pull
+
+docker-config:
+	@echo "🔎 Validando los 3 compose..."
+	$(DEV_COMPOSE) --env-file docker/env/.env.dev.example config -q
+	$(PROD_COMPOSE) --env-file docker/env/.env.prod.example config -q
+	$(DOKPLOY_COMPOSE) --env-file docker/env/.env.dokploy.example config -q
+	@echo "✅ Compose válidos"
+
+docker-seed:
+	@bash scripts/docker-seed.sh
+
+docker-smoke:
+	@bash scripts/docker-smoke.sh
+
+docker-backup:
+	@bash scripts/docker-backup.sh
+
+docker-restore:
+	@bash scripts/docker-restore.sh "$(FILE)"
+
+e2e-docker:
+	@bash scripts/e2e-docker.sh "$(E2E_BASE_URL)"

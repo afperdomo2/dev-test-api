@@ -31,10 +31,13 @@ export default defineConfig({
     },
   },
   server: {
+    // `host: true` = 0.0.0.0: necesario para el contenedor de desarrollo.
+    host: true,
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        // En Docker el API es otro servicio (`api:8080`); en local es localhost.
+        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8080',
         changeOrigin: true,
       },
     },
