@@ -109,45 +109,53 @@
 
 ## Módulo `auth-hardening` — `specs/SPEC-auth-hardening.md`
 
-- [ ] **AH-1** — Configuración: `SETUP_TOKEN` + límites de auth
-  - Acceptance: `Config.SetupToken`, `RateLimitAuthPerMinute` (10) y `RateLimitAuthBurst` (5); `log.Println` de aviso cuando `SETUP_TOKEN` está vacío (no fatal); `.env.example` documenta las 3 variables; `AUTH_RATE_LIMIT_PER_MINUTE=0` deshabilita
-  - Verify: `make check`; arranque con y sin `SETUP_TOKEN` y revisar el log
-  - Files: `internal/config/config.go`, `.env.example`
+- [x] **AH-1** — Configuración: `SETUP_TOKEN` + límites de auth
+  - Acceptance: `Config.SetupToken`, `RateLimitAuthPerMinute` (10) y `RateLimitAuthBurst` (5); si `SETUP_TOKEN` viene informado y mide **< 16 caracteres** → `log.Fatal`; `.env.example` documenta las 3 variables por bloques (obligatorias / setup inicial / opcionales); `AUTH_RATE_LIMIT_PER_MINUTE=0` deshabilita
+  - Verify: `make check`; arranque con `SETUP_TOKEN` corto → no arranca; con token válido → arranca
+  - Files: `internal/config/config.go`, `.env.example`, `internal/config/config_test.go`
+  - Hecho: `Config` gana `SetupToken`, `RateLimitAuthPerMinute` (10, `0` deshabilita, negativo → default) y `RateLimitAuthBurst` (5, `<=0` → default). `validateSetupToken` exige **≥16** caracteres si viene informado (vacío se decide en el guard de AH-3). `.env.example` reescrito por bloques (obligatorias / setup inicial / servidor / DB / JWT / hardening / rate limit / IA / push) con qué hace cada variable y sus defaults. Tests: defaults, `0`, negativo, burst inválido, token cargado y longitud 15/16. `make check` ✓, `make test` ✓, `go build ./...` ✓
 
-- [ ] **AH-2** — Middleware `RateLimit` (token bucket)
+- [x] **AH-2** — Middleware `RateLimit` (token bucket)
   - Acceptance: `RateLimit(Limit{PerMinute, Burst}, keyFn)` con `map[string]*rate.Limiter` + mutex; barrido perezoso >10 000 claves y >10 min; `PerMinute=0` ⇒ pass-through; al exceder 429 + `Retry-After: 60` + `ErrTooManyRequests`; dependencia `golang.org/x/time` cubierta por D-39 (revisar `.agents/backend/dependencies.md` antes de instalar)
   - Verify: `go get golang.org/x/time && go mod tidy`; `make test` (T7, T8); `make check`
   - Files: `internal/middleware/ratelimit.go`, `internal/middleware/ratelimit_test.go`, `go.mod`, `go.sum`
+  - Hecho: `RateLimit` con `map[string]*rate.Limiter` + mutex, barrido perezoso (>10 000 claves, >10 min), clave por defecto `ClientIP`; `PerMinute=0` pass-through; al exceder **429** + `Retry-After: 60` + `ErrTooManyRequests`. Dependencia `golang.org/x/time v0.16.0` (oficial, revisada con `.agents/backend/dependencies.md`). Tests: 5 permitidas + 6.ª 429 con cabecera, claves independientes y `0` deshabilita. `make test` ✓, `make check` ✓
 
-- [ ] **AH-3** — `SETUP_TOKEN` en el backend + `setupRequiresToken`
-  - Acceptance: `SetupRequest.SetupToken` (`omitempty,max=256`); comparación en tiempo constante sobre SHA-256 de la spec; token vacío/incorrecto → 403 con body idéntico; no se loguea; `StatusResponse.SetupRequiresToken` refleja si está configurado; `GET /auth/status` no se ve afectado
-  - Verify: `make test` (T1–T6, T10); `make check`
-  - Files: `internal/modules/auth/request.go`, `internal/modules/auth/response.go`, `internal/modules/auth/handler.go`, `internal/modules/auth/handler_test.go`
+- [x] **AH-3** — `SETUP_TOKEN` en el backend + `setupRequiresToken`
+  - Acceptance: `SetupRequest.SetupToken` (`omitempty,max=256`); comparación en tiempo constante sobre SHA-256 de la spec; token vacío/incorrecto → 403 con body idéntico; no se loguea; `StatusResponse.SetupRequiresToken` refleja si está configurado; `GET /auth/status` no se ve afectado; **guard de arranque**: DB vacía + `SETUP_TOKEN` vacío → `log.Fatal` accionable; DB inicializada + vacío → warning y setup deshabilitado
+  - Verify: `make test` (T1–T6, T10); `make check`; arranque con DB vacía y sin token → no arranca
+  - Files: `internal/modules/auth/request.go`, `internal/modules/auth/response.go`, `internal/modules/auth/handler.go`, `internal/modules/auth/handler_test.go`, `internal/server/server.go`
+  - Hecho: `SetupRequest.setupToken` y `StatusResponse.setupRequiresToken`; `setupTokenMatches` compara SHA-256 en tiempo constante y falla siempre si el backend no tiene token (fail closed). Sin token/incorrecto → **403** con el mismo `detail` (no distingue), sin loguear el valor. `Handler` recibe el token por constructor; `Status` añade el flag. **Guard en `server.Run`**: `users.Count()==0 && SETUP_TOKEN==""` → `log.Fatal`; ya inicializado → warning. Tests: success 201 con token, 403 sin token, 403 con token incorrecto (mismo body) y `setupRequiresToken` true/false. `make test` ✓, `make check` ✓, `make build` ✓
 
-- [ ] **AH-4** — Rutas: limiter solo en setup/login + Swagger
+- [x] **AH-4** — Rutas: limiter solo en setup/login + Swagger
   - Acceptance: `RegisterRoutes` recibe el `gin.HandlerFunc` del limiter; `/auth/status` queda sin límite; setup/login lo aplican antes del handler; `docs/` documenta 403 y 429; wiring en `server.go`
   - Verify: `make test` (T9: 20 llamadas a status → 200); `make swagger`; bucle de 8 logins → `401×5` y `429`
   - Files: `internal/modules/auth/routes.go`, `internal/server/server.go`, `docs/`
+  - Hecho: `RegisterRoutes(api, handler, authLimit)` aplica el limiter **solo** a setup/login (nil = pass-through defensivo); `/auth/status` queda exento. Wiring en `server.Run` con `cfg.RateLimitAuthPerMinute/Burst`. Test externo (`auth_test`) con el middleware real: 20 llamadas a status → 200 y 5 logins → 401 + 6.º 429 con `Retry-After`. `make swagger` documenta **403** (setup) y **429** (setup/login). `make test` ✓, `make check` ✓
 
-- [ ] **AH-5** — Anti-timing en login (bcrypt dummy)
+- [x] **AH-5** — Anti-timing en login (bcrypt dummy)
   - Acceptance: email inexistente ejecuta `bcrypt.CompareHashAndPassword` contra un hash fijo antes de devolver 401; mismo status/body que contraseña incorrecta; el hash dummy se calcula una sola vez
   - Verify: `make test` (T10); `make check`; medición manual de 20 intentos por caso (diferencia < 2×)
   - Files: `internal/modules/auth/service.go`, `internal/modules/auth/service_test.go`
+  - Hecho: `dummyPasswordHash` se calcula una vez al arrancar; en `ErrRecordNotFound` se compara contra él antes del 401, igualando el coste de bcrypt. Test: email inexistente vs contraseña incorrecta devuelven el mismo **status/title/detail**. `make test` ✓, `make check` ✓. La medición manual de tiempos no se hizo (dependiente de la máquina); la igualdad de coste queda garantizada por el mismo `bcrypt.DefaultCost`
 
-- [ ] **AH-6** — Shared + `SetupPage` web
+- [x] **AH-6** — Shared + `SetupPage` web
   - Acceptance: `SetupRequest.setupToken?` y `StatusResponse.setupRequiresToken` en shared (el re-export de `apps/web/src/types` es fino y no cambia); `SetupPage` muestra campo "Token de instalación" cuando `setupRequiresToken`, lo valida y lo envía en el body; si es `false`, muestra alerta de "Configuración inicial deshabilitada" y deshabilita el submit
   - Verify: `pnpm --filter @devtest/shared typecheck`; `make fe-check`; `make fe-test` (T11, T12); prueba manual contra backend con y sin `SETUP_TOKEN`
   - Files: `packages/shared/src/types/auth.types.ts`, `apps/web/src/features/auth/pages/SetupPage.vue`, `apps/web/src/features/auth/pages/SetupPage.test.ts`
+  - Hecho: shared añade `setupToken?` y `setupRequiresToken`; `SetupPage` consulta `GET /auth/status` al montar, muestra el campo “Token de instalación” (password, `autocomplete=off`) solo si el backend lo pide, lo valida como obligatorio y lo envía en el body. Si no se requiere, muestra un `v-alert` de deshabilitado y bloquea el submit (también mientras no cargó el estado, fail closed). Tests: 7 casos (render, campos, campo visible/oculto, aviso, validación, payload con token y bloqueo). `shared typecheck` ✓, `fe-check` ✓, `fe-lint` ✓, `fe-test` **335 tests** ✓
 
-- [ ] **AH-7** — Mobile: `auth.store` + `SetupScreen`
+- [x] **AH-7** — Mobile: `auth.store` + `SetupScreen`
   - Acceptance: `setup(email, password, setupToken)` en el store; `bootstrap` guarda `setupRequiresToken`; `SetupScreen` pide el token cuando corresponde, muestra aviso y bloquea submit cuando está deshabilitado; usa `AuthInput` y tokens de diseño (sin hex)
   - Verify: `pnpm --filter mobile typecheck`; `pnpm --filter mobile test:run` (T13); prueba manual en Expo
   - Files: `apps/mobile/src/core/auth/auth.store.ts`, `apps/mobile/src/features/auth/screens/SetupScreen.tsx`, `apps/mobile/src/features/auth/screens/SetupScreen.test.tsx`
+  - Hecho: el store guarda `setupRequiresToken` desde `bootstrap` y `setup(email, password, setupToken?)` lo envía al API. `SetupScreen` muestra `AuthInput` de token solo si el backend lo pide, lo valida, muestra un aviso con tokens de diseño cuando está deshabilitado y desactiva `AuthButton`. Tests: 5 (validaciones, token obligatorio, payload con token y bloqueo). `pnpm --filter mobile typecheck` ✓, `test:run` **131 tests** ✓
 
-- [ ] **AH-8** — E2E + documentación del acoplamiento
-  - Acceptance: fixture `setupToken` (`E2E_SETUP_TOKEN ?? 'e2e-setup-token'`); `critical-flow.spec.ts` rellena el campo cuando está visible; comentario/README indicando que el backend debe arrancar con el mismo `SETUP_TOKEN`; `apps/web/README.md` documenta el flujo de primera instalación
+- [x] **AH-8** — E2E + documentación del acoplamiento
+  - Acceptance: fixture `setupToken` (`E2E_SETUP_TOKEN ?? 'e2e-setup-token'`); `critical-flow.spec.ts` rellena el campo cuando está visible; comentario/README indicando que el backend debe arrancar con el mismo `SETUP_TOKEN`; `README.md` raíz y `apps/web/README.md` documentan el flujo de primera instalación
   - Verify: backend con `SETUP_TOKEN=e2e-setup-token` + `pnpm --filter dev-test-frontend test:e2e`
-  - Files: `apps/web/e2e/fixtures.ts`, `apps/web/e2e/critical-flow.spec.ts`, `apps/web/README.md`
+  - Files: `apps/web/e2e/fixtures.ts`, `apps/web/e2e/critical-flow.spec.ts`, `README.md`, `apps/web/README.md`
+  - Hecho: `fixtures.ts` exporta `setupToken` (`E2E_SETUP_TOKEN ?? 'e2e-setup-token'`) con la nota de que debe coincidir con el `SETUP_TOKEN` del backend; el flujo crítico rellena “Token de instalación” solo si el campo está visible. `README.md` (raíz) actualiza el “Primer uso”: `SETUP_TOKEN` obligatorio con DB vacía y `setupToken` en el `curl`; `apps/web/README.md` añade la sección de primera instalación. **E2E no ejecutado**: requiere backend con `SETUP_TOKEN=e2e-setup-token` y DB vacía, no disponibles en esta sesión
 
 ---
 

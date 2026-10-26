@@ -275,19 +275,25 @@ Detalle (hotfix, rollback, migraciones, Dokploy): [`docs/branching.md`](docs/bra
 make install
 pnpm install
 
-# 2. Configurar .env con los datos de tu PostgreSQL
+# 2. Configurar .env con los datos de PostgreSQL y SETUP_TOKEN
 cp .env.example .env
+# SETUP_TOKEN: mínimo 16 caracteres (ej: openssl rand -hex 32).
+# Con la DB vacía es obligatorio: sin él el servidor no arranca.
 
 # 3. Crear el primer usuario admin
 make dev
 curl -X POST http://localhost:8080/api/v1/auth/setup \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@test.com","password":"admin123456"}'
+  -d '{"email":"admin@test.com","password":"admin123456","setupToken":"<tu-setup-token>"}'
 
 # 4. Usar el token devuelto para los endpoints protegidos
 curl http://localhost:8080/api/v1/users \
   -H "Authorization: Bearer <tu-token>"
 ```
+
+El formulario de setup web (`/setup`) y mobile piden el mismo token en el campo
+**“Token de instalación”**. Si `SETUP_TOKEN` está vacío y ya existen usuarios, el
+setup queda deshabilitado (403) y el servidor solo muestra un aviso al arrancar.
 
 ## 📝 Respuestas
 

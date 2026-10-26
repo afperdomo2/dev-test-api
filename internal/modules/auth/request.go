@@ -6,6 +6,7 @@ type LoginRequest struct {
 }
 
 type SetupRequest struct {
-	Email    string `json:"email"    binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8,max=72"`
+	Email      string `json:"email"      binding:"required,email"`
+	Password   string `json:"password"   binding:"required,min=8,max=72"`
+	SetupToken string `json:"setupToken" binding:"omitempty,max=256"`
 }

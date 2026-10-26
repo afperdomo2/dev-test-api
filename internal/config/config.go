@@ -13,6 +13,12 @@ import (
 // defaultMaxBodyBytes es el límite por defecto para bodies JSON (1 MiB).
 const defaultMaxBodyBytes int64 = 1 << 20
 
+const (
+	defaultRateLimitPerMinute = 10
+	defaultRateLimitBurst     = 5
+	minSetupTokenLength       = 16
+)
+
 type CorsConfig struct {
 	AllowedOrigins string
 }
@@ -49,6 +55,11 @@ type Config struct {
 	TrustedProxies []string
 	HSTSEnabled    bool
 	SwaggerEnabled bool
+
+	// Auth hardening
+	SetupToken             string
+	RateLimitAuthPerMinute int
+	RateLimitAuthBurst     int
 }
 
 type DBConfig struct {
@@ -121,6 +132,16 @@ func Load() *Config {
 	cfg.HSTSEnabled = getBoolEnv("HSTS_ENABLED", true)
 	cfg.SwaggerEnabled = swaggerEnabled(cfg.GinMode)
 
+	cfg.SetupToken = getEnv("SETUP_TOKEN", "")
+	cfg.RateLimitAuthPerMinute = getIntEnv("AUTH_RATE_LIMIT_PER_MINUTE", defaultRateLimitPerMinute)
+	if cfg.RateLimitAuthPerMinute < 0 {
+		cfg.RateLimitAuthPerMinute = defaultRateLimitPerMinute
+	}
+	cfg.RateLimitAuthBurst = getIntEnv("AUTH_RATE_LIMIT_BURST", defaultRateLimitBurst)
+	if cfg.RateLimitAuthBurst <= 0 {
+		cfg.RateLimitAuthBurst = defaultRateLimitBurst
+	}
+
 	os.Setenv("GIN_MODE", cfg.GinMode)
 
 	if cfg.JWT.Secret == "" {
@@ -128,6 +149,9 @@ func Load() *Config {
 	}
 	if cfg.DB.Password == "" {
 		log.Fatal("❌ DB_PASSWORD environment variable is required")
+	}
+	if err := validateSetupToken(cfg.SetupToken); err != nil {
+		log.Fatalf("❌ %v", err)
 	}
 
 	if cfg.AI.APIURL != "" && cfg.AI.APIKey != "" {
@@ -137,6 +161,16 @@ func Load() *Config {
 	}
 
 	return cfg
+}
+
+// validateSetupToken exige una longitud mínima cuando el token está informado.
+// Vacío no es error aquí: el guard de arranque decide si es obligatorio
+// (DB vacía) o solo un aviso (sistema ya inicializado). Ver D-38.
+func validateSetupToken(token string) error {
+	if token != "" && len(token) < minSetupTokenLength {
+		return fmt.Errorf("SETUP_TOKEN debe tener al menos %d caracteres", minSetupTokenLength)
+	}
+	return nil
 }
 
 func getEnv(key, fallback string) string {

@@ -104,6 +104,9 @@ Reglas:
 - `SETUP_TOKEN` vacío ⇒ `/auth/setup` **siempre** 403, en debug y release.
 - `SETUP_TOKEN` presente ⇒ se exige coincidencia; si no coincide o falta ⇒ 403
   con el mismo mensaje y body (no distinguir "token ausente" de "token inválido").
+- Si viene informado con **menos de 16 caracteres** ⇒ `log.Fatal` en
+  `config.Load` (evita `SETUP_TOKEN=123`). Vacío no es fatal aquí: lo decide el
+  guard de arranque.
 - La comparación es en tiempo constante sobre hashes SHA-256 (evita filtrar la
   longitud del token):
 
@@ -119,13 +122,24 @@ func setupTokenMatches(got, want string) bool {
 
 - El token viaja en el **body** (`setupToken`), no en query string (el logger de
   Gin registra el query).
-- No se loguea nunca; `config.Load` solo avisa si está vacío:
+- No se loguea nunca.
+
+**Guard de arranque** (en `server.Run`, con la DB ya conectada):
 
 ```go
-if cfg.SetupToken == "" {
-    log.Println("⚠️ SETUP_TOKEN vacío: /auth/setup deshabilitado (la instancia no podrá inicializarse desde la API)")
+count, err := userStore.Count()
+if err != nil { log.Fatalf("❌ No se pudo comprobar el estado inicial: %v", err) }
+
+if count == 0 && cfg.SetupToken == "" {
+    log.Fatal("❌ SETUP_TOKEN es obligatorio con la DB vacía: sin él no se puede crear el primer admin")
+}
+if count > 0 && cfg.SetupToken == "" {
+    log.Println("⚠️ SETUP_TOKEN vacío: /auth/setup deshabilitado (el sistema ya está inicializado)")
 }
 ```
+
+Así una instancia nueva **no arranca en un estado inutilizable**, y una ya
+inicializada no queda acoplada a un secreto de un solo uso.
 
 - La carrera `Count()` + `Create()` se **acepta** ahora que el endpoint está
   detrás de un secreto: dos requests concurrentes con el token correcto son un

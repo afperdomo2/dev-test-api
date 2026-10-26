@@ -52,6 +52,20 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	userService := users.NewService(userStore)
 	userHandler := users.NewHandler(userService)
 
+	// Guard de setup: una DB vacía sin SETUP_TOKEN quedaría inutilizable (no se
+	// podría crear el primer admin). Fallar al arrancar es mejor que arrancar y
+	// descubrirlo en el primer POST /auth/setup (D-38).
+	userCount, err := userStore.Count()
+	if err != nil {
+		log.Fatalf("❌ No se pudo comprobar el estado inicial de usuarios: %v", err)
+	}
+	if userCount == 0 && cfg.SetupToken == "" {
+		log.Fatal("❌ SETUP_TOKEN es obligatorio con la DB vacía: sin él no se puede crear el primer admin")
+	}
+	if userCount > 0 && cfg.SetupToken == "" {
+		log.Println("⚠️ SETUP_TOKEN vacío: /auth/setup deshabilitado (el sistema ya está inicializado)")
+	}
+
 	questionStore := questions.NewStore(db)
 	questionService := questions.NewService(questionStore, topicStore, userStore)
 	questionHandler := questions.NewHandler(questionService)
@@ -107,7 +121,7 @@ func Run(cfg *config.Config, db *gorm.DB) {
 	sessionHandler := sessions.NewHandler(sessionService)
 
 	authService := auth.NewService(userStore, cfg.JWT.SecretBytes(), cfg.JWT.ExpiryHrs)
-	authHandler := auth.NewHandler(authService)
+	authHandler := auth.NewHandler(authService, cfg.SetupToken)
 
 	// push se cablea antes que notifications: su service implementa el Pusher
 	// que el job diario usa para entregar los avisos (D-28).
@@ -154,7 +168,11 @@ func Run(cfg *config.Config, db *gorm.DB) {
 
 	api := r.Group("/api/v1")
 
-	auth.RegisterRoutes(api, authHandler)
+	authLimit := middleware.RateLimit(middleware.Limit{
+		PerMinute: cfg.RateLimitAuthPerMinute,
+		Burst:     cfg.RateLimitAuthBurst,
+	}, nil)
+	auth.RegisterRoutes(api, authHandler, authLimit)
 
 	protected := api.Group("")
 	protected.Use(middleware.Auth(cfg.JWT.SecretBytes()))

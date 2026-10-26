@@ -40,6 +40,7 @@ apierr.ErrConflict("title", "detail", "") // 409
 apierr.ErrForbidden("detail", "")         // 403 (solo política, ver abajo)
 apierr.ErrUnauthorized("detail", "")      // 401
 apierr.ErrPayloadTooLarge("detail...", "") // 413
+apierr.ErrTooManyRequests("detail...", "") // 429
 apierr.ErrInternal("detail", "")          // 500
 ```
 
@@ -61,6 +62,13 @@ Así no se revela la existencia de recursos ajenos (decisión D-37 en
 
 Si añades un endpoint por ID, aplica esta regla y añade el test de "otro
 usuario → 404".
+
+## Rate limiting
+
+`middleware.RateLimit` responde **429** con `Retry-After: 60` y
+`ErrTooManyRequests`. Se aplica solo a `/auth/setup` y `/auth/login`;
+`/auth/status` está exento (lo llama el guard del SPA en cada arranque). Es un
+limiter en memoria por IP: válido para **una** instancia (D-39).
 
 **In handlers**: convert and send:
 
@@ -120,6 +128,7 @@ Error responses follow a bilingual convention: `title` is always in **English**,
 - `ErrForbidden(detail, instance)` → title `"Forbidden"`, detail verbatim
 - `ErrUnauthorized(detail, instance)` → title `"Unauthorized"`, detail verbatim
 - `ErrPayloadTooLarge(detail, instance)` → title `"Payload Too Large"`, detail verbatim (413)
+- `ErrTooManyRequests(detail, instance)` → title `"Too Many Requests"`, detail verbatim (429)
 - `ErrInternal(detail, instance)` → title `"Internal Server Error"`, detail verbatim
 
 **When adding new errors:**

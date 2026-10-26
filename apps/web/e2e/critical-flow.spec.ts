@@ -6,6 +6,7 @@ import {
   DB_HINT,
   ensureBackendIsUp,
   saveAuthState,
+  setupToken,
   trackFailures,
   user,
   warmupVite,
@@ -42,6 +43,12 @@ test.describe('camino crítico', () => {
     await page.getByLabel('Email', { exact: true }).fill(admin.email)
     await page.getByLabel('Contraseña', { exact: true }).fill(admin.password)
     await page.getByLabel('Confirmar contraseña', { exact: true }).fill(admin.password)
+    // El campo solo aparece cuando el backend exige SETUP_TOKEN.
+    const tokenField = page.getByLabel('Token de instalación', { exact: true })
+    if (await tokenField.isVisible().catch(() => false)) {
+      await tokenField.fill(setupToken)
+    }
+
     await page.getByRole('button', { name: 'Crear cuenta', exact: true }).click()
 
     await expect(page).toHaveURL(/\/login$/)

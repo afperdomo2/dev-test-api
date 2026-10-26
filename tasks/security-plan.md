@@ -105,6 +105,9 @@ comparten archivos con `auth-hardening` salvo `package.json`/lock
    documentación quedó con el estado anterior.
 7. Antes de proponer trabajo nuevo, comprobar `specs/`, `tasks/` y `git log`: si
    ya está hecho o decidido, no se rehace.
+8. **Verificación rápida**: durante la implementación, `make staged-check`
+   (lefthook sobre staged) + tests del paquete tocado. El `Verify:` completo de
+   cada tarea se corre al cerrar el entregable, no en cada edición.
 
 ## 7. Mapeo spec → tareas
 

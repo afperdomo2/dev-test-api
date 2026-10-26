@@ -25,6 +25,25 @@ Antes de proponer o cerrar un cambio:
 Si el código cambia una convención y la doc no, el siguiente agente decide con
 contexto viejo: rehará trabajo o romperá algo que ya estaba resuelto.
 
+## Rule: verificación rápida (no dupliques el gate)
+
+El gate completo vive en **lefthook** (pre-commit/pre-push) y **CI**. El agente da
+feedback rápido; no ejecuta suites completas por cambios menores.
+
+- **Tras cada cambio**: formatea/compila el paquete tocado y corre sus tests si
+  existen (`go test ./internal/modules/x/...`, `vitest related <archivo>`,
+  `jest --findRelatedTests <archivo>`).
+- **Antes de pedir el commit**: `make staged-check` (lefthook pre-commit sobre
+  `{staged_files}`: gofmt/vet/test afectados, prettier/eslint/vitest related,
+  jest related). Tarda ~45–60 s si solo hay Go; **~2 min si incluye web** (el
+  arranque de Vitest/jsdom es el coste). Si vas a commitear de inmediato, el hook
+  pre-commit volverá a correrlo: úsalo cuando quieras saberlo antes.
+- **Nunca por defecto**: `make test`, `make fe-test`, `mobile test:run`,
+  `make fe-build`, E2E ni `eslint .` globales.
+- **Sí ejecutar**: `make swagger` cuando cambian anotaciones/contrato; suites
+  completas solo si el humano lo pide, si el cambio toca `packages/shared` o el
+  contrato de API, o antes de una release.
+
 ## Commands
 
 ### Backend (root)
@@ -37,6 +56,7 @@ contexto viejo: rehará trabajo o romperá algo que ya estaba resuelto.
 | `make run` | `go run main.go` on `:8080` |
 | `make swagger` | Regenerate `docs/` from Swagger annotations |
 | `make check` | `make fmt` then `make vet` |
+| `make staged-check` | lefthook pre-commit sobre `{staged_files}` (verificación rápida) |
 | `make test` | Unit tests (`go test -short -count=1`) |
 | `make test-cover` | Tests with coverage (`-coverprofile`) |
 | `make setup` | Install lefthook git hooks (run once after clone) |
@@ -85,7 +105,10 @@ Always run `make fmt` after any backend change to format Go code, then `make vet
 | `pnpm web` | Start web dev server |
 | `pnpm mobile` | Start Expo dev server |
 
-Always run `make fe-format`, `make fe-check` and `make fe-lint` after any web change (format first, so the prettier check never fails). `make fe-build` is only required in CI and before deploy — it's too slow for the dev loop (~8s) and adds no signal that type-check + lint don't already catch. Pre-commit auto-formats staged files with `stage_fixed`; the explicit `make fe-format` is a safety net.
+Format the web files you touch with Prettier and let `make staged-check` run
+`vue-tsc`/eslint/vitest for the staged set. Do **not** run `make fe-build` outside
+CI/deploy: it's slow and adds no signal over type-check + lint. The full web
+suite is a close/CI check, not something to run after every edit.
 
 ## Key facts
 

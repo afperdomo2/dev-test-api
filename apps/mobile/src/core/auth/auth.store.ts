@@ -15,10 +15,11 @@ type AuthState = {
   user: User | null
   actionLoading: boolean
   needsSetup: boolean | null
+  setupRequiresToken: boolean
   ready: boolean
   bootstrap: () => Promise<void>
   login: (email: string, password: string) => Promise<void>
-  setup: (email: string, password: string) => Promise<void>
+  setup: (email: string, password: string, setupToken?: string) => Promise<void>
   logout: () => Promise<void>
   clearSession: () => Promise<void>
 }
@@ -28,13 +29,14 @@ export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
   actionLoading: false,
   needsSetup: null,
+  setupRequiresToken: false,
   ready: false,
 
   bootstrap: async () => {
     try {
       const status = await getStatus()
       const needsSetup = !status.initialized
-      set({ needsSetup })
+      set({ needsSetup, setupRequiresToken: status.setupRequiresToken })
       if (!needsSetup) {
         const token = await getToken()
         if (token) {
@@ -65,10 +67,10 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }
   },
 
-  setup: async (email, password) => {
+  setup: async (email, password, setupToken) => {
     set({ actionLoading: true })
     try {
-      await setupApi({ email, password })
+      await setupApi({ email, password, setupToken })
       set({ needsSetup: false })
     } finally {
       set({ actionLoading: false })

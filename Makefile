@@ -1,4 +1,5 @@
 .PHONY: install dev build swagger clean run fmt fmt-check vet check setup test test-cover db-seed \
+        staged-check \
         migrate-up migrate-down migrate-status migrate-create \
         fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover \
         e2e e2e-ui e2e-report \
@@ -64,6 +65,10 @@ setup:
 	@echo "🔗 Installing git hooks..."
 	go tool lefthook install
 	@echo "✅ Hooks installed"
+
+staged-check:
+	@echo "🔎 Verificando archivos en staging (lefthook pre-commit)..."
+	@go tool lefthook run pre-commit
 
 db-seed:
 	@echo "🌱 Seeding 50 preguntas..."

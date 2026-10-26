@@ -8,10 +8,10 @@ describe('SetupScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useAuthStore.setState({ setup, actionLoading: false })
+    useAuthStore.setState({ setup, actionLoading: false, setupRequiresToken: true })
   })
 
-  it('valida los tres campos vacíos', async () => {
+  it('valida los campos vacíos', async () => {
     await render(<SetupScreen />)
 
     await fireEvent.press(screen.getByLabelText('Crear cuenta'))
@@ -34,15 +34,42 @@ describe('SetupScreen', () => {
     expect(setup).not.toHaveBeenCalled()
   })
 
-  it('con datos válidos llama al setup con el email recortado', async () => {
+  it('exige el token de instalación cuando el backend lo pide', async () => {
+    await render(<SetupScreen />)
+
+    await fireEvent.changeText(screen.getByTestId('setup-email'), 'admin@test.com')
+    await fireEvent.changeText(screen.getByTestId('setup-password'), 'secreta123')
+    await fireEvent.changeText(screen.getByTestId('setup-confirm'), 'secreta123')
+    await fireEvent.press(screen.getByLabelText('Crear cuenta'))
+
+    expect(screen.getByText('El token de instalación es obligatorio')).toBeOnTheScreen()
+    expect(setup).not.toHaveBeenCalled()
+  })
+
+  it('con datos válidos llama al setup con email recortado y token', async () => {
     setup.mockResolvedValue(undefined)
 
     await render(<SetupScreen />)
     await fireEvent.changeText(screen.getByTestId('setup-email'), '  admin@test.com  ')
     await fireEvent.changeText(screen.getByTestId('setup-password'), 'secreta123')
     await fireEvent.changeText(screen.getByTestId('setup-confirm'), 'secreta123')
+    await fireEvent.changeText(screen.getByTestId('setup-token'), 'install-token')
     await fireEvent.press(screen.getByLabelText('Crear cuenta'))
 
-    await waitFor(() => expect(setup).toHaveBeenCalledWith('admin@test.com', 'secreta123'))
+    await waitFor(() =>
+      expect(setup).toHaveBeenCalledWith('admin@test.com', 'secreta123', 'install-token'),
+    )
+  })
+
+  it('muestra el aviso y bloquea el submit cuando el setup está deshabilitado', async () => {
+    useAuthStore.setState({ setup, actionLoading: false, setupRequiresToken: false })
+
+    await render(<SetupScreen />)
+
+    expect(screen.getByTestId('setup-disabled')).toBeOnTheScreen()
+    expect(screen.queryByTestId('setup-token')).toBeNull()
+
+    await fireEvent.press(screen.getByLabelText('Crear cuenta'))
+    expect(setup).not.toHaveBeenCalled()
   })
 })

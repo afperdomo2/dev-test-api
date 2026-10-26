@@ -6,6 +6,7 @@ import (
 
 	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
+	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -162,6 +163,27 @@ func TestLogin(t *testing.T) {
 		svc := NewService(store, secret, "24")
 		_, err := svc.Login("a@b.com", "pass")
 		require.Error(t, err)
+	})
+
+	t.Run("email inexistente y password incorrecta son indistinguibles", func(t *testing.T) {
+		store := newAuthStore()
+		store.findByEmailFn = func(email string) (*models.User, error) {
+			if email == "missing@b.com" {
+				return nil, gorm.ErrRecordNotFound
+			}
+			return &models.User{Email: email, PasswordHash: string(hash)}, nil
+		}
+		svc := NewService(store, secret, "24")
+
+		_, errMissing := svc.Login("missing@b.com", "wrong-password")
+		_, errWrong := svc.Login("a@b.com", "wrong-password")
+
+		var a, b *apierr.APIError
+		require.ErrorAs(t, errMissing, &a)
+		require.ErrorAs(t, errWrong, &b)
+		assert.Equal(t, a.Status, b.Status)
+		assert.Equal(t, a.Title, b.Title)
+		assert.Equal(t, a.Detail, b.Detail, "mismo body para no filtrar si el email existe")
 	})
 }
 

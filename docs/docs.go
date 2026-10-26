@@ -65,13 +65,19 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
                     }
                 }
             }
         },
         "/api/v1/auth/setup": {
             "post": {
-                "description": "Crea el primer usuario admin del sistema. Solo funciona si no hay usuarios creados.",
+                "description": "Crea el primer usuario admin del sistema. Solo funciona si no hay usuarios creados y el body incluye un ` + "`" + `setupToken` + "`" + ` válido (SETUP_TOKEN del servidor). Sin token o con token incorrecto responde 403; si ya hay usuarios, 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -84,7 +90,7 @@ const docTemplate = `{
                 "summary": "Inicializar sistema (primer usuario admin)",
                 "parameters": [
                     {
-                        "description": "Credenciales del admin inicial",
+                        "description": "Credenciales del admin inicial + setupToken",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -106,8 +112,20 @@ const docTemplate = `{
                             "$ref": "#/definitions/apierr.APIError"
                         }
                     },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
                     "409": {
                         "description": "System Already Initialized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -3488,6 +3506,10 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 8
+                },
+                "setupToken": {
+                    "type": "string",
+                    "maxLength": 256
                 }
             }
         },
@@ -3495,6 +3517,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "initialized": {
+                    "type": "boolean"
+                },
+                "setupRequiresToken": {
                     "type": "boolean"
                 }
             }

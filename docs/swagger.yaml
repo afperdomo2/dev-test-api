@@ -39,6 +39,9 @@ definitions:
         maxLength: 72
         minLength: 8
         type: string
+      setupToken:
+        maxLength: 256
+        type: string
     required:
     - email
     - password
@@ -46,6 +49,8 @@ definitions:
   auth.StatusResponse:
     properties:
       initialized:
+        type: boolean
+      setupRequiresToken:
         type: boolean
     type: object
   gamification.BadgeItem:
@@ -1047,6 +1052,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/apierr.APIError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/apierr.APIError'
       summary: Iniciar sesión
       tags:
       - auth
@@ -1055,9 +1064,11 @@ paths:
       consumes:
       - application/json
       description: Crea el primer usuario admin del sistema. Solo funciona si no hay
-        usuarios creados.
+        usuarios creados y el body incluye un `setupToken` válido (SETUP_TOKEN del
+        servidor). Sin token o con token incorrecto responde 403; si ya hay usuarios,
+        409.
       parameters:
-      - description: Credenciales del admin inicial
+      - description: Credenciales del admin inicial + setupToken
         in: body
         name: body
         required: true
@@ -1074,8 +1085,16 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
         "409":
           description: System Already Initialized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/apierr.APIError'
       summary: Inicializar sistema (primer usuario admin)

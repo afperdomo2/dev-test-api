@@ -19,6 +19,9 @@ func loadWith(t *testing.T, env map[string]string) *Config {
 	t.Setenv("TRUSTED_PROXIES", "")
 	t.Setenv("HSTS_ENABLED", "")
 	t.Setenv("SWAGGER_ENABLED", "")
+	t.Setenv("SETUP_TOKEN", "")
+	t.Setenv("AUTH_RATE_LIMIT_PER_MINUTE", "")
+	t.Setenv("AUTH_RATE_LIMIT_BURST", "")
 
 	for k, v := range env {
 		t.Setenv(k, v)
@@ -67,4 +70,35 @@ func TestLoadHSTSFlag(t *testing.T) {
 	assert.False(t, loadWith(t, map[string]string{"HSTS_ENABLED": "false"}).HSTSEnabled)
 	assert.True(t, loadWith(t, map[string]string{"HSTS_ENABLED": "no-es-bool"}).HSTSEnabled,
 		"valor inválido cae al default")
+}
+
+func TestLoadAuthHardeningDefaults(t *testing.T) {
+	cfg := loadWith(t, nil)
+
+	assert.Empty(t, cfg.SetupToken, "sin token configurado")
+	assert.Equal(t, 10, cfg.RateLimitAuthPerMinute)
+	assert.Equal(t, 5, cfg.RateLimitAuthBurst)
+}
+
+func TestLoadAuthRateLimits(t *testing.T) {
+	assert.Equal(t, 0, loadWith(t, map[string]string{"AUTH_RATE_LIMIT_PER_MINUTE": "0"}).RateLimitAuthPerMinute,
+		"0 deshabilita el limiter")
+	assert.Equal(t, 10, loadWith(t, map[string]string{"AUTH_RATE_LIMIT_PER_MINUTE": "-1"}).RateLimitAuthPerMinute,
+		"negativo cae al default")
+	assert.Equal(t, 20, loadWith(t, map[string]string{"AUTH_RATE_LIMIT_PER_MINUTE": "20"}).RateLimitAuthPerMinute)
+
+	assert.Equal(t, 5, loadWith(t, map[string]string{"AUTH_RATE_LIMIT_BURST": "0"}).RateLimitAuthBurst,
+		"burst 0 no es válido")
+	assert.Equal(t, 8, loadWith(t, map[string]string{"AUTH_RATE_LIMIT_BURST": "8"}).RateLimitAuthBurst)
+}
+
+func TestLoadSetupToken(t *testing.T) {
+	cfg := loadWith(t, map[string]string{"SETUP_TOKEN": "token-de-16-o-mas"})
+	assert.Equal(t, "token-de-16-o-mas", cfg.SetupToken)
+}
+
+func TestValidateSetupToken(t *testing.T) {
+	assert.NoError(t, validateSetupToken(""), "vacío se decide en el guard de arranque")
+	assert.Error(t, validateSetupToken("123456789012345"), "15 caracteres no alcanza")
+	assert.NoError(t, validateSetupToken("1234567890123456"), "16 es el mínimo")
 }
