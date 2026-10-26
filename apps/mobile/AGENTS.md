@@ -29,6 +29,7 @@ Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Ini
 - Tabs con **NativeTabs** (`expo-router/unstable-native-tabs`), labels en español, iconos SF Symbol + Material.
 - DTOs/tipos/formatters desde `@devtest/shared` — no duplicar.
 - **Iconos**: `MaterialCommunityIcons` de `@expo/vector-icons` — nunca emojis para iconos estructurales.
+- **`expo-notifications` se carga en diferido** (`loadNotifications()` en `src/core/push/notifications.ts`): un import estático rompe Expo Go en Android (N-12).
 - **Bottom sheet**: `@gorhom/bottom-sheet` para menús de acciones (requiere reanimated + gesture-handler del SDK).
 - **Markdown**: `react-native-markdown-display` para contenido de preguntas/explicaciones.
 

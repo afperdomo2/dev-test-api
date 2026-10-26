@@ -1,11 +1,55 @@
 import { Platform } from 'react-native'
-import Constants from 'expo-constants'
+import Constants, { ExecutionEnvironment } from 'expo-constants'
 import * as Device from 'expo-device'
-import * as Notifications from 'expo-notifications'
+
+type NotificationsModule = typeof import('expo-notifications')
 
 const CHANNEL_ID = 'default'
 
+let cachedModule: NotificationsModule | null | undefined
+
+/**
+ * Expo Go en Android (SDK 57) no registra el nativo `ExpoTopicSubscriptionModule`
+ * y `expo-notifications` lo resuelve al importarse, así que un import estático
+ * deja la app en pantalla roja antes de renderizar (expo/expo#52175). En ese
+ * entorno el push remoto tampoco está soportado desde SDK 53, por eso ni
+ * siquiera cargamos el módulo.
+ */
+function isExpoGoAndroid(): boolean {
+  return (
+    Platform.OS === 'android' &&
+    Constants.executionEnvironment === ExecutionEnvironment.StoreClient
+  )
+}
+
+/**
+ * Carga `expo-notifications` de forma diferida y opcional: si el entorno no lo
+ * soporta (Expo Go en Android) o el import falla, el push se desactiva sin
+ * romper el arranque de la app.
+ */
+function loadNotifications(): NotificationsModule | null {
+  if (cachedModule !== undefined) return cachedModule
+
+  if (isExpoGoAndroid()) {
+    cachedModule = null
+    return cachedModule
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    cachedModule = require('expo-notifications') as NotificationsModule
+  } catch (error) {
+    console.warn('⚠️ Push deshabilitado: expo-notifications no está disponible:', error)
+    cachedModule = null
+  }
+
+  return cachedModule
+}
+
 export async function ensurePermission(): Promise<boolean> {
+  const Notifications = loadNotifications()
+  if (!Notifications) return false
+
   const current = await Notifications.getPermissionsAsync()
   if (current.granted) return true
 
@@ -13,7 +57,7 @@ export async function ensurePermission(): Promise<boolean> {
   return requested.granted
 }
 
-async function ensureAndroidChannel(): Promise<void> {
+async function ensureAndroidChannel(Notifications: NotificationsModule): Promise<void> {
   if (Platform.OS !== 'android') return
 
   await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
@@ -29,6 +73,12 @@ async function ensureAndroidChannel(): Promise<void> {
 export async function getDevicePushToken(): Promise<string | null> {
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') return null
 
+  const Notifications = loadNotifications()
+  if (!Notifications) {
+    console.warn('⚠️ Push deshabilitado: expo-notifications no está disponible en este entorno')
+    return null
+  }
+
   if (!Device.isDevice) {
     console.warn('⚠️ Push deshabilitado: no es un dispositivo físico')
     return null
@@ -40,7 +90,7 @@ export async function getDevicePushToken(): Promise<string | null> {
     return null
   }
 
-  await ensureAndroidChannel()
+  await ensureAndroidChannel(Notifications)
 
   const token = await Notifications.getExpoPushTokenAsync({ projectId })
   return token.data
@@ -51,6 +101,9 @@ export async function getDevicePushToken(): Promise<string | null> {
  * (incluido el arranque en frío). Devuelve la limpieza de los listeners.
  */
 export function configureNotificationHandling(onOpen: () => void): () => void {
+  const Notifications = loadNotifications()
+  if (!Notifications) return () => undefined
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,

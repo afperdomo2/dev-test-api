@@ -156,6 +156,16 @@ The mobile app uses `fetch` (not axios). The client must:
 
 The envelope/error contract is defined in `.agents/backend/responses.md` — the mobile client implements the consuming side.
 
+## Push notifications
+
+`src/core/push/` centraliza permisos, obtención del token y registro en el backend. Es **best-effort**: si algo falla, la app sigue funcionando sin push (ver N-09).
+
+`expo-notifications` se carga con `loadNotifications()` (require perezoso), **nunca** con un `import` estático:
+
+- Expo Go en Android (SDK 57) no registra `ExpoTopicSubscriptionModule` y el import estático rompe el arranque antes de renderizar (expo/expo#52175 → N-12).
+- En Expo Go Android el push remoto no existe desde SDK 53, así que ahí se omite el módulo por completo.
+- En development build / producción se carga normal y el push funciona.
+
 ## Path aliases
 
 `tsconfig.json` maps `@/*` → `src/*`. Prefer aliases over relative imports. Expo resolves tsconfig paths (ensure `tsconfigPaths` is enabled if not default).
