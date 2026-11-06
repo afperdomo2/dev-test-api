@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 
 import LoginScreen from './LoginScreen'
 import { useAuthStore } from '@/core/auth/auth.store'
@@ -40,6 +40,45 @@ describe('LoginScreen', () => {
 
     expect(screen.getByText('Email no válido')).toBeOnTheScreen()
     expect(login).not.toHaveBeenCalled()
+  })
+
+  it('oculta la contraseña por defecto', async () => {
+    await render(<LoginScreen />)
+
+    expect(screen.getByTestId('login-password')).toHaveProp('secureTextEntry', true)
+    expect(screen.getByLabelText('Mostrar contraseña')).toBeOnTheScreen()
+  })
+
+  it('permite mostrar y volver a ocultar la contraseña', async () => {
+    await render(<LoginScreen />)
+
+    await fireEvent.press(screen.getByLabelText('Mostrar contraseña'))
+    expect(screen.getByTestId('login-password')).toHaveProp('secureTextEntry', false)
+    expect(screen.getByLabelText('Ocultar contraseña')).toBeOnTheScreen()
+
+    await fireEvent.press(screen.getByLabelText('Ocultar contraseña'))
+    expect(screen.getByTestId('login-password')).toHaveProp('secureTextEntry', true)
+    expect(screen.getByLabelText('Mostrar contraseña')).toBeOnTheScreen()
+  })
+
+  it('vuelve a ocultar la contraseña mientras se envía el formulario', async () => {
+    await render(<LoginScreen />)
+    await fireEvent.press(screen.getByLabelText('Mostrar contraseña'))
+    expect(screen.getByTestId('login-password')).toHaveProp('secureTextEntry', false)
+
+    await act(async () => {
+      useAuthStore.setState({ actionLoading: true })
+    })
+
+    expect(screen.getByTestId('login-password')).toHaveProp('secureTextEntry', true)
+    expect(screen.getByLabelText('Mostrar contraseña')).toBeDisabled()
+
+    await act(async () => {
+      useAuthStore.setState({ actionLoading: false })
+    })
+
+    // Al volver a habilitarse sigue oculta: no reexpone lo que el usuario mostró.
+    expect(screen.getByTestId('login-password')).toHaveProp('secureTextEntry', true)
   })
 
   it('con datos válidos llama al login con el email recortado', async () => {

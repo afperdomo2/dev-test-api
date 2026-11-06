@@ -32,6 +32,40 @@ describe('LoginForm', () => {
     expect(wrapper.text()).toContain('Contraseña')
   })
 
+  it('oculta la contraseña y permite mostrarla u ocultarla de nuevo', async () => {
+    const wrapper = mountForm()
+    const toggle = wrapper.find('[data-test="login-password-toggle"]')
+
+    expect(wrapper.find('input[type="password"]').exists()).toBe(true)
+    expect(toggle.attributes('aria-label')).toBe('Mostrar contraseña')
+
+    await toggle.trigger('click')
+    expect(wrapper.find('input[type="text"]').exists()).toBe(true)
+    expect(toggle.attributes('aria-label')).toBe('Ocultar contraseña')
+
+    await toggle.trigger('click')
+    expect(wrapper.find('input[type="password"]').exists()).toBe(true)
+    // El botón es type="button": alternar visibilidad nunca envía el formulario.
+    expect(authService.login).not.toHaveBeenCalled()
+  })
+
+  it('oculta la contraseña mientras se envía el formulario', async () => {
+    let resolve: (value: unknown) => void
+    vi.mocked(authService.login).mockReturnValue(new Promise((r) => (resolve = r)) as never)
+    const wrapper = mountForm()
+
+    await wrapper.find('input[type="email"]').setValue('a@b.com')
+    await wrapper.find('input[type="password"]').setValue('secret123')
+    await wrapper.find('[data-test="login-password-toggle"]').trigger('click')
+    expect(wrapper.find('input[type="text"]').exists()).toBe(true)
+
+    await wrapper.find('form').trigger('submit.prevent')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('input[type="password"]').exists()).toBe(true)
+    resolve!({ token: 't', user: { id: '1' } })
+  })
+
   it('validates empty submit', async () => {
     const wrapper = mountForm()
     await wrapper.find('form').trigger('submit.prevent')

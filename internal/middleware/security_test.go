@@ -47,6 +47,34 @@ func TestSecurityHeaders(t *testing.T) {
 		assert.Empty(t, w.Header().Get("Strict-Transport-Security"))
 	})
 
+	t.Run("swagger recibe una CSP que permite sus assets locales", func(t *testing.T) {
+		r := gin.New()
+		r.Use(SecurityHeaders(false))
+		serve := func(c *gin.Context) { c.String(http.StatusOK, "ok") }
+		r.GET("/swagger", serve)
+		r.GET("/swagger/*any", serve)
+
+		for _, path := range []string{"/swagger", "/swagger/index.html", "/swagger/doc.json"} {
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+
+			assert.Equal(t, securityHeadersSwaggerCSP, w.Header().Get("Content-Security-Policy"), path)
+			assert.Equal(t, "nosniff", w.Header().Get("X-Content-Type-Options"), path)
+			assert.Equal(t, "DENY", w.Header().Get("X-Frame-Options"), path)
+		}
+	})
+
+	t.Run("una ruta fuera de /swagger conserva la CSP estricta", func(t *testing.T) {
+		r := gin.New()
+		r.Use(SecurityHeaders(false))
+		r.GET("/swaggerish", func(c *gin.Context) { c.String(http.StatusOK, "ok") })
+
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/swaggerish", nil))
+
+		assert.Equal(t, securityHeadersAPICSP, w.Header().Get("Content-Security-Policy"))
+	})
+
 	t.Run("también cubre respuestas de error", func(t *testing.T) {
 		r := gin.New()
 		r.Use(SecurityHeaders(true))

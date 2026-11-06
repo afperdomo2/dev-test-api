@@ -117,6 +117,12 @@ endpoint nuevo hereda ambos. `BodyLimit` acota la memoria; un handler que necesi
 más (p. ej. import) usa su propio tope explícito y responde **413** con
 `apierr.ErrPayloadTooLarge`.
 
+La CSP estricta de la API (`default-src 'none'`) se relaja **solo** en
+`/swagger` y `/swagger/*`: Swagger UI necesita cargar su bundle, sus estilos y
+su `doc.json` desde el mismo origen (`default-src 'self'`). Es seguro porque el
+handler de Swagger solo se registra con `SWAGGER_ENABLED` (off por defecto en
+release). No ampliar esa excepción a otras rutas.
+
 ### Server (`http.Server`)
 
 | Ajuste | Valor |

@@ -118,6 +118,12 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 - `accessibilityState` for dynamic states (selected, disabled, busy).
 - Screen reader focus order must match visual order.
 
+### Password fields
+- Usar `PasswordInput` (envuelve `AuthInput`): empieza oculto y el botón del ojo alterna `secureTextEntry`.
+- El toggle es un control accesible: `accessibilityRole="button"`, `accessibilityLabel` dinámico ("Mostrar/Ocultar contraseña"), hint y target ≥44pt.
+- La visibilidad **no se persiste**: se resetea al bloquear el campo (envío en curso) y nunca se loggea ni se copia la contraseña.
+- Autofill del sistema: login → `autoComplete="current-password"` + `textContentType="password"`; alta → `new-password`; email → `autoComplete="email"` + `textContentType="emailAddress"`.
+
 ### List rows (sessions)
 - **Máximo 3 líneas por card**: nombre / badges (estado + modo + dificultad) / meta (tiempo relativo + progreso + score). Si una card crece a 4–5 líneas, sobra información: muévela al detalle. Los temas no van en la card: el nombre de la sesión ya los insinúa y el resumen los muestra.
 - Una sola línea de badges (`flexDirection: 'row'`, sin `flexWrap`) y **sin más de 3 badges**: un cuarto badge con `flexShrink` colapsa a un "punto con borde" ilegible.

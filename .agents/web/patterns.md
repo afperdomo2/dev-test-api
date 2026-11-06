@@ -73,6 +73,15 @@ ESLint enforces these rules automatically:
 - **Template casing**: PascalCase for components, hyphenated for attributes/props
 - **Type imports**: `import type { X }` for type-only imports
 
+## Password fields
+
+`PasswordField` (`features/auth/components/PasswordField.vue`) encapsula un `v-text-field` de contraseña y es el patrón a reutilizar (login ya lo usa):
+
+- Arranca con `type="password"`; el botón del `append-inner` es un `v-btn` nativo (`type="button"`, no envía el form) que alterna a `type="text"`.
+- El botón lleva `aria-label` dinámico («Mostrar/Ocultar contraseña»): nunca se depende solo del icono.
+- Al deshabilitarse el campo (envío en curso) vuelve a ocultarse; la visibilidad no se persiste.
+- Autofill: login → `autocomplete="current-password"` (email con `autocomplete="username"`); alta → `new-password`.
+
 ## TypeScript rules
 
 | Rule | Setting |

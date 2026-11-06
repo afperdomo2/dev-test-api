@@ -215,8 +215,14 @@ func SecurityHeaders(hsts bool) gin.HandlerFunc {
         h.Set("X-Frame-Options", "DENY")
         h.Set("Referrer-Policy", "no-referrer")
         h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-        // API JSON: no debe cargar ni ejecutar nada
-        h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+        // API JSON: no debe cargar ni ejecutar nada.
+        // /swagger/* se relaja (default-src 'self') porque Swagger UI carga sus
+        // assets locales y su doc.json; solo existe con SWAGGER_ENABLED.
+        if isSwaggerPath(c.Request.URL.Path) {
+            h.Set("Content-Security-Policy", securityHeadersSwaggerCSP)
+        } else {
+            h.Set("Content-Security-Policy", securityHeadersAPICSP)
+        }
         if hsts {
             h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         }

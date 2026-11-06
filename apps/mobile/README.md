@@ -57,7 +57,7 @@ apps/mobile/
 │   │   ├── theme/       # tokens.ts (colores, spacing, tipografía)
 │   │   └── utils/       # errors.ts (extrae detail de RFC 9457)
 │   └── features/
-│       ├── auth/        # LoginScreen, SetupScreen, AuthCard, AuthInput, AuthButton
+│       ├── auth/        # LoginScreen, SetupScreen, AuthCard, AuthInput, PasswordInput, AuthButton
 │       ├── home/        # HomeScreen (placeholder)
 │       ├── profile/     # ProfileScreen (placeholder)
 │       ├── progress/    # ProgressScreen (placeholder)
