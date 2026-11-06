@@ -84,6 +84,11 @@ scripts/{docker-env,docker-seed,docker-smoke,docker-backup,docker-restore,e2e-do
     o en un YAML rompe el build en Linux.
 12. **`docs/` se compila dentro del binario** (`main.go` importa `docs`). No lo
     excluyas del contexto del backend ni de la imagen.
+13. **El compose de Dokploy se puede instanciar N veces** (p. ej. pruebas +
+    producción): cada servicio de Dokploy es un proyecto Compose independiente.
+    No fijar `name:` ni `container_name`, y no compartir `JWT_SECRET` entre
+    instancias (un token de pruebas valdría en producción). Cambian al menos
+    `APP_ORIGIN`, `DB_NAME`, `DB_PASSWORD`, `JWT_SECRET` y `SETUP_TOKEN`.
 
 ## Verificación al tocar Docker
 
@@ -138,6 +143,10 @@ make docker-dev
 - `web` está en `dokploy-network`; `api`/`db` en la red interna del compose.
 - Variables: pegar `docker/env/.env.dokploy.example` con secretos reales.
   `APP_ORIGIN` es obligatorio (https, sin `/` final).
+- **Dos instancias (pruebas + producción)**: mismo compose en dos servicios de
+  Dokploy. Cada uno tiene su Environment (cambian `APP_ORIGIN`, `DB_NAME`,
+  `DB_PASSWORD`, `JWT_SECRET` y `SETUP_TOKEN`), su red y su volumen `db-data`.
+  No agregar `name:` al compose.
 - Primer deploy: `SETUP_TOKEN` obligatorio → crear admin → borrar token →
   redeploy.
 - Backups: Volume Backup de Dokploy sobre `db-data` o `make docker-backup`

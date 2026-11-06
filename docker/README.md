@@ -53,7 +53,7 @@ Es un comando **en primer plano**: muestra logs y sale con Ctrl+C.
 |---|---|---|
 | web (Vite) | http://localhost:3030 | HMR; `/api` proxya a `api:8080` |
 | API | http://localhost:8082 | Swagger en `/swagger/index.html` |
-| PostgreSQL | localhost:5435 | `devtest` / `devtest` / `dev_test_api` |
+| PostgreSQL | localhost:5435 | `devtest` / `dev-only-password-change-me` / `dev_test_api` |
 
 ### Hot reload
 
@@ -108,6 +108,11 @@ make docker-smoke          # valida contrato HTTP y cabeceras
 - `api` corre read-only, non-root, sin capabilities; `web` non-root con
   `cap_drop: ALL`.
 - `GIN_MODE=release`, Swagger apagado por defecto (`SWAGGER_ENABLED=false`).
+
+> **Ojo con el env file**: `docker compose -f docker/compose.prod.yaml` sin
+> `--env-file` carga `docker/.env` (el de dev) y arranca con los secretos y el
+> `WEB_PORT_HOST` de dev. Usá `make docker-prod` o pasá siempre
+> `--env-file docker/.env.prod`.
 
 Flujo recomendado la primera vez:
 
@@ -171,15 +176,55 @@ Un solo stack con `db` + `api` + `web`:
 
 | Variable | Ejemplo | Nota |
 |---|---|---|
-| `APP_ORIGIN` | `https://app.tu-dominio.com` | CORS + CSP; sin `/` final |
+| `APP_ORIGIN` | `https://app.tu-dominio.com` | Alimenta `CORS_ALLOWED_ORIGINS`; sin `/` final |
 | `DB_PASSWORD` | secreto fuerte | La usan `db` y `api` |
 | `JWT_SECRET` | `openssl rand -hex 32` | Firma de tokens |
 | `SETUP_TOKEN` | ≥16 chars | Solo hasta crear el admin |
 | `TRUSTED_PROXIES` | `172.16.0.0/12,10.0.0.0/8` | Sin esto el rate-limit es global |
 | `TZ` | `America/Bogota` | Define las 08:00 del scheduler |
 
-Opcionales: `AI_API_URL`, `AI_API_KEY`, `AI_MODEL`, `EXPO_ACCESS_TOKEN`,
-`SWAGGER_ENABLED`, `VITE_API_BASE_URL` (vacío = same-origin).
+`TRUSTED_PROXIES` debe cubrir **Traefik y la subred interna del compose** (el
+peer inmediato del API es nginx, no Traefik). Verificalo en el VPS:
+
+```bash
+docker network inspect dokploy-network --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'
+docker network inspect <proyecto>_default --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'
+```
+
+Opcionales: `AI_API_URL`, `AI_API_KEY`, `AI_MODEL`, `AI_REQUEST_TIMEOUT`,
+`OPENCODE_USAGE_URL`, `OPENCODE_USAGE_TIMEOUT`, `EXPO_PUSH_URL`,
+`EXPO_ACCESS_TOKEN`, `GIN_MODE`, `HSTS_ENABLED`, `SWAGGER_ENABLED`,
+`MAX_BODY_BYTES`, `AUTH_RATE_LIMIT_PER_MINUTE`, `AUTH_RATE_LIMIT_BURST`,
+`VITE_API_BASE_URL` (vacío = same-origin).
+
+### Dos stacks en el mismo Dokploy (pruebas + producción)
+
+El mismo `docker/compose.dokploy.yaml` se puede desplegar **dos veces** como dos
+servicios/proyectos separados de Dokploy. Cada instancia crea su propia red, su
+volumen `db-data` y sus contenedores; no hay colisión. Comparten
+`dokploy-network` (necesario para Traefik) y se enrutan por dominio.
+
+| Variable | Pruebas | Producción |
+|---|---|---|
+| `APP_ORIGIN` | `https://dev.tu-dominio.com` | `https://app.tu-dominio.com` |
+| `DB_NAME` | `dev_test_api_dev` (recomendado) | `dev_test_api` |
+| `DB_PASSWORD` | secreto distinto | secreto distinto |
+| `JWT_SECRET` | secreto distinto | secreto distinto |
+| `SETUP_TOKEN` | token distinto | token distinto |
+| `SWAGGER_ENABLED` | `true` si querés Swagger | `false` |
+
+- **No compartas `JWT_SECRET`**: un token emitido por pruebas sería válido en
+  producción.
+- **No fijes `name:` ni `container_name`** en el compose: Dokploy necesita que
+  cada servicio sea un proyecto Compose distinto.
+- Podés apuntar cada servicio a una rama distinta (`develop` y `main`).
+- El primer arranque de **cada** instancia exige su propio `SETUP_TOKEN` (DB
+  vacía) y hay que retirarlo después de crear el admin.
+- Si querés el stack de pruebas con Swagger y logs SQL debug: `SWAGGER_ENABLED=true`
+  y `GIN_MODE=debug` (en producción dejá `release`).
+- El APK solo puede apuntar a un backend: `apps/mobile/eas.json` tiene una sola
+  `EXPO_PUBLIC_API_BASE_URL` (D-47). Para probar contra los dos, necesitás dos
+  perfiles de build o recompilar.
 
 ### Actualizar / rollback
 
@@ -195,7 +240,7 @@ Opcionales: `AI_API_URL`, `AI_API_KEY`, `AI_MODEL`, `EXPO_ACCESS_TOKEN`,
 
 | Archivo | Se usa en | Se versiona |
 |---|---|---|
-| `docker/.env` | dev (auto, project dir) | No |
+| `docker/.env` | dev (auto si no pasás `--env-file`) | No |
 | `docker/.env.prod` | prod-local (`--env-file`) | No |
 | `deploy` UI | Dokploy | No (se pega en la UI) |
 | `docker/env/*.example` | plantillas + `make docker-config` | Sí |
@@ -205,7 +250,12 @@ Reglas:
 - **Secretos**: `DB_PASSWORD`, `JWT_SECRET`, `SETUP_TOKEN`, `AI_API_KEY`,
   `EXPO_ACCESS_TOKEN`. Nunca en `ARG`/`ENV` de una imagen.
 - **Públicos**: `VITE_*` y `EXPO_PUBLIC_*` se compilan en el bundle. Solo URLs.
+- **Nunca compartas secretos entre entornos**: sobre todo `JWT_SECRET` (un token
+  de pruebas valdría en producción).
 - `DB_*` y `POSTGRES_*` salen del mismo valor para que no se desincronicen.
+- Las variables de hardening (`MAX_BODY_BYTES`, `AUTH_RATE_LIMIT_*`,
+  `OPENCODE_*`, `EXPO_PUSH_URL`) están reenviadas por los tres compose con los
+  defaults del backend. Si las omitís, el contenedor usa esos defaults.
 - `docker compose config` valida los tres YAML con los `.example`, sin secretos
   reales: `make docker-config`.
 
@@ -333,7 +383,7 @@ docker compose -f docker/compose.prod.yaml --env-file docker/.env.prod restart a
 |---|---|
 | `port is already allocated` | Hay un Vite/Air/Postgres nativo. Cambiá `*_PORT_HOST` o pará los procesos locales |
 | `api` reinicia en loop | DB no healthy o falta `SETUP_TOKEN` con DB vacía. `make docker-prod-logs` |
-| 429 en `/auth/login` | `TRUSTED_PROXIES` sin el CIDR del proxy: todo comparte bucket |
+| 429 en `/auth/login` | `TRUSTED_PROXIES` sin el CIDR de Traefik **o** de la red de `web`: todo comparte bucket |
 | Import falla 413 | nginx sin `client_max_body_size 9m` (no lo bajes) |
 | 502 en `/api` | `api` no healthy; revisar logs y `depends_on` |
 | Swagger roto vía nginx | CSP estricta. Usalo en dev (`:8082`) o dejá `SWAGGER_ENABLED=false` |

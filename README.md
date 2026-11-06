@@ -113,7 +113,7 @@ cp .env.example .env
 | Variable | Default | Descripción |
 |----------|---------|-------------|
 | `PORT` | `8080` | Puerto del servidor |
-| `GIN_MODE` | `debug` | `debug` o `release` |
+| `GIN_MODE` | `release` | `debug` o `release` |
 | `DB_HOST` | `localhost` | Host de PostgreSQL |
 | `DB_PORT` | `5432` | Puerto de PostgreSQL |
 | `DB_USER` | `postgres` | Usuario de la DB |
@@ -122,11 +122,28 @@ cp .env.example .env
 | `DB_SSL_MODE` | `disable` | SSL mode |
 | `JWT_SECRET` | — | Secreto para firmar JWTs (obligatorio) |
 | `JWT_EXPIRY_HOURS` | `24` | Expiración del token |
+| `SETUP_TOKEN` | — | Token del primer admin (obligatorio con la DB vacía; ≥16 chars) |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Orígenes permitidos, separados por coma |
 | `MAX_BODY_BYTES` | `1048576` | Límite del body JSON (1 MiB) |
+| `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Rate limit de `/auth/setup` y `/auth/login`; `0` = deshabilitado |
+| `AUTH_RATE_LIMIT_BURST` | `5` | Ráfaga inicial del rate limit |
 | `TRUSTED_PROXIES` | — | IPs/CIDR del reverse proxy; vacío = no confiar en `X-Forwarded-For` |
 | `HSTS_ENABLED` | `true` | Emitir `Strict-Transport-Security` (solo si el borde sirve HTTPS) |
 | `SWAGGER_ENABLED` | — | Swagger UI; vacío = on en debug, off en release |
+| `AI_API_URL` | — | Endpoint compatible con OpenAI (sin esto la IA queda deshabilitada) |
+| `AI_API_KEY` | — | Clave de la API de IA |
+| `AI_MODEL` | `gpt-4o-mini` | Modelo a usar (los `.example` traen `deepseek-v4-flash`) |
+| `AI_REQUEST_TIMEOUT` | `120` | Timeout de la IA, en segundos |
+| `OPENCODE_USAGE_URL` | `https://opencode.ai/zen/go/v1/usage` | Consumo en el panel admin |
+| `OPENCODE_USAGE_TIMEOUT` | `10` | Timeout del consumo, en segundos |
+| `EXPO_PUSH_URL` | `https://exp.host/--/api/v2/push/send` | Endpoint de push de Expo |
+| `EXPO_ACCESS_TOKEN` | — | Token de Expo (opcional) |
+
+> La fuente completa y con comentarios es `.env.example`. La columna **Default**
+> es el fallback del código cuando la variable está vacía. Los compose de Docker
+> reenvían estas variables con los mismos defaults, salvo `DB_HOST`, `DB_PORT` y
+> `DB_SSL_MODE`, que los fija el compose por la red interna (ver
+> `docker/README.md`).
 
 ## 🛠️ Scripts (Makefile)
 

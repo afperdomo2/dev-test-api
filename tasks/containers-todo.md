@@ -53,7 +53,7 @@
 - [x] **CT-4.1** `docker/compose.dokploy.yaml`
   - Hecho: web en `dokploy-network`, api/db en red interna, `expose` (sin `ports`), volumen `db-data`, env desde UI, `APP_ORIGIN` obligatorio.
 - [x] **CT-4.2** Runbook de deploy
-  - Hecho: `docker/README.md` sección Dokploy (DNS, compose path, envs, dominio, setup token, backups, update/rollback).
+  - Hecho: `docker/README.md` sección Dokploy (DNS, compose path, envs, dominio, setup token, backups, update/rollback) + receta de dos instancias (pruebas + producción) sobre el mismo compose.
 - [ ] **CT-4.3** Primer deploy real
   - Acceptance: dominio HTTPS, `/health` OK, admin creado, `SETUP_TOKEN` retirado, volume backup probado.
   - Pendiente: requiere VPS/Dokploy del humano.
