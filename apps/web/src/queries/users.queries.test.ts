@@ -6,6 +6,7 @@ import {
   updateUserMutation,
   deleteUserMutation,
   profileQueryOptions,
+  changePasswordMutation,
 } from './users.queries'
 import * as usersService from '@/api/services/users.service'
 
@@ -16,6 +17,7 @@ vi.mock('@/api/services/users.service', () => ({
   updateUser: vi.fn(),
   deleteUser: vi.fn(),
   getProfile: vi.fn(),
+  changePassword: vi.fn(),
 }))
 
 describe('users.queries', () => {
@@ -76,5 +78,16 @@ describe('users.queries', () => {
     const opts = profileQueryOptions()
     expect(opts.queryKey).toEqual(['users', 'profile'])
     expect(opts.staleTime).toBe(5 * 60 * 1000)
+  })
+
+  it('changePasswordMutation', async () => {
+    vi.mocked(usersService.changePassword).mockResolvedValue(undefined)
+    const mut = changePasswordMutation()
+    expect(mut.mutationKey).toEqual(['users', 'change-password'])
+    await mut.mutationFn({ currentPassword: 'current123', newPassword: 'newpass123' })
+    expect(usersService.changePassword).toHaveBeenCalledWith({
+      currentPassword: 'current123',
+      newPassword: 'newpass123',
+    })
   })
 })

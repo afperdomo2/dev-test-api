@@ -4,6 +4,7 @@ import "github.com/gin-gonic/gin"
 
 func RegisterRoutes(rg *gin.RouterGroup, h *Handler) {
 	rg.GET("/profile", h.GetProfile)
+	rg.PUT("/profile/password", h.ChangePassword)
 }
 
 func RegisterAdminRoutes(rg *gin.RouterGroup, h *Handler) {

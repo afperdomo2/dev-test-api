@@ -1,5 +1,6 @@
 import apiClient from '@/api/client'
 import type { User, CreateUserRequest, UpdateUserRequest } from '@/types/user.types'
+import type { ChangePasswordRequest } from '@/types/auth.types'
 import type { PaginatedResponse } from '@/types/api.types'
 
 export type { User }
@@ -33,4 +34,8 @@ export async function deleteUser(id: string): Promise<void> {
 export async function getProfile(): Promise<User> {
   const res = await apiClient.get<User>('/api/v1/profile')
   return res.data
+}
+
+export async function changePassword(data: ChangePasswordRequest): Promise<void> {
+  await apiClient.put('/api/v1/profile/password', data)
 }

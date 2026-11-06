@@ -20,11 +20,12 @@ import (
 func init() { gin.SetMode(gin.TestMode) }
 
 type mockUserService struct {
-	createFn  func(email, password string, isAdmin bool, dailyImportLimit *int) (*models.User, error)
-	listFn    func(params common.PaginationParams) ([]models.User, int64, error)
-	getByIDFn func(id uuid.UUID) (*models.User, error)
-	updateFn  func(id uuid.UUID, req UpdateUserRequest) (*models.User, error)
-	deleteFn  func(id uuid.UUID) error
+	createFn         func(email, password string, isAdmin bool, dailyImportLimit *int) (*models.User, error)
+	listFn           func(params common.PaginationParams) ([]models.User, int64, error)
+	getByIDFn        func(id uuid.UUID) (*models.User, error)
+	updateFn         func(id uuid.UUID, req UpdateUserRequest) (*models.User, error)
+	changePasswordFn func(id uuid.UUID, currentPassword, newPassword string) error
+	deleteFn         func(id uuid.UUID) error
 }
 
 func (m *mockUserService) Create(e, p string, a bool, d *int) (*models.User, error) {
@@ -36,6 +37,9 @@ func (m *mockUserService) List(p common.PaginationParams) ([]models.User, int64,
 func (m *mockUserService) GetByID(id uuid.UUID) (*models.User, error) { return m.getByIDFn(id) }
 func (m *mockUserService) Update(id uuid.UUID, req UpdateUserRequest) (*models.User, error) {
 	return m.updateFn(id, req)
+}
+func (m *mockUserService) ChangePassword(id uuid.UUID, currentPassword, newPassword string) error {
+	return m.changePasswordFn(id, currentPassword, newPassword)
 }
 func (m *mockUserService) Delete(id uuid.UUID) error { return m.deleteFn(id) }
 
@@ -234,6 +238,84 @@ func TestUsersHandler_GetProfile(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/profile", nil)
 		h.GetProfile(c)
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}
+
+func TestUsersHandler_ChangePassword(t *testing.T) {
+	uid := uuid.New()
+
+	newRequest := func(body string) *http.Request {
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/profile/password", bytes.NewReader([]byte(body)))
+		req.Header.Set("Content-Type", "application/json")
+		return req
+	}
+
+	t.Run("success", func(t *testing.T) {
+		var gotCurrent, gotNew string
+		svc := &mockUserService{
+			changePasswordFn: func(_ uuid.UUID, currentPassword, newPassword string) error {
+				gotCurrent, gotNew = currentPassword, newPassword
+				return nil
+			},
+		}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = newRequest(`{"currentPassword":"current123","newPassword":"newpass123"}`)
+		c.Set("user_claims", claimsFor(uid))
+		h.ChangePassword(c)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "current123", gotCurrent)
+		assert.Equal(t, "newpass123", gotNew)
+	})
+
+	t.Run("validation 422", func(t *testing.T) {
+		h := NewHandler(&mockUserService{})
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = newRequest(`{"currentPassword":"","newPassword":"short"}`)
+		c.Set("user_claims", claimsFor(uid))
+		h.ChangePassword(c)
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	})
+
+	t.Run("unauthorized no claims", func(t *testing.T) {
+		h := NewHandler(&mockUserService{})
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = newRequest(`{"currentPassword":"current123","newPassword":"newpass123"}`)
+		h.ChangePassword(c)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("service validation error", func(t *testing.T) {
+		svc := &mockUserService{
+			changePasswordFn: func(uuid.UUID, string, string) error {
+				return apierr.ErrValidation("La contraseña actual es incorrecta", "")
+			},
+		}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = newRequest(`{"currentPassword":"incorrecta","newPassword":"newpass123"}`)
+		c.Set("user_claims", claimsFor(uid))
+		h.ChangePassword(c)
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	})
+
+	t.Run("service not found error", func(t *testing.T) {
+		svc := &mockUserService{
+			changePasswordFn: func(uuid.UUID, string, string) error {
+				return apierr.ErrNotFound("Usuario", "")
+			},
+		}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = newRequest(`{"currentPassword":"current123","newPassword":"newpass123"}`)
+		c.Set("user_claims", claimsFor(uid))
+		h.ChangePassword(c)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 }
 

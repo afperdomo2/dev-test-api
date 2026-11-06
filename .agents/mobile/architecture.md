@@ -123,6 +123,7 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 - El toggle es un control accesible: `accessibilityRole="button"`, `accessibilityLabel` dinámico ("Mostrar/Ocultar contraseña"), hint y target ≥44pt.
 - La visibilidad **no se persiste**: se resetea al bloquear el campo (envío en curso) y nunca se loggea ni se copia la contraseña.
 - Autofill del sistema: login → `autoComplete="current-password"` + `textContentType="password"`; alta → `new-password`; email → `autoComplete="email"` + `textContentType="emailAddress"`.
+- Cambio de contraseña (`features/profile/components/ChangePasswordSection`): tres `PasswordInput` (actual/nueva/confirmar) + `AuthButton`; el `detail` del 422 se muestra inline y la sesión sigue activa (D-49).
 
 ### List rows (sessions)
 - **Máximo 3 líneas por card**: nombre / badges (estado + modo + dificultad) / meta (tiempo relativo + progreso + score). Si una card crece a 4–5 líneas, sobra información: muévela al detalle. Los temas no van en la card: el nombre de la sesión ya los insinúa y el resumen los muestra.

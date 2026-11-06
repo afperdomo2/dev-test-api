@@ -1,5 +1,5 @@
 import { apiClient } from '@/core/api/client'
-import { getProfile, getStatus, login, setup } from './auth.service'
+import { changePassword, getProfile, getStatus, login, setup } from './auth.service'
 
 jest.mock('@/core/api/client', () => ({
   apiClient: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
@@ -8,6 +8,7 @@ jest.mock('@/core/api/client', () => ({
 const mocked = apiClient as unknown as {
   get: jest.Mock
   post: jest.Mock
+  put: jest.Mock
 }
 
 describe('auth.service', () => {
@@ -46,5 +47,14 @@ describe('auth.service', () => {
     await getProfile()
 
     expect(mocked.get).toHaveBeenCalledWith('/api/v1/profile')
+  })
+
+  it('changePassword', async () => {
+    mocked.put.mockResolvedValue(undefined)
+
+    const body = { currentPassword: 'current123', newPassword: 'newpass123' }
+    await changePassword(body)
+
+    expect(mocked.put).toHaveBeenCalledWith('/api/v1/profile/password', body)
   })
 })

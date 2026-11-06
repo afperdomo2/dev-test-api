@@ -14,6 +14,7 @@ type Service interface {
 	List(params common.PaginationParams) ([]models.User, int64, error)
 	GetByID(id uuid.UUID) (*models.User, error)
 	Update(id uuid.UUID, req UpdateUserRequest) (*models.User, error)
+	ChangePassword(id uuid.UUID, currentPassword, newPassword string) error
 	Delete(id uuid.UUID) error
 }
 
@@ -104,6 +105,37 @@ func (s *userService) Update(id uuid.UUID, req UpdateUserRequest) (*models.User,
 	}
 
 	return user, nil
+}
+
+func (s *userService) ChangePassword(id uuid.UUID, currentPassword, newPassword string) error {
+	user, err := s.store.FindByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return apierr.ErrNotFound("Usuario", "")
+		}
+		return apierr.ErrInternal("Error al obtener el usuario", "")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
+		return apierr.ErrValidation("La contraseña actual es incorrecta", "")
+	}
+
+	if currentPassword == newPassword {
+		return apierr.ErrValidation("La nueva contraseña debe ser diferente a la actual", "")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return apierr.ErrInternal("Error al generar el hash de la contraseña", "")
+	}
+
+	user.PasswordHash = string(hash)
+
+	if err := s.store.Update(user); err != nil {
+		return apierr.ErrInternal("Error al actualizar la contraseña", "")
+	}
+
+	return nil
 }
 
 func (s *userService) Delete(id uuid.UUID) error {

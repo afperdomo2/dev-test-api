@@ -36,6 +36,12 @@ export const routes: Array<RouteRecordRaw> = [
         component: () => import('@/features/dashboard/pages/DashboardPage.vue'),
       },
       {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/features/profile/pages/ProfilePage.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: 'users',
         name: 'UsersList',
         component: () => import('@/features/users/pages/UsersListPage.vue'),

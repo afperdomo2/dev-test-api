@@ -966,6 +966,20 @@ definitions:
         minLength: 1
         type: string
     type: object
+  users.ChangePasswordRequest:
+    properties:
+      currentPassword:
+        maxLength: 72
+        minLength: 1
+        type: string
+      newPassword:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - currentPassword
+    - newPassword
+    type: object
   users.CreateUserRequest:
     properties:
       dailyImportLimit:
@@ -1543,6 +1557,45 @@ paths:
       security:
       - BearerAuth: []
       summary: Obtener perfil
+      tags:
+      - profile
+  /api/v1/profile/password:
+    put:
+      consumes:
+      - application/json
+      description: Cambia la contraseña del usuario autenticado. Requiere la contraseña
+        actual y mantiene la sesión activa.
+      parameters:
+      - description: Contraseña actual y nueva
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/users.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Cambiar contraseña
       tags:
       - profile
   /api/v1/progress/{question_id}:

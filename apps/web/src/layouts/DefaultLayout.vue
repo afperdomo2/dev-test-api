@@ -107,6 +107,7 @@ function logout() {
       <template #append>
         <v-divider />
         <v-list density="compact" nav class="pa-2">
+          <v-list-item prepend-icon="mdi-account-circle" title="Mi perfil" to="/profile" exact />
           <v-list-item prepend-icon="mdi-logout" title="Cerrar sesión" @click="logout" />
         </v-list>
       </template>
@@ -138,6 +139,7 @@ function logout() {
             </v-list-item-subtitle>
           </v-list-item>
           <v-divider />
+          <v-list-item prepend-icon="mdi-account-circle" title="Mi perfil" to="/profile" />
           <v-list-item prepend-icon="mdi-logout" title="Cerrar sesión" @click="logout" />
         </v-list>
       </v-menu>

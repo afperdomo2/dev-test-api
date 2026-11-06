@@ -438,6 +438,33 @@
 
 ---
 
+## Módulo `profile` — `specs/SPEC-profile.md`
+
+- [x] **PR-1** — Endpoint self-service de cambio de contraseña
+  - Acceptance: `PUT /api/v1/profile/password` protegido; exige `currentPassword` + `newPassword` (8–72); 200 con envelope y mensaje; contraseña actual incorrecta o nueva igual a la actual → **422**; usuario inexistente → 404; la sesión sigue válida
+  - Verify: `make check` + `go test ./internal/modules/users/...` + `make swagger`
+  - Files: `internal/modules/users/{request,service,handler,routes}.go`, tests del paquete, `docs/` (generado)
+  - Hecho: `ChangePassword` en service con `bcrypt.CompareHashAndPassword` + `GenerateFromPassword` + `store.Update` · handler reutiliza `getUserID` · 422 (no 401) para no disparar el logout del cliente · `go test ./internal/modules/users/...` ✅ · `make check` ✅ · `make swagger` ✅ (path + `users.ChangePasswordRequest`)
+
+- [x] **PR-2** — Web: `/profile` + formulario de contraseña
+  - Acceptance: `changePassword()` y `changePasswordMutation()`; `UserSummaryCard` extraído del Dashboard y reutilizado; `/profile` con resumen + formulario (actual/nueva/confirmar) validado; “Mi perfil” en sidebar y menú de avatar; sigue logueado tras el cambio
+  - Verify: `make fe-check` + Prettier/ESLint + Vitest relacionado
+  - Files: `packages/shared/src/types/auth.types.ts`, `apps/web/src/{types/auth.types.ts,api/services/users.service.ts,queries/users.queries.ts,components/UserSummaryCard.vue,features/profile/**,router/routes.ts,layouts/DefaultLayout.vue}` (+ tests)
+  - Hecho: `UserSummaryCard` compartido (Dashboard + Perfil) · `ChangePasswordCard` con validación cliente (requerido, 8–72, confirmación, nueva ≠ actual) y `detail` del backend en `v-alert` · snackbar de éxito y campos limpiados · `vue-tsc` ✅ · ESLint ✅ · Vitest relacionado **44 tests / 6 archivos** ✅
+
+- [x] **PR-3** — Mobile: sección “Seguridad” en Perfil
+  - Acceptance: `changePassword()` en `auth.service`; `ChangePasswordSection` con `PasswordInput` ×3, validación y estados de carga/error/éxito; integrado en `ProfileScreen`; mantiene la sesión
+  - Verify: `pnpm --filter mobile typecheck` + Jest de los tests nuevos + ESLint
+  - Files: `apps/mobile/src/core/api/services/auth.service.ts`, `apps/mobile/src/features/profile/components/ChangePasswordSection.tsx`, `apps/mobile/src/features/profile/screens/ProfileScreen.tsx` (+ tests)
+  - Hecho: formulario inline en la sección “Seguridad” · usa `isRequired`/`isValidPassword`/`isMaxLength` de shared · `testID` en los tres campos · `tsc --noEmit` ✅ · ESLint ✅ · Jest **13 tests / 3 archivos** ✅
+
+- [x] **PR-4** — Docs y contrato
+  - Acceptance: spec + decisión + índice de docs actualizados; Swagger regenerado
+  - Files: `specs/SPEC-profile.md`, `specs/DECISIONS.md` (D-49), `.agents/web/architecture.md`, `tasks/todo.md`, `docs/`
+  - Hecho: D-49 documenta 422 para contraseña incorrecta y la no-revocación de JWT · `UserSummaryCard` añadido a la lista de componentes compartidos · `docs/swagger.yaml|json|docs.go` regenerados
+
+---
+
 ## Verificación final
 
 - [x] **VF-1** — Backend: `make fmt` + `make vet` + `make test` (+ `make build`)

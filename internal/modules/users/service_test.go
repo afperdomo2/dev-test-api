@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -216,6 +217,82 @@ func TestUpdate(t *testing.T) {
 		svc := NewService(store)
 		_, err := svc.Update(id, UpdateUserRequest{IsAdmin: &trueVal})
 		require.Error(t, err)
+	})
+}
+
+func TestChangePassword(t *testing.T) {
+	id := uuid.New()
+	hashOf := func(t *testing.T, password string) string {
+		t.Helper()
+		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+		require.NoError(t, err)
+		return string(hash)
+	}
+
+	t.Run("success", func(t *testing.T) {
+		currentHash := hashOf(t, "current123")
+		store := newMockStore()
+		store.findByIDFn = func(uuid.UUID) (*models.User, error) {
+			return &models.User{Email: "a@b.com", PasswordHash: currentHash}, nil
+		}
+		store.updateFn = func(u *models.User) error {
+			assert.NotEqual(t, currentHash, u.PasswordHash)
+			require.NoError(t, bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte("newpass123")))
+			return nil
+		}
+		svc := NewService(store)
+		require.NoError(t, svc.ChangePassword(id, "current123", "newpass123"))
+	})
+
+	t.Run("wrong current password", func(t *testing.T) {
+		store := newMockStore()
+		store.findByIDFn = func(uuid.UUID) (*models.User, error) {
+			return &models.User{Email: "a@b.com", PasswordHash: hashOf(t, "current123")}, nil
+		}
+		svc := NewService(store)
+		err := svc.ChangePassword(id, "incorrecta", "newpass123")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "contraseña actual es incorrecta")
+	})
+
+	t.Run("new password equal to current", func(t *testing.T) {
+		store := newMockStore()
+		store.findByIDFn = func(uuid.UUID) (*models.User, error) {
+			return &models.User{Email: "a@b.com", PasswordHash: hashOf(t, "current123")}, nil
+		}
+		svc := NewService(store)
+		err := svc.ChangePassword(id, "current123", "current123")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "debe ser diferente a la actual")
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		store := newMockStore()
+		svc := NewService(store)
+		err := svc.ChangePassword(id, "current123", "newpass123")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no encontrado")
+	})
+
+	t.Run("find internal error", func(t *testing.T) {
+		store := newMockStore()
+		store.findByIDFn = func(uuid.UUID) (*models.User, error) { return nil, errors.New("db fail") }
+		svc := NewService(store)
+		err := svc.ChangePassword(id, "current123", "newpass123")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Error al obtener")
+	})
+
+	t.Run("store update error", func(t *testing.T) {
+		store := newMockStore()
+		store.findByIDFn = func(uuid.UUID) (*models.User, error) {
+			return &models.User{Email: "a@b.com", PasswordHash: hashOf(t, "current123")}, nil
+		}
+		store.updateFn = func(*models.User) error { return errors.New("fail") }
+		svc := NewService(store)
+		err := svc.ChangePassword(id, "current123", "newpass123")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Error al actualizar la contraseña")
 	})
 }
 

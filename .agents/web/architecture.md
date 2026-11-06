@@ -15,7 +15,7 @@
 | `apps/web/src/utils/` | `storage.ts` (localStorage) + `format.ts` y `validators.ts` (ver filas siguientes) | Yes |
 | `apps/web/src/utils/format.ts` | Re-export from `@devtest/shared` | Keep in sync with shared |
 | `apps/web/src/utils/validators.ts` | Vuetify rule factories (import predicates from `@devtest/shared`) | Yes |
-| `apps/web/src/components/` | Shared components (`ErrorState`, `ListPageHeader`, `PaginatedFooter`, `CodeContent`, `DifficultySelect`, `TopicSelect`, `TopicAutocomplete`) | Yes — add reusable UI here |
+| `apps/web/src/components/` | Shared components (`ErrorState`, `ListPageHeader`, `PaginatedFooter`, `CodeContent`, `DifficultySelect`, `TopicSelect`, `TopicAutocomplete`, `UserSummaryCard`) | Yes — add reusable UI here |
 | `apps/web/src/constants/` | Re-exports from `@devtest/shared` | Keep in sync with shared |
 | `apps/web/src/plugins/` | Vuetify + VueQueryPlugin setup | Rarely |
 | `apps/web/dist/` | Build output | **NEVER** — use `pnpm build` |

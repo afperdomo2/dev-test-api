@@ -6,6 +6,7 @@ import { useAuthStore } from '@/core/auth/auth.store'
 import { unregisterFromPush } from '@/core/push/register'
 import { formatDate } from '@devtest/shared'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
+import { ChangePasswordSection } from '@/features/profile/components/ChangePasswordSection'
 
 function getInitials(email: string): string {
   return email.slice(0, 2).toUpperCase()
@@ -96,6 +97,12 @@ export default function ProfileScreen() {
           value={version}
           isLast
         />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Seguridad</Text>
+
+        <ChangePasswordSection />
       </View>
 
       <View style={styles.section}>
