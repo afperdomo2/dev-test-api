@@ -7,7 +7,7 @@
 | Estado | `ready` |
 | Depende de | — (backend: cambio pequeño en `sessions`) |
 | Migración goose | `00006_answer_idempotency.sql` (siguiente libre; `notifications` pasa a `00007` y `push` a `00008`) |
-| Dependencia nueva | `expo-crypto` (`~57.0.4`, SDK 57) — gate de `.agents/mobile/dependencies.md` OK |
+| Dependencia nueva | `expo-crypto` (`~57.0.4`, SDK 57) — gate de `.agents/context/mobile/dependencies.md` OK |
 
 ## Objective
 
@@ -182,7 +182,7 @@ apps/mobile/src/features/sessions/screens/SessionStudyPage.test.tsx
 - **Idempotencia en el store**: `ON CONFLICT (session_id, client_answer_id) DO NOTHING`; `RowsAffected == 0` → `created=false`. Los `NULL` de clientes antiguos no chocan (semántica de Postgres). Verificado contra Postgres real en transacción con rollback.
 - **Reintento sin efectos**: el service devuelve la fila guardada (con la explicación de *su* pregunta, no de la del payload) y no llama a `progressService.Answer`; el `Reward` no se repite.
 - **Mobile**: el `clientAnswerId` se genera con `expo-crypto` al cargar cada pregunta y vive en un `useRef`; `submittingRef` bloquea el doble toque de forma síncrona. El error se pinta bajo `QuestionCard`, que no se desmonta, así que la selección se conserva.
-- **Dependencia**: `expo-crypto@~57.0.4` (oficial, MIT, sin prebuild) instalado con `expo install`; gate de `.agents/mobile/dependencies.md` documentado.
+- **Dependencia**: `expo-crypto@~57.0.4` (oficial, MIT, sin prebuild) instalado con `expo install`; gate de `.agents/context/mobile/dependencies.md` documentado.
 - Tests: backend 5 subtests nuevos; mobile **111 tests / 25 archivos**; `make check`/`test`, `typecheck`, `test:run` y `lint` (0 errores) en verde.
 - ⚠️ Queda la prueba manual en **modo avión** con dispositivo/emulador (misma pasada pendiente de MPROG-4).
 

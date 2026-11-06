@@ -226,7 +226,7 @@ export const PERIOD_OPTIONS: Array<{ title: string; value: InsightPeriod }> = [
 ]
 ```
 
-> `TopicMasteryItem` se **importa** de `progress.types.ts`, no se re-exporta por el barrel desde dos sitios (regla anti-duplicación de `.agents/shared/architecture.md`).
+> `TopicMasteryItem` se **importa** de `progress.types.ts`, no se re-exporta por el barrel desde dos sitios (regla anti-duplicación de `.agents/context/shared/architecture.md`).
 
 ```ts
 // apps/web/src/api/services/insights.service.ts

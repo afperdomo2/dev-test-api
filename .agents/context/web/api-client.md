@@ -2,7 +2,7 @@
 
 ## API contract
 
-The envelope `{ data: ... }`, RFC 9457 error format, and camelCase convention are defined by the backend. **See `.agents/backend/responses.md` for the canonical contract.** This file documents only the web-specific consuming side (Axios interceptors, localStorage, service patterns).
+The envelope `{ data: ... }`, RFC 9457 error format, and camelCase convention are defined by the backend. **See `.agents/context/backend/responses.md` for the canonical contract.** This file documents only the web-specific consuming side (Axios interceptors, localStorage, service patterns).
 
 ## Axios interceptors (`api/client.ts`)
 
@@ -37,7 +37,7 @@ The interceptor unwraps the API envelope on every response:
 
 ## Naming convention
 
-Both the backend (Go) and web/mobile (TypeScript) use **camelCase** for all JSON keys. No runtime conversion exists. See `.agents/backend/responses.md` for the Go struct tag rules. When adding a new type:
+Both the backend (Go) and web/mobile (TypeScript) use **camelCase** for all JSON keys. No runtime conversion exists. See `.agents/context/backend/responses.md` for the Go struct tag rules. When adding a new type:
 
 1. Read `docs/swagger.yaml` to see the exact JSON shape
 2. Define both **response** and **request** types with `camelCase` properties matching the backend's JSON tags

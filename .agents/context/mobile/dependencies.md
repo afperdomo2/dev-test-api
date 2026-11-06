@@ -1,6 +1,6 @@
 # Mobile dependency safety rules
 
-Same safety checks as [`.agents/web/dependencies.md`](../web/dependencies.md). Before adding any npm package via `pnpm add` in `apps/mobile/`:
+Same safety checks as [`.agents/context/web/dependencies.md`](../web/dependencies.md). Before adding any npm package via `pnpm add` in `apps/mobile/`:
 
 1. **Source reputation**: npm weekly downloads > 10k, verified publisher, GitHub linked
 2. **Maintenance**: last publish < 6 months, not deprecated, not archived

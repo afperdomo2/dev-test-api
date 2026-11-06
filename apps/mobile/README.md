@@ -71,7 +71,7 @@ apps/mobile/
 ```
 
 - Navegación: **Expo Router** con **NativeTabs** (4 tabs: Inicio, Temas, Progreso, Perfil).
-- Design system (dark, OLED): `.agents/mobile/design-system.md` → tokens en `src/core/theme/tokens.ts`.
+- Design system (dark, OLED): `.agents/context/mobile/design-system.md` → tokens en `src/core/theme/tokens.ts`.
 - Auth: `expo-secure-store` (JWT) + Zustand (`auth.store.ts`). El `AuthGate` en `app/_layout.tsx` gestiona login/setup/tabs.
 
 ## 🔗 Paquete compartido (@devtest/shared)
@@ -85,7 +85,7 @@ import { formatDateTime, formatScore, isValidEmail } from '@devtest/shared'
 
 No duplicar nada que ya exista en shared. Si algo es reutilizable entre web y mobile, pertenece a `packages/shared/`.
 
-Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/backend/responses.md`.
+Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/context/backend/responses.md`.
 
 ## 📦 Scripts
 
@@ -111,5 +111,5 @@ Runbook completo, checklist de versión y cómo conectarse a la DB de la nube:
 
 ## 📚 Convenciones
 
-- Arquitectura: `.agents/mobile/architecture.md`
-- Dependencias: `.agents/mobile/dependencies.md`
+- Arquitectura: `.agents/context/mobile/architecture.md`
+- Dependencias: `.agents/context/mobile/dependencies.md`

@@ -1,7 +1,7 @@
 # Tasks — Contenedores
 
 > Spec: `specs/SPEC-containers.md` · Guía: `docker/README.md` ·
-> Invariantes: `.agents/devops/containers.md`
+> Invariantes: `.agents/context/devops/containers.md`
 
 ## Fase 0 — Decisiones y documentación
 

@@ -53,12 +53,12 @@ comparten archivos con `auth-hardening` salvo `package.json`/lock
 
 **Reglas transversales**
 
-- Backend: `.agents/backend/architecture.md` (request → response → mapper → store →
+- Backend: `.agents/context/backend/architecture.md` (request → response → mapper → store →
   service → handler → routes).
-- Contrato HTTP: `.agents/backend/responses.md` (envelope, RFC 9457, camelCase,
+- Contrato HTTP: `.agents/context/backend/responses.md` (envelope, RFC 9457, camelCase,
   `title` EN / `detail` ES).
-- Web: `.agents/web/architecture.md` (services → queries → features).
-- Mobile: `.agents/mobile/architecture.md` (rutas thin + `src/features` + `src/core`).
+- Web: `.agents/context/web/architecture.md` (services → queries → features).
+- Mobile: `.agents/context/mobile/architecture.md` (rutas thin + `src/features` + `src/core`).
 - Cualquier cambio de contrato API ⇒ `make swagger` y actualizar
   `packages/shared/src/types/` en el mismo PR.
 
@@ -100,7 +100,7 @@ comparten archivos con `auth-hardening` salvo `package.json`/lock
 5. No mezclar módulos en un mismo commit salvo que compartan archivo
    (`server.go`, `package.json`).
 6. **Doc sync**: si el cambio consolida una convención, contrato, comando o
-   variable, actualizar su fuente de verdad (`.agents/`, `specs/DECISIONS.md`,
+   variable, actualizar su fuente de verdad (`.agents/context/`, `specs/DECISIONS.md`,
    `README.md`) y la referencia en `AGENTS.md`. Una tarea no está terminada si la
    documentación quedó con el estado anterior.
 7. Antes de proponer trabajo nuevo, comprobar `specs/`, `tasks/` y `git log`: si

@@ -63,7 +63,9 @@ dev-test-api/
 │   └── mobile/                # Expo React Native (ver apps/mobile/README.md)
 ├── packages/
 │   └── shared/                # Tipos, utils, constants compartidos (ver packages/shared/)
-├── .agents/                   # Reglas de arquitectura por capa
+├── .agents/
+│   ├── context/               # Reglas de arquitectura por capa (backend, web, mobile, shared, devops)
+│   └── skills/                # Skills de agentes (gitignored, ver skills-lock.json)
 ├── pnpm-workspace.yaml
 ├── Makefile
 └── README.md
@@ -240,7 +242,7 @@ Paquete de TypeScript puro compartido entre web y mobile:
 - Predicados de validación (`isValidEmail`, `isRequired`)
 - Constantes (`ITEMS_PER_PAGE_OPTIONS`, `DEFAULT_PER_PAGE`)
 
-Ver `packages/shared/` y `.agents/shared/architecture.md` para detalles.
+Ver `packages/shared/` y `.agents/context/shared/architecture.md` para detalles.
 
 ## 🧪 Testing
 

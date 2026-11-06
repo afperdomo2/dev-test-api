@@ -13,7 +13,7 @@ prod-local levantados a la vez porque usan puertos y archivos de entorno
 distintos. La contrapartida es que un cambio de servicios/healthchecks hay que
 replicarlo en los tres YAML (ver [Mantenimiento](#mantenimiento)).
 
-> Fuente de verdad para agentes: `.agents/devops/containers.md`.
+> Fuente de verdad para agentes: `.agents/context/devops/containers.md`.
 > Runbook del APK: `docs/mobile-apk.md`.
 
 ## Requisitos
@@ -369,7 +369,7 @@ actualizá:
 
 1. `docker/compose.dev.yaml`, `docker/compose.prod.yaml`, `docker/compose.dokploy.yaml`.
 2. `docker/README.md` (si cambia un comando/variable/topología).
-3. `.agents/devops/containers.md` (si cambia una invariante).
+3. `.agents/context/devops/containers.md` (si cambia una invariante).
 4. `AGENTS.md` solo si cambia una regla que el agente deba aplicar.
 5. `specs/DECISIONS.md` si es una decisión nueva.
 

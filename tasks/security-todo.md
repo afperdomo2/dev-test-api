@@ -5,7 +5,7 @@
 > **Leyenda**: `[ ]` pendiente → `[~]` en progreso → `[x]` hecha → `[-]` descartada (con motivo).
 > **Commits**: manuales, uno por tarea o por grupo acoplado del mismo módulo.
 > **Regla**: al terminar, añadir una línea `Hecho:` con lo verificado (como en `tasks/todo.md`).
-> **Doc sync**: si la tarea consolida una convención/contrato/variable, actualizar su fuente de verdad (`.agents/`, `specs/DECISIONS.md`, `README.md`) y la referencia en `AGENTS.md` en el mismo cambio.
+> **Doc sync**: si la tarea consolida una convención/contrato/variable, actualizar su fuente de verdad (`.agents/context/`, `specs/DECISIONS.md`, `README.md`) y la referencia en `AGENTS.md` en el mismo cambio.
 
 ---
 
@@ -116,10 +116,10 @@
   - Hecho: `Config` gana `SetupToken`, `RateLimitAuthPerMinute` (10, `0` deshabilita, negativo → default) y `RateLimitAuthBurst` (5, `<=0` → default). `validateSetupToken` exige **≥16** caracteres si viene informado (vacío se decide en el guard de AH-3). `.env.example` reescrito por bloques (obligatorias / setup inicial / servidor / DB / JWT / hardening / rate limit / IA / push) con qué hace cada variable y sus defaults. Tests: defaults, `0`, negativo, burst inválido, token cargado y longitud 15/16. `make check` ✓, `make test` ✓, `go build ./...` ✓
 
 - [x] **AH-2** — Middleware `RateLimit` (token bucket)
-  - Acceptance: `RateLimit(Limit{PerMinute, Burst}, keyFn)` con `map[string]*rate.Limiter` + mutex; barrido perezoso >10 000 claves y >10 min; `PerMinute=0` ⇒ pass-through; al exceder 429 + `Retry-After: 60` + `ErrTooManyRequests`; dependencia `golang.org/x/time` cubierta por D-39 (revisar `.agents/backend/dependencies.md` antes de instalar)
+  - Acceptance: `RateLimit(Limit{PerMinute, Burst}, keyFn)` con `map[string]*rate.Limiter` + mutex; barrido perezoso >10 000 claves y >10 min; `PerMinute=0` ⇒ pass-through; al exceder 429 + `Retry-After: 60` + `ErrTooManyRequests`; dependencia `golang.org/x/time` cubierta por D-39 (revisar `.agents/context/backend/dependencies.md` antes de instalar)
   - Verify: `go get golang.org/x/time && go mod tidy`; `make test` (T7, T8); `make check`
   - Files: `internal/middleware/ratelimit.go`, `internal/middleware/ratelimit_test.go`, `go.mod`, `go.sum`
-  - Hecho: `RateLimit` con `map[string]*rate.Limiter` + mutex, barrido perezoso (>10 000 claves, >10 min), clave por defecto `ClientIP`; `PerMinute=0` pass-through; al exceder **429** + `Retry-After: 60` + `ErrTooManyRequests`. Dependencia `golang.org/x/time v0.16.0` (oficial, revisada con `.agents/backend/dependencies.md`). Tests: 5 permitidas + 6.ª 429 con cabecera, claves independientes y `0` deshabilita. `make test` ✓, `make check` ✓
+  - Hecho: `RateLimit` con `map[string]*rate.Limiter` + mutex, barrido perezoso (>10 000 claves, >10 min), clave por defecto `ClientIP`; `PerMinute=0` pass-through; al exceder **429** + `Retry-After: 60` + `ErrTooManyRequests`. Dependencia `golang.org/x/time v0.16.0` (oficial, revisada con `.agents/context/backend/dependencies.md`). Tests: 5 permitidas + 6.ª 429 con cabecera, claves independientes y `0` deshabilita. `make test` ✓, `make check` ✓
 
 - [x] **AH-3** — `SETUP_TOKEN` en el backend + `setupRequiresToken`
   - Acceptance: `SetupRequest.SetupToken` (`omitempty,max=256`); comparación en tiempo constante sobre SHA-256 de la spec; token vacío/incorrecto → 403 con body idéntico; no se loguea; `StatusResponse.SetupRequiresToken` refleja si está configurado; `GET /auth/status` no se ve afectado; **guard de arranque**: DB vacía + `SETUP_TOKEN` vacío → `log.Fatal` accionable; DB inicializada + vacío → warning y setup deshabilitado
@@ -206,9 +206,9 @@
   - Files: `apps/web/deploy/nginx-security.conf` (nuevo), `apps/web/deploy/_headers` (nuevo), `apps/web/deploy/README.md` (nuevo), `apps/web/index.html`
 
 - [ ] **CH-3** — Documentar política de token y TTL
-  - Acceptance: `apps/web/README.md` explica el riesgo de `localStorage`, las mitigaciones (CSP, 401 wipe, TTL) y cómo verificar las cabeceras; `.agents/web/architecture.md` gana una sección de seguridad del cliente; `.env.example` documenta el rango recomendado de `JWT_EXPIRY_HOURS` (8–12)
+  - Acceptance: `apps/web/README.md` explica el riesgo de `localStorage`, las mitigaciones (CSP, 401 wipe, TTL) y cómo verificar las cabeceras; `.agents/context/web/architecture.md` gana una sección de seguridad del cliente; `.env.example` documenta el rango recomendado de `JWT_EXPIRY_HOURS` (8–12)
   - Verify: revisión de los 3 documentos; `git diff` sin cambios de código
-  - Files: `apps/web/README.md`, `.agents/web/architecture.md`, `.env.example`
+  - Files: `apps/web/README.md`, `.agents/context/web/architecture.md`, `.env.example`
 
 - [ ] **CH-4** — Verificación en staging (manual)
   - Acceptance: con el build desplegado, `curl -sI` muestra las 6 cabeceras con el origen correcto; la SPA carga sin errores de CSP en consola; una llamada a la API funciona (CORS + `connect-src`); mobile apunta a HTTPS
@@ -219,10 +219,10 @@
 
 ## Sincronización de documentación
 
-- [x] **DOC-1** — Sincronizar convenciones de seguridad en `.agents/` + AGENTS/README
+- [x] **DOC-1** — Sincronizar convenciones de seguridad en `.agents/context/` + AGENTS/README
   - Acceptance: `responses.md` documenta 413 y la regla 404 por ownership; `architecture.md` documenta la cadena de middlewares, timeouts, proxies y gate de Swagger; `AGENTS.md` referencia sin duplicar; `README.md` lista las variables nuevas; el proceso de doc sync queda escrito en AGENTS y en el plan
   - Verify: revisión de los 5 documentos; `git diff --stat`
-  - Files: `.agents/backend/responses.md`, `.agents/backend/architecture.md`, `AGENTS.md`, `README.md`, `tasks/security-plan.md`, `tasks/security-todo.md`
+  - Files: `.agents/context/backend/responses.md`, `.agents/context/backend/architecture.md`, `AGENTS.md`, `README.md`, `tasks/security-plan.md`, `tasks/security-todo.md`
   - Hecho: `responses.md` añade `ErrPayloadTooLarge` (413) y la sección "Object-level authorization (404, no 403)" con la excepción de política; `architecture.md` documenta la cadena `SecurityHeaders → Logger → BodyLimit → CORS`, timeouts 5/30/60/120 s, `MaxHeaderBytes`, `TRUSTED_PROXIES`, gate de Swagger y la regla de ownership; `AGENTS.md` gana la regla **doc sync**, una línea de convenciones de seguridad y la fila del Documentation map; `README.md` lista `CORS_*` y las 4 variables de hardening (y corrige el default de `DB_PASSWORD`); el plan y el encabezado de este archivo incorporan el doc sync como regla de ejecución
 
 ## Orden recomendado de ejecución

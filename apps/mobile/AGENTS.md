@@ -24,7 +24,7 @@ Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Ini
 ## Key facts
 
 - **Dark-only** (design system Dark OLED) — `app.json` `userInterfaceStyle: "dark"`.
-- **Design tokens** viven en `src/core/theme/tokens.ts` (fuente de verdad: `.agents/mobile/design-system.md`).
+- **Design tokens** viven en `src/core/theme/tokens.ts` (fuente de verdad: `.agents/context/mobile/design-system.md`).
 - Alias de import `@/*` → `src/*` (tsconfig + `experiments.tsconfigPaths`).
 - Tabs con **NativeTabs** (`expo-router/unstable-native-tabs`), labels en español, iconos SF Symbol + Material.
 - DTOs/tipos/formatters desde `@devtest/shared` — no duplicar.
@@ -35,13 +35,13 @@ Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Ini
 
 ## UX conventions
 
-Ver `.agents/mobile/architecture.md` sección "UX conventions" para reglas completas. Resumen:
+Ver `.agents/context/mobile/architecture.md` sección "UX conventions" para reglas completas. Resumen:
 - Touch targets ≥44pt/48dp · Tap feedback en todo Pressable · `accessibilityLabel` en controles interactivos
 - Confirmación `Alert.alert()` antes de acciones destructivas · Progress bars para flujos multi-paso
 - Status = icono + color + texto (nunca solo color) · Usar design tokens (nunca hex hardcodeados)
 
 ## Details
 
-- Arquitectura completa: `.agents/mobile/architecture.md`
-- Design system: `.agents/mobile/design-system.md`
-- Seguridad de dependencias: `.agents/mobile/dependencies.md`
+- Arquitectura completa: `.agents/context/mobile/architecture.md`
+- Design system: `.agents/context/mobile/design-system.md`
+- Seguridad de dependencias: `.agents/context/mobile/dependencies.md`

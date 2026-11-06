@@ -5,7 +5,7 @@ Dependencia: $ARGUMENTS
 
 1. Identifica el ecosistema (backend Go / web / mobile). Si es ambiguo, pregunta
    antes de continuar.
-2. Lee `.agents/<ecosistema>/dependencies.md` y ejecuta TODOS los checks:
+2. Lee `.agents/context/<ecosistema>/dependencies.md` y ejecuta TODOS los checks:
    reputación del origen, mantenimiento, registro de seguridad/CVEs, licencia,
    calidad/API, supply chain. Investiga con websearch/webfetch (repo, última
    release, advisories).

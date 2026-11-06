@@ -28,7 +28,7 @@ When adding a new type or constant:
 1. Add the source definition to `packages/shared/src/types/` or `packages/shared/src/constants/`
 2. Add the re-export to `apps/web/src/types/<name>.types.ts` or `apps/web/src/constants/index.ts`
 
-Full details: see `.agents/shared/architecture.md`.
+Full details: see `.agents/context/shared/architecture.md`.
 
 ## Data flow
 
@@ -48,7 +48,7 @@ Three layers, strictly separated:
 
 ## API contract
 
-The envelope `{ data: ... }` and RFC 9457 error format are defined by the backend. See `.agents/backend/responses.md` for the canonical contract. The web `api/client.ts` implements the consuming side (Axios interceptors that unwrap the envelope and transform errors).
+The envelope `{ data: ... }` and RFC 9457 error format are defined by the backend. See `.agents/context/backend/responses.md` for the canonical contract. The web `api/client.ts` implements the consuming side (Axios interceptors that unwrap the envelope and transform errors).
 
 ## Feature structure
 

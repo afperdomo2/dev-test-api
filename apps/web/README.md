@@ -100,7 +100,7 @@ Los `types/*`, `constants/*` y `utils/format.ts` son **re-exports** desde `packa
 
 Al agregar un tipo nuevo: agregar la definición en `packages/shared/src/types/` y luego el re-export en `apps/web/src/types/`.
 
-Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/backend/responses.md`.
+Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/context/backend/responses.md`.
 
 ## 🔗 Conexión con la API
 

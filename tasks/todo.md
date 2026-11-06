@@ -186,7 +186,7 @@
 
 ## Módulo `e2e` (opt-in) — `specs/SPEC-e2e.md`
 
-> ⚠️ No empezar sin go-ahead explícito del usuario. Requiere el gate de `.agents/web/dependencies.md`.
+> ⚠️ No empezar sin go-ahead explícito del usuario. Requiere el gate de `.agents/context/web/dependencies.md`.
 
 - [x] **E2-1** — Suite Playwright del camino crítico
   - Acceptance: `@playwright/test` como devDependency (gate de dependencias documentado); `playwright.config.ts` con `workers: 1`, `webServer` para Vite y `baseURL :3000`; `critical-flow.spec.ts` recorre `status → setup → login → dashboard → sessions`; sin `waitForTimeout`; selectores por rol/texto; targets `make e2e` / `e2e-ui` / `e2e-report`; `e2e/.auth/` gitignored; el E2E **no** entra en `make fe-test`
@@ -230,7 +230,7 @@
 ## Módulo `mobile-tooling` — `specs/SPEC-mobile-tooling.md`
 
 - [x] **MTOOL-1** — ESLint en mobile
-  - Acceptance: `eslint.config.js` con `eslint-config-expo`; script `lint` real (deja de ser un `echo`); gate de `.agents/mobile/dependencies.md` documentado
+  - Acceptance: `eslint.config.js` con `eslint-config-expo`; script `lint` real (deja de ser un `echo`); gate de `.agents/context/mobile/dependencies.md` documentado
   - Verify: `pnpm --filter mobile lint` ✅ sin errores
   - Files: `apps/mobile/eslint.config.js`, `apps/mobile/package.json`
   - Hecho: `eslint@9` + `eslint-config-expo@58` (MIT, peer `eslint >=8.10`, gate OK) · **0 errores, 11 warnings** · la regla nueva `react-hooks/set-state-in-effect` se dejó en `warn` (marca el patrón estándar de fetch inicial de `SessionsListPage`; como error bloquearía código válido) · se **eliminó un `useEffect` redundante** en `QuestionCard` (el padre ya monta con `key={question.id}`) · `types/eslint-config-expo.d.ts` para el typecheck
@@ -421,7 +421,7 @@
 - [x] **MUX-7** — Docs y verificación
   - Acceptance: spec + decisión + índice + rutas documentadas; `typecheck`, `test:run`, `lint` en verde
   - Verify: `pnpm --filter mobile typecheck` + `test:run` + `lint`
-  - Files: `specs/{SPEC-mobile-progress-ux,DECISIONS,MAP}.md`, `tasks/todo.md`, `.agents/mobile/{architecture,design-system}.md`, `apps/mobile/AGENTS.md`
+  - Files: `specs/{SPEC-mobile-progress-ux,DECISIONS,MAP}.md`, `tasks/todo.md`, `.agents/context/mobile/{architecture,design-system}.md`, `apps/mobile/AGENTS.md`
   - Hecho: **158 tests / 36 archivos** (antes 129/28) · `typecheck` ✅ · `lint` 0 errores (42 warnings, todos preexistentes del repo) · D-48 registra la regla de propiedad Inicio/Progreso/detalle
   - ⚠️ **Pendiente**: pasada visual en dispositivo (los anillos usan `react-native-svg`, módulo nativo → recompilar el APK con `make mobile-apk`)
 
@@ -460,7 +460,7 @@
 
 - [x] **PR-4** — Docs y contrato
   - Acceptance: spec + decisión + índice de docs actualizados; Swagger regenerado
-  - Files: `specs/SPEC-profile.md`, `specs/DECISIONS.md` (D-49), `.agents/web/architecture.md`, `tasks/todo.md`, `docs/`
+  - Files: `specs/SPEC-profile.md`, `specs/DECISIONS.md` (D-49), `.agents/context/web/architecture.md`, `tasks/todo.md`, `docs/`
   - Hecho: D-49 documenta 422 para contraseña incorrecta y la no-revocación de JWT · `UserSummaryCard` añadido a la lista de componentes compartidos · `docs/swagger.yaml|json|docs.go` regenerados
 
 ---

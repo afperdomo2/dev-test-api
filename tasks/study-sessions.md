@@ -16,7 +16,7 @@
       **Hecho:** archivo de 1 línea.
 - [x] Entradas: CTA secundario en Inicio y botón `＋` en el header del listado.
       **Hecho:** `HomeScreen.tsx` (`Sesión de estudio`) y `SessionsListPage.tsx` (`Nueva sesión de estudio`).
-- [x] Docs: rutas y convenciones de formularios de estudio en `.agents/mobile/architecture.md`;
+- [x] Docs: rutas y convenciones de formularios de estudio en `.agents/context/mobile/architecture.md`;
       línea de rutas en `apps/mobile/AGENTS.md`.
       **Hecho:** sección «Formularios de estudio» + árbol de rutas actualizado.
 - [x] Verificación.

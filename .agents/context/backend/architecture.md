@@ -139,7 +139,7 @@ Variables: `MAX_BODY_BYTES`, `TRUSTED_PROXIES`, `HSTS_ENABLED`, `SWAGGER_ENABLED
 ### Object-level authorization
 
 Toda operación por ID comprueba el dueño **en el service** y devuelve **404** si no
-existe o es de otro usuario. Reglas y excepciones: `.agents/backend/responses.md`
+existe o es de otro usuario. Reglas y excepciones: `.agents/context/backend/responses.md`
 → "Object-level authorization" + D-37 en `specs/DECISIONS.md`.
 
 ## Goose migrations

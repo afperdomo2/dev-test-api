@@ -7,7 +7,7 @@
 - **NativeTabs** (`expo-router/unstable-native-tabs`) — native tab bar (iOS liquid glass / Android Material 3)
 - **Metro bundler** (monorepo-aware via `metro.config.js`)
 - **Shared package**: `@devtest/shared` (workspace)
-- **Design system**: source of truth en `.agents/mobile/design-system.md` (generado con `ui-ux-pro-max`) → espejo tipado en `src/core/theme/tokens.ts`
+- **Design system**: source of truth en `.agents/context/mobile/design-system.md` (generado con `ui-ux-pro-max`) → espejo tipado en `src/core/theme/tokens.ts`
 
 ## Directory ownership
 
@@ -17,7 +17,7 @@
 | `app/_layout.tsx` | Root layout (Stack, headerShown false, theme) | Rarely |
 | `app/(tabs)/_layout.tsx` | `NativeTabs` — 3 triggers: Inicio (`index`), Sesiones (`sesiones`), Perfil (`perfil`) | Yes |
 | `src/features/<domain>/` | Feature (domain) modules: `screens/`, `components/` (y `utils/` cuando aplique) | Yes — add features here |
-| `src/core/theme/tokens.ts` | Design tokens (colors, spacing, radii, typography) — mirror tipado de `.agents/mobile/design-system.md` | Yes — keep in sync with design-system.md |
+| `src/core/theme/tokens.ts` | Design tokens (colors, spacing, radii, typography) — mirror tipado de `.agents/context/mobile/design-system.md` | Yes — keep in sync with design-system.md |
 | `src/core/components/` | Shared UI primitives (e.g. `Screen.tsx`) | Yes |
 | `src/core/api/` | HTTP client + services (`client.ts`, `services/*.ts`) | Yes — add endpoints here |
 | `src/core/auth/` | Almacenamiento del token (`expo-secure-store`) y estado de sesión | Yes |
@@ -25,7 +25,7 @@
 | `apps/mobile/package.json` | `"main": "expo-router/entry"` | Rarely |
 | `apps/mobile/app.json` | Expo config (plugins, scheme, userInterfaceStyle: "dark") | Yes |
 | `apps/mobile/tsconfig.json` | Extends `expo/tsconfig.base`, `@/*` → `src/*` | Rarely |
-| `.agents/mobile/design-system.md` | Design system (Dark OLED, paleta, tipografía, anti-patrones) — source of truth | Yes |
+| `.agents/context/mobile/design-system.md` | Design system (Dark OLED, paleta, tipografía, anti-patrones) — source of truth | Yes |
 
 ## Feature structure
 
@@ -150,7 +150,7 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 ### Components
 - `@gorhom/bottom-sheet` for action menus (requires `react-native-reanimated` + `react-native-gesture-handler`, both SDK-compatible via `expo install`).
 - `react-native-markdown-display` for rendering markdown content (questions, explanations).
-- `react-native-svg` **solo** para anillos de progreso (`TopicRing`). Cualquier otra librería de charts necesita pasar por `.agents/mobile/dependencies.md`.
+- `react-native-svg` **solo** para anillos de progreso (`TopicRing`). Cualquier otra librería de charts necesita pasar por `.agents/context/mobile/dependencies.md`.
 - `expo-constants` for app version (`Constants.expoConfig?.version`).
 - Componentes/helpers compartidos entre dominios viven en `src/core/` (`LevelLine`, `charts.ts`, `utils/icons.ts`, `utils/numbers.ts`): un dominio no importa de otro.
 
@@ -174,7 +174,7 @@ Before delivering any mobile UI, verify against `pro-rules.md`:
 
 ## Design system
 
-Source of truth: `.agents/mobile/design-system.md`. Mirror it as typed tokens in `src/core/theme/tokens.ts`:
+Source of truth: `.agents/context/mobile/design-system.md`. Mirror it as typed tokens in `src/core/theme/tokens.ts`:
 
 ```ts
 import { colors, spacing, radius } from '@/core/theme/tokens'
@@ -218,7 +218,7 @@ The mobile app uses `fetch` (not axios). The client must:
 3. Transform RFC 9457 errors into `ApiError` (from `@devtest/shared`)
 4. On 401: delete token and redirect to login
 
-The envelope/error contract is defined in `.agents/backend/responses.md` — the mobile client implements the consuming side.
+The envelope/error contract is defined in `.agents/context/backend/responses.md` — the mobile client implements the consuming side.
 
 Servicios por dominio en `src/core/api/services/` (`sessions`, `topics`, `gamification`, `insights`, `progress`, `questions`, `push`, `auth`). Cada uno es una función fina sobre `apiClient`; las pantallas no llaman a `apiClient` directamente.
 

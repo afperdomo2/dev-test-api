@@ -3,7 +3,7 @@
 > Estado: implementado el stack; deploy en Dokploy y build del APK quedan como
 > tareas manuales (`tasks/containers-todo.md`).
 > Decisiones: D-44…D-47 en `specs/DECISIONS.md`.
-> Fuente de verdad operativa: `docker/README.md` y `.agents/devops/containers.md`.
+> Fuente de verdad operativa: `docker/README.md` y `.agents/context/devops/containers.md`.
 
 ## Objetivo
 
@@ -64,7 +64,7 @@ con EAS cloud.
 ### Documentación
 
 - `docker/README.md` (runbook completo).
-- `.agents/devops/containers.md` (invariantes para agentes).
+- `.agents/context/devops/containers.md` (invariantes para agentes).
 - `docs/mobile-apk.md` (runbook del APK).
 - `AGENTS.md`, `README.md`, `specs/DECISIONS.md`.
 
@@ -95,7 +95,7 @@ con EAS cloud.
 - `make docker-config` tras tocar cualquier compose/Dockerfile.
 - Replicar cambios de servicios en los 3 compose.
 - Mantener non-root, DB no publicada, `TRUSTED_PROXIES` y `TZ`.
-- Documentar el cambio en `docker/README.md` y/o `.agents/devops/containers.md`.
+- Documentar el cambio en `docker/README.md` y/o `.agents/context/devops/containers.md`.
 
 **Ask first**
 
@@ -126,7 +126,7 @@ con EAS cloud.
    y `SETUP_TOKEN` retirado tras el primer admin.
 6. El APK se compila a mano con la URL HTTPS correcta y se instala en Android.
 7. Un agente puede responder "cómo levanto dev / prod / Dokploy / APK" leyendo
-   `.agents/devops/containers.md` sin mirar el código.
+   `.agents/context/devops/containers.md` sin mirar el código.
 
 ## Open questions
 

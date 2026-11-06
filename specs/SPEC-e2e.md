@@ -7,7 +7,7 @@
 | Estado | `ready` (aprobado en D-32) |
 | Depende de | backend + web entregados (todo el mapa) |
 | Migración goose | **Ninguna** |
-| Dependencia nueva | `@playwright/test` (dev) — ⚠️ requiere pasar por `.agents/web/dependencies.md` (D-25) |
+| Dependencia nueva | `@playwright/test` (dev) — ⚠️ requiere pasar por `.agents/context/web/dependencies.md` (D-25) |
 
 ## Objective
 
@@ -125,7 +125,7 @@ El E2E **no** busca cobertura: cubre **un** camino crítico. No se duplican aqu�
 
 ## Boundaries
 
-- **Always**: pasar por `.agents/web/dependencies.md` antes de `pnpm add -D @playwright/test` (D-25); documentar en el `README.md`/`Makefile` que el E2E necesita DB dedicada + backend corriendo; selectores accesibles; mantener el E2E **fuera** de `make fe-test`.
+- **Always**: pasar por `.agents/context/web/dependencies.md` antes de `pnpm add -D @playwright/test` (D-25); documentar en el `README.md`/`Makefile` que el E2E necesita DB dedicada + backend corriendo; selectores accesibles; mantener el E2E **fuera** de `make fe-test`.
 - **Ask first**: integrarlo en CI (requiere servicio Postgres en GitHub Actions + secretos → decisión aparte, ver OQ-2); añadir más escenarios; instalar navegadores adicionales (Firefox/WebKit).
 - **Never**: reutilizar la DB de desarrollo (rompería el setup y borraría datos reales); meterlo en `make fe-check`/`make fe-lint`/`make fe-test`; `waitForTimeout` arbitrarios; `AutoMigrate`; editar `docs/` a mano; tocar mobile.
 
@@ -141,7 +141,7 @@ El E2E **no** busca cobertura: cubre **un** camino crítico. No se duplican aqu�
 
 ## Notas de implementación (2026-10-20)
 
-- **Dependencia**: `@playwright/test@^1.64.1` (Microsoft, MIT) como devDependency + Chromium 1248 (`playwright install chromium`, una vez por máquina). Gate de `.agents/web/dependencies.md`: sin advisories propios; `pnpm audit` conserva los 18 hallazgos preexistentes del workspace.
+- **Dependencia**: `@playwright/test@^1.64.1` (Microsoft, MIT) como devDependency + Chromium 1248 (`playwright install chromium`, una vez por máquina). Gate de `.agents/context/web/dependencies.md`: sin advisories propios; `pnpm audit` conserva los 18 hallazgos preexistentes del workspace.
 - **Flujo ajustado a los guards reales**: el admin creado en `setup` no puede entrar a `/sessions` (`requiresNotAdmin`). Tras el dashboard admin, la suite crea un **usuario normal desde la UI de Usuarios**, cierra sesión y valida Sesiones con él (estado vacío contra el backend real).
 - **Warm-up de Vite** (`beforeAll`): pide cada `src/**/*.vue|ts` al dev server antes de abrir el navegador. Sin esto la primera visita a una página lazy descubre componentes Vuetify (`vuetify/components/VDataTable`, …), Vite reoptimiza y recarga la página en mitad de la navegación, perdiendo el click. No se cambia `pnpm dev` (contrato de esta spec).
 - **Timeouts**: test `120 s` y `expect` `30 s`; el arranque en frío de Vite+Vuetify supera los 30 s por defecto.
