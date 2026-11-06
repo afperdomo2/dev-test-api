@@ -48,7 +48,7 @@ notifications ──► push ──► mobile-push
 | `mobile-offline` | idempotencia en `sessions` (migración) | — | reintento + UUID |
 | `e2e` | — | Playwright | — |
 
-**Reglas transversales**: backend sigue la anatomía de `.agents/backend/architecture.md`; web el checklist de `.agents/web/architecture.md`; mobile la estructura `app/` (rutas thin) + `src/features/` + `src/core/` de `.agents/mobile/architecture.md`.
+**Reglas transversales**: backend sigue la anatomía de `.agents/context/backend/architecture.md`; web el checklist de `.agents/context/web/architecture.md`; mobile la estructura `app/` (rutas thin) + `src/features/` + `src/core/` de `.agents/context/mobile/architecture.md`.
 
 ## 4. Riesgos y mitigaciones
 
@@ -65,7 +65,7 @@ notifications ──► push ──► mobile-push
 | Se "arregla" la asimetría `topTopics` (ventana) vs `weakTopics` (histórico) | Media | Alto | Documentado en `SPEC-insights.md`; test de consistencia |
 | `noUncheckedIndexedAccess` / `no-non-null-assertion` rompen tests nuevos | Alta | Bajo | Ya nos pasó en RM-8: usar `?.` y helpers que lancen, no `!` |
 | `v-card` inyecta un `role="progressbar"` oculto que confunde tests | Media | Bajo | Selectores `[role="progressbar"][aria-label]` (documentado en RM-8) |
-| Dependencias nuevas (`expo-notifications`, `expo-crypto`, `eslint-config-expo`) | Alta | Bajo | Gate obligatorio en `.agents/mobile/dependencies.md` antes de instalar |
+| Dependencias nuevas (`expo-notifications`, `expo-crypto`, `eslint-config-expo`) | Alta | Bajo | Gate obligatorio en `.agents/context/mobile/dependencies.md` antes de instalar |
 
 ## 5. Checkpoints de verificación
 

@@ -10,6 +10,8 @@
 | Migración goose | Ninguna |
 | Dependencia nueva | **Ninguna** |
 
+> **Actualizado por** `SPEC-mobile-progress-ux.md` (D-48): el hub de filas se sustituyó por un **dashboard seccionado** y Temas pasó a **rejilla de anillos** con filtro Todos/Débiles. El servicio, los estados y las reglas de a11y de esta spec siguen vigentes.
+
 ## Objective
 
 Dar acceso desde la app al **dominio por tema** que ya existe en la web, dentro de una nueva pestaña **Progreso**.

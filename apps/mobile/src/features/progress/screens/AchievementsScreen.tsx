@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
-import type { BadgesResponse } from '@devtest/shared'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import type { Badge, BadgesResponse } from '@devtest/shared'
 
 import { getBadges } from '@/core/api/services/gamification.service'
 import { getErrorDetail } from '@/core/utils/errors'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
 import { BadgeCard } from '../components/BadgeCard'
+
+function progressOf(badge: Badge): number {
+  if (badge.target <= 0) return 0
+  return Math.min(100, Math.round((badge.current / badge.target) * 100))
+}
 
 function Summary({ earned, total }: { earned: number; total: number }) {
   const value = total > 0 ? Math.round((earned / total) * 100) : 0
@@ -47,11 +46,24 @@ function Skeleton() {
       style={[styles.container, styles.content]}
     >
       <View style={styles.summarySkeleton} />
-      <View style={styles.skeletonGrid}>
+      <View style={styles.grid}>
         {[0, 1, 2, 3].map((key) => (
           <View key={key} style={styles.cardSkeleton} />
         ))}
       </View>
+    </View>
+  )
+}
+
+/** Dos columnas; las cards se agrupan por estado para que lo pendiente no se pierda. */
+function BadgeGrid({ badges }: { badges: Array<Badge> }) {
+  return (
+    <View style={styles.grid}>
+      {badges.map((badge) => (
+        <View key={badge.id} style={styles.gridCell}>
+          <BadgeCard badge={badge} />
+        </View>
+      ))}
     </View>
   )
 }
@@ -102,20 +114,18 @@ export default function AchievementsScreen() {
   }
 
   const badges = data?.badges ?? []
+  const earned = badges.filter((badge) => badge.earned)
+  const pending = badges
+    .filter((badge) => !badge.earned)
+    .sort((a, b) => progressOf(b) - progressOf(a))
 
   return (
-    <FlatList
+    <ScrollView
       style={styles.container}
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.content}
-      data={badges}
-      keyExtractor={(badge) => badge.id}
-      numColumns={2}
-      columnWrapperStyle={styles.row}
-      ListHeaderComponent={
-        badges.length > 0 ? <Summary earned={data?.earned ?? 0} total={data?.total ?? 0} /> : null
-      }
-      ListEmptyComponent={
+    >
+      {badges.length === 0 ? (
         <View style={styles.emptyCard}>
           <MaterialCommunityIcons
             name="trophy-outline"
@@ -127,9 +137,26 @@ export default function AchievementsScreen() {
             Sigue practicando: tus logros aparecerán aquí en cuanto el backend los publique.
           </Text>
         </View>
-      }
-      renderItem={({ item }) => <BadgeCard badge={item} />}
-    />
+      ) : (
+        <>
+          <Summary earned={data?.earned ?? earned.length} total={data?.total ?? badges.length} />
+
+          {earned.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Conseguidos</Text>
+              <BadgeGrid badges={earned} />
+            </View>
+          ) : null}
+
+          {pending.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>En progreso</Text>
+              <BadgeGrid badges={pending} />
+            </View>
+          ) : null}
+        </>
+      )}
+    </ScrollView>
   )
 }
 
@@ -140,10 +167,25 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
+    gap: spacing.lg,
+  },
+  section: {
     gap: spacing.sm,
   },
-  row: {
+  sectionTitle: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.mutedForeground,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  gridCell: {
+    width: '48.5%',
   },
   summary: {
     gap: spacing.sm,
@@ -183,15 +225,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.card,
   },
-  skeletonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: spacing.sm,
-  },
   cardSkeleton: {
     width: '48.5%',
-    height: 172,
+    height: 140,
     borderRadius: radius.md,
     backgroundColor: colors.card,
   },

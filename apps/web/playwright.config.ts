@@ -7,8 +7,12 @@ import { defineConfig } from '@playwright/test'
  *   1. DB dedicada y vacía: DB_NAME=devtest_e2e make migrate-up
  *   2. Backend: make run (con DB_NAME=devtest_e2e)
  *
- * El frontend sí lo levanta `webServer` (o reutiliza `make fe-dev`).
+ * El frontend lo levanta `webServer`, salvo que `PLAYWRIGHT_BASE_URL` apunte a
+ * un stack ya levantado (por ejemplo `make e2e-docker`).
  */
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+const useExternalServer = Boolean(process.env.PLAYWRIGHT_BASE_URL)
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false, // la suite comparte estado en la DB
@@ -23,14 +27,19 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   outputDir: 'test-results',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  // `make e2e-docker` ya levanta el stack: no arrancar Vite en ese caso.
+  ...(useExternalServer
+    ? {}
+    : {
+        webServer: {
+          command: 'pnpm dev',
+          url: 'http://localhost:3000',
+          reuseExistingServer: true,
+          timeout: 120_000,
+        },
+      }),
 })

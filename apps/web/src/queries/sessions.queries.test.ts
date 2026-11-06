@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
   sessionsListOptions,
-  sessionsInfiniteOptions,
+  sessionsResumeOptions,
   sessionDetailOptions,
   createSessionMutation,
   finishSessionMutation,
@@ -25,38 +25,42 @@ vi.mock('@/api/services/sessions.service', () => ({
 describe('sessions.queries', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('sessionsListOptions', async () => {
+  it('sessionsListOptions forwards pagination, filter and sort', async () => {
     vi.mocked(sessionsService.listSessions).mockResolvedValue({ data: [] } as never)
     const opts = sessionsListOptions(
-      () => 1,
-      () => 10,
+      () => 2,
+      () => 20,
+      () => 'completed',
+      () => 'score',
+      () => 'desc',
     )
     await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
-    expect(sessionsService.listSessions).toHaveBeenCalledWith(1, 10)
+    expect(sessionsService.listSessions).toHaveBeenCalledWith(2, 20, 'completed', 'score', 'desc')
+    const key = (opts as unknown as { queryKey: Array<unknown> }).queryKey
+    expect(key.slice(0, 2)).toEqual(['sessions', 'list'])
+    expect((key[2] as () => number)()).toBe(2)
+    expect((key[3] as () => number)()).toBe(20)
+    expect((key[4] as () => string)()).toBe('completed')
+    expect((key[5] as () => string)()).toBe('score')
+    expect((key[6] as () => string)()).toBe('desc')
   })
 
-  it('sessionsInfiniteOptions getNextPageParam', async () => {
+  it('sessionsResumeOptions asks for the latest in-progress session', async () => {
     vi.mocked(sessionsService.listSessions).mockResolvedValue({ data: [] } as never)
-    const opts = sessionsInfiniteOptions(() => 'active')
-    // queryFn with pageParam
-    await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({
-      pageParam: 2,
-    } as never)
-    expect(sessionsService.listSessions).toHaveBeenCalledWith(2, 20, 'active')
-
-    // getNextPageParam logic
-    const lastPage = { data: [{ id: '1' }], meta: { total: 3, page: 1, perPage: 20 } } as never
-    const allPages = [{ data: [{ id: '1' }], meta: { total: 3 } } as never]
-    const next = (
-      opts as unknown as { getNextPageParam: (a: unknown, b: unknown) => unknown }
-    ).getNextPageParam(lastPage, allPages as never)
-    expect(next).toBe(2)
-
-    const donePage = { data: [{ id: '1' }], meta: { total: 1 } } as never
-    const done = (
-      opts as unknown as { getNextPageParam: (a: unknown, b: unknown) => unknown }
-    ).getNextPageParam(donePage, [donePage] as never)
-    expect(done).toBeUndefined()
+    const opts = sessionsResumeOptions()
+    await (opts as unknown as { queryFn: (ctx: unknown) => Promise<unknown> }).queryFn({} as never)
+    expect(sessionsService.listSessions).toHaveBeenCalledWith(
+      1,
+      1,
+      'in_progress',
+      'started_at',
+      'desc',
+    )
+    expect((opts as unknown as { queryKey: Array<unknown> }).queryKey).toEqual([
+      'sessions',
+      'list',
+      'resume',
+    ])
   })
 
   it('sessionDetailOptions', async () => {

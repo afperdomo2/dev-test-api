@@ -9,6 +9,7 @@ import { AuthCard } from '@/features/auth/components/AuthCard'
 import { AuthInput } from '@/features/auth/components/AuthInput'
 import { AuthLayout } from '@/features/auth/components/AuthLayout'
 import { AuthServerError } from '@/features/auth/components/AuthServerError'
+import { PasswordInput } from '@/features/auth/components/PasswordInput'
 
 export default function LoginScreen() {
   const login = useAuthStore((s) => s.login)
@@ -49,15 +50,20 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           error={errors.email}
           keyboardType="email-address"
+          textContentType="emailAddress"
+          autoComplete="email"
           editable={!loading}
           testID="login-email"
         />
-        <AuthInput
+        <PasswordInput
           label="Contraseña"
           value={password}
           onChangeText={setPassword}
           error={errors.password}
-          secureTextEntry
+          textContentType="password"
+          autoComplete="current-password"
+          returnKeyType="go"
+          onSubmitEditing={() => void submit()}
           editable={!loading}
           testID="login-password"
         />

@@ -28,9 +28,21 @@ check_dependencies() {
 
 check_dependencies
 
-# gofmt -l lista archivos desformateados (uno por línea)
+# gofmt -l lista archivos desformateados (uno por línea).
+# Solo archivos versionados: `gofmt -l .` recorre node_modules (miles de
+# directorios) y tardaba ~30 s en pre-push sin aportar nada.
 GOFMT_BIN="$(resolve_gofmt)"
-unformatted="$("$GOFMT_BIN" -l . 2>&1)" || {
+files=()
+while IFS= read -r -d '' file; do
+  files+=("$file")
+done < <(git ls-files -z -- '*.go')
+
+if [[ ${#files[@]} -eq 0 ]]; then
+  echo "✅ No tracked Go files"
+  exit 0
+fi
+
+unformatted="$("$GOFMT_BIN" -l "${files[@]}" 2>&1)" || {
   echo "❌ gofmt falló (bin: $GOFMT_BIN)" >&2
   echo "$unformatted" >&2
   exit 1

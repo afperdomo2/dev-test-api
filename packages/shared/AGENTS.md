@@ -24,4 +24,4 @@ Barrel export: `src/index.ts`.
 
 ## Details
 
-- Arquitectura y sync: `.agents/shared/architecture.md`
+- Arquitectura y sync: `.agents/context/shared/architecture.md`

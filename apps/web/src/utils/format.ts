@@ -4,4 +4,6 @@ export {
   formatShortDateTime,
   formatScore,
   formatTimeUntil,
+  formatRelativeTime,
+  formatDuration,
 } from '@devtest/shared'

@@ -7,7 +7,7 @@
 | Estado | `ready` |
 | Depende de | `push` (backend: tokens + Expo Push API) |
 | Migración goose | Ninguna (la tabla es del backend) |
-| Dependencia nueva | `expo-notifications` + `expo-device` + `expo-constants` — **pasa por `.agents/mobile/dependencies.md`** |
+| Dependencia nueva | `expo-notifications` + `expo-device` + `expo-constants` — **pasa por `.agents/context/mobile/dependencies.md`** |
 
 ## Objective
 
@@ -144,7 +144,7 @@ Los módulos nativos se mockean (`expo-notifications`, `expo-device`, `expo-cons
 
 ## Notas de implementación (2026-10-20)
 
-- **Dependencias**: `expo-notifications@~57.0.23`, `expo-device@~57.0.2` (oficiales, MIT, compatibles con SDK 57); `expo-constants` ya estaba. Gate de `.agents/mobile/dependencies.md` OK.
+- **Dependencias**: `expo-notifications@~57.0.23`, `expo-device@~57.0.2` (oficiales, MIT, compatibles con SDK 57); `expo-constants` ya estaba. Gate de `.agents/context/mobile/dependencies.md` OK.
 - **`eas.projectId` pendiente**: no se inventa un UUID; hay que ejecutar `eas init` con una cuenta EAS. Mientras falte, `getDevicePushToken()` devuelve `null` + `console.warn` y la app funciona sin push (degradación probada en tests).
 - **Canal Android** `default` con `AndroidImportance.DEFAULT` creado antes de `getExpoPushTokenAsync`.
 - **Wiring**: `app/_layout.tsx` dispara `registerForPush()` cuando hay token (guard de sesión en el módulo, no en cada render) y configura el handler/listener; `ProfileScreen` llama `unregisterFromPush()` **antes** de borrar el token. El registro nunca lanza.

@@ -72,6 +72,26 @@ export const SESSION_STATUS_FILTERS: Array<{ title: string; value: SessionStatus
   { title: 'Cancelada', value: 'cancelled' },
 ]
 
+export type SessionSortBy = 'created_at' | 'score' | 'status'
+
+export interface SessionSortOption {
+  title: string
+  sortBy: SessionSortBy
+  sortOrder: 'asc' | 'desc'
+}
+
+export const DEFAULT_SESSION_SORT: SessionSortOption = {
+  title: 'Más recientes',
+  sortBy: 'created_at',
+  sortOrder: 'desc',
+}
+
+export const SESSION_SORT_OPTIONS: Array<SessionSortOption> = [
+  DEFAULT_SESSION_SORT,
+  { title: 'Mejor puntuación', sortBy: 'score', sortOrder: 'desc' },
+  { title: 'Por estado', sortBy: 'status', sortOrder: 'asc' },
+]
+
 export interface Session {
   id: string
   userId: string

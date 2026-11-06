@@ -46,9 +46,12 @@ func TestSchedulerStartReturnsOnCancel(t *testing.T) {
 
 	cancel()
 
+	// 10 s, no 2 s: en un hook pre-push con Go + web + mobile en paralelo, el
+	// scheduler puede tardar más de 2 s en ser despertado por el runtime. El test
+	// valida que `Start` retorna, no cuánto tarda en arrancar.
 	select {
 	case <-done:
-	case <-time.After(2 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("Start no retornó al cancelar el context")
 	}
 }

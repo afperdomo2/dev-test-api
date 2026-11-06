@@ -39,6 +39,9 @@ definitions:
         maxLength: 72
         minLength: 8
         type: string
+      setupToken:
+        maxLength: 256
+        type: string
     required:
     - email
     - password
@@ -46,6 +49,8 @@ definitions:
   auth.StatusResponse:
     properties:
       initialized:
+        type: boolean
+      setupRequiresToken:
         type: boolean
     type: object
   gamification.BadgeItem:
@@ -961,6 +966,20 @@ definitions:
         minLength: 1
         type: string
     type: object
+  users.ChangePasswordRequest:
+    properties:
+      currentPassword:
+        maxLength: 72
+        minLength: 1
+        type: string
+      newPassword:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - currentPassword
+    - newPassword
+    type: object
   users.CreateUserRequest:
     properties:
       dailyImportLimit:
@@ -1047,6 +1066,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/apierr.APIError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/apierr.APIError'
       summary: Iniciar sesión
       tags:
       - auth
@@ -1055,9 +1078,11 @@ paths:
       consumes:
       - application/json
       description: Crea el primer usuario admin del sistema. Solo funciona si no hay
-        usuarios creados.
+        usuarios creados y el body incluye un `setupToken` válido (SETUP_TOKEN del
+        servidor). Sin token o con token incorrecto responde 403; si ya hay usuarios,
+        409.
       parameters:
-      - description: Credenciales del admin inicial
+      - description: Credenciales del admin inicial + setupToken
         in: body
         name: body
         required: true
@@ -1074,8 +1099,16 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/apierr.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
         "409":
           description: System Already Initialized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/apierr.APIError'
       summary: Inicializar sistema (primer usuario admin)
@@ -1526,6 +1559,45 @@ paths:
       summary: Obtener perfil
       tags:
       - profile
+  /api/v1/profile/password:
+    put:
+      consumes:
+      - application/json
+      description: Cambia la contraseña del usuario autenticado. Requiere la contraseña
+        actual y mantiene la sesión activa.
+      parameters:
+      - description: Contraseña actual y nueva
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/users.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Cambiar contraseña
+      tags:
+      - profile
   /api/v1/progress/{question_id}:
     get:
       description: Devuelve el progreso SM-2 del usuario para una pregunta concreta
@@ -1915,8 +1987,10 @@ paths:
       tags:
       - questions
     get:
-      description: Obtiene una pregunta por ID con todos sus detalles (opciones, código,
-        temas)
+      description: 'Obtiene una pregunta por ID con todos sus detalles (opciones,
+        código, temas). Solo devuelve preguntas visibles para el usuario: públicas,
+        generadas por IA o propias; el admin ve todas. Si no existe o no es visible
+        responde 404.'
       parameters:
       - description: Question ID
         in: path
@@ -2016,6 +2090,10 @@ paths:
             $ref: '#/definitions/apierr.APIError'
         "403":
           description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "413":
+          description: Request Entity Too Large
           schema:
             $ref: '#/definitions/apierr.APIError'
         "422":
@@ -2288,7 +2366,9 @@ paths:
       - sessions
   /api/v1/sessions/{id}:
     delete:
-      description: Elimina una sesión sin respuestas creada en las últimas 24 horas
+      description: 'Elimina una sesión sin respuestas creada en las últimas 24 horas.
+        Solo el dueño puede eliminarla: si la sesión no existe o pertenece a otro
+        usuario responde 404.'
       parameters:
       - description: Session ID
         in: path

@@ -65,13 +65,19 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
                     }
                 }
             }
         },
         "/api/v1/auth/setup": {
             "post": {
-                "description": "Crea el primer usuario admin del sistema. Solo funciona si no hay usuarios creados.",
+                "description": "Crea el primer usuario admin del sistema. Solo funciona si no hay usuarios creados y el body incluye un ` + "`" + `setupToken` + "`" + ` válido (SETUP_TOKEN del servidor). Sin token o con token incorrecto responde 403; si ya hay usuarios, 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -84,7 +90,7 @@ const docTemplate = `{
                 "summary": "Inicializar sistema (primer usuario admin)",
                 "parameters": [
                     {
-                        "description": "Credenciales del admin inicial",
+                        "description": "Credenciales del admin inicial + setupToken",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -106,8 +112,20 @@ const docTemplate = `{
                             "$ref": "#/definitions/apierr.APIError"
                         }
                     },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
                     "409": {
                         "description": "System Already Initialized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -800,6 +818,66 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/profile/password": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cambia la contraseña del usuario autenticado. Requiere la contraseña actual y mantiene la sesión activa.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Cambiar contraseña",
+                "parameters": [
+                    {
+                        "description": "Contraseña actual y nueva",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/users.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/progress/saved": {
             "get": {
                 "security": [
@@ -1399,6 +1477,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/apierr.APIError"
                         }
                     },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
@@ -1483,7 +1567,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene una pregunta por ID con todos sus detalles (opciones, código, temas)",
+                "description": "Obtiene una pregunta por ID con todos sus detalles (opciones, código, temas). Solo devuelve preguntas visibles para el usuario: públicas, generadas por IA o propias; el admin ve todas. Si no existe o no es visible responde 404.",
                 "produces": [
                     "application/json"
                 ],
@@ -2061,7 +2145,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina una sesión sin respuestas creada en las últimas 24 horas",
+                "description": "Elimina una sesión sin respuestas creada en las últimas 24 horas. Solo el dueño puede eliminarla: si la sesión no existe o pertenece a otro usuario responde 404.",
                 "produces": [
                     "application/json"
                 ],
@@ -3482,6 +3566,10 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 8
+                },
+                "setupToken": {
+                    "type": "string",
+                    "maxLength": 256
                 }
             }
         },
@@ -3489,6 +3577,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "initialized": {
+                    "type": "boolean"
+                },
+                "setupRequiresToken": {
                     "type": "boolean"
                 }
             }
@@ -4859,6 +4950,25 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 150,
                     "minLength": 1
+                }
+            }
+        },
+        "users.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "currentPassword",
+                "newPassword"
+            ],
+            "properties": {
+                "currentPassword": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 1
+                },
+                "newPassword": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
                 }
             }
         },

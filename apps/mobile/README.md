@@ -40,6 +40,9 @@ EXPO_PUBLIC_API_BASE_URL=http://192.168.1.x:8080
 ```
 
 > En iOS simulator / Android emulator `localhost` funciona directamente. En dispositivo real necesitas la IP de tu máquina en la LAN.
+>
+> Con el stack Docker (`make docker-dev`) el API está en `:8082`; con el backend
+> nativo (`make dev`) en `:8080`.
 
 ## 📁 Estructura
 
@@ -54,7 +57,7 @@ apps/mobile/
 │   │   ├── theme/       # tokens.ts (colores, spacing, tipografía)
 │   │   └── utils/       # errors.ts (extrae detail de RFC 9457)
 │   └── features/
-│       ├── auth/        # LoginScreen, SetupScreen, AuthCard, AuthInput, AuthButton
+│       ├── auth/        # LoginScreen, SetupScreen, AuthCard, AuthInput, PasswordInput, AuthButton
 │       ├── home/        # HomeScreen (placeholder)
 │       ├── profile/     # ProfileScreen (placeholder)
 │       ├── progress/    # ProgressScreen (placeholder)
@@ -68,7 +71,7 @@ apps/mobile/
 ```
 
 - Navegación: **Expo Router** con **NativeTabs** (4 tabs: Inicio, Temas, Progreso, Perfil).
-- Design system (dark, OLED): `.agents/mobile/design-system.md` → tokens en `src/core/theme/tokens.ts`.
+- Design system (dark, OLED): `.agents/context/mobile/design-system.md` → tokens en `src/core/theme/tokens.ts`.
 - Auth: `expo-secure-store` (JWT) + Zustand (`auth.store.ts`). El `AuthGate` en `app/_layout.tsx` gestiona login/setup/tabs.
 
 ## 🔗 Paquete compartido (@devtest/shared)
@@ -82,7 +85,7 @@ import { formatDateTime, formatScore, isValidEmail } from '@devtest/shared'
 
 No duplicar nada que ya exista en shared. Si algo es reutilizable entre web y mobile, pertenece a `packages/shared/`.
 
-Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/backend/responses.md`.
+Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/context/backend/responses.md`.
 
 ## 📦 Scripts
 
@@ -93,7 +96,20 @@ Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/backend/respo
 | `pnpm --filter mobile android` | Iniciar en Android |
 | `pnpm --filter mobile ios` | Iniciar en iOS |
 
+## 📱 APK manual (Android)
+
+El APK se compila a mano con **EAS cloud** (no hay CI de APK). La URL del API se
+**compila dentro del APK**: se configura en `eas.json` → `build.preview.env`,
+no en `.env`, y debe ser HTTPS.
+
+```bash
+make mobile-apk      # preflight + eas build -p android --profile preview
+```
+
+Runbook completo, checklist de versión y cómo conectarse a la DB de la nube:
+[`docs/mobile-apk.md`](../../docs/mobile-apk.md).
+
 ## 📚 Convenciones
 
-- Arquitectura: `.agents/mobile/architecture.md`
-- Dependencias: `.agents/mobile/dependencies.md`
+- Arquitectura: `.agents/context/mobile/architecture.md`
+- Dependencias: `.agents/context/mobile/dependencies.md`

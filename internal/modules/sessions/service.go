@@ -20,13 +20,13 @@ import (
 
 type Service interface {
 	List(userID uuid.UUID, params ListSessionsParams) ([]SessionListResponse, int64, error)
-	GetByID(sessionID uuid.UUID) (*SessionDetailResponse, error)
+	GetByID(sessionID, userID uuid.UUID) (*SessionDetailResponse, error)
 	Create(userID uuid.UUID, input CreateSessionRequest) (*SessionResponse, error)
 	CreateDaily(userID uuid.UUID) (*DailySessionResponse, error)
-	Finish(sessionID uuid.UUID) (*SessionResponse, error)
-	NextQuestion(sessionID uuid.UUID) (*NextQuestionResponse, error)
+	Finish(sessionID, userID uuid.UUID) (*SessionResponse, error)
+	NextQuestion(sessionID, userID uuid.UUID) (*NextQuestionResponse, error)
 	Answer(sessionID, userID uuid.UUID, input AnswerRequest) (*SessionAnswerResponse, error)
-	Summary(sessionID uuid.UUID) (*SessionSummaryResponse, error)
+	Summary(sessionID, userID uuid.UUID) (*SessionSummaryResponse, error)
 	Delete(sessionID, userID uuid.UUID) error
 }
 
@@ -39,6 +39,27 @@ type sessionService struct {
 
 func NewService(store Store, progressService progress.Service, gamificationService gamification.Service, tipService tips.Service) Service {
 	return &sessionService{store: store, progressService: progressService, gamificationService: gamificationService, tipService: tipService}
+}
+
+// findOwnedSession carga la sesión y comprueba que pertenece al usuario.
+//
+// Si la sesión no existe o es de otro usuario devuelve el mismo ErrNotFound:
+// así un tercero no puede distinguir "no existe" de "es de otro" (D-AZ-1).
+// Toda operación por id pasa por aquí (D-AZ-2).
+func findOwnedSession(store Store, sessionID, userID uuid.UUID) (*models.Session, error) {
+	sess, err := store.FindByID(sessionID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apierr.ErrNotFound("Sesion", "")
+		}
+		return nil, apierr.ErrInternal("Error al obtener la sesion", "")
+	}
+
+	if sess.UserID != userID {
+		return nil, apierr.ErrNotFound("Sesion", "")
+	}
+
+	return sess, nil
 }
 
 func (s *sessionService) List(userID uuid.UUID, params ListSessionsParams) ([]SessionListResponse, int64, error) {
@@ -54,13 +75,10 @@ func (s *sessionService) List(userID uuid.UUID, params ListSessionsParams) ([]Se
 	return result, total, nil
 }
 
-func (s *sessionService) GetByID(sessionID uuid.UUID) (*SessionDetailResponse, error) {
-	sess, err := s.store.FindByID(sessionID)
+func (s *sessionService) GetByID(sessionID, userID uuid.UUID) (*SessionDetailResponse, error) {
+	sess, err := findOwnedSession(s.store, sessionID, userID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, apierr.ErrNotFound("Sesion", "")
-		}
-		return nil, apierr.ErrInternal("Error al obtener la sesion", "")
+		return nil, err
 	}
 
 	answers := make([]SessionAnswerDetailResponse, len(sess.Answers))
@@ -208,13 +226,10 @@ func (s *sessionService) CreateDaily(userID uuid.UUID) (*DailySessionResponse, e
 	}, nil
 }
 
-func (s *sessionService) Finish(sessionID uuid.UUID) (*SessionResponse, error) {
-	sess, err := s.store.FindByID(sessionID)
+func (s *sessionService) Finish(sessionID, userID uuid.UUID) (*SessionResponse, error) {
+	sess, err := findOwnedSession(s.store, sessionID, userID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, apierr.ErrNotFound("Sesion", "")
-		}
-		return nil, apierr.ErrInternal("Error al obtener la sesion", "")
+		return nil, err
 	}
 
 	if sess.Status == "completed" {
@@ -245,13 +260,10 @@ func (s *sessionService) Finish(sessionID uuid.UUID) (*SessionResponse, error) {
 	return &resp, nil
 }
 
-func (s *sessionService) NextQuestion(sessionID uuid.UUID) (*NextQuestionResponse, error) {
-	sess, err := s.store.FindByID(sessionID)
+func (s *sessionService) NextQuestion(sessionID, userID uuid.UUID) (*NextQuestionResponse, error) {
+	sess, err := findOwnedSession(s.store, sessionID, userID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, apierr.ErrNotFound("Sesion", "")
-		}
-		return nil, apierr.ErrInternal("Error al obtener la sesion", "")
+		return nil, err
 	}
 
 	if sess.Status == "completed" {
@@ -302,12 +314,9 @@ func (s *sessionService) NextQuestion(sessionID uuid.UUID) (*NextQuestionRespons
 }
 
 func (s *sessionService) Answer(sessionID, userID uuid.UUID, input AnswerRequest) (*SessionAnswerResponse, error) {
-	sess, err := s.store.FindByID(sessionID)
+	sess, err := findOwnedSession(s.store, sessionID, userID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, apierr.ErrNotFound("Sesion", "")
-		}
-		return nil, apierr.ErrInternal("Error al obtener la sesion", "")
+		return nil, err
 	}
 
 	if sess.Status == "completed" {
@@ -423,16 +432,9 @@ func evaluateCorrectness(question *models.Question, selectedOptions []uuid.UUID)
 }
 
 func (s *sessionService) Delete(sessionID, userID uuid.UUID) error {
-	sess, err := s.store.FindByID(sessionID)
+	sess, err := findOwnedSession(s.store, sessionID, userID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return apierr.ErrNotFound("Sesion", "")
-		}
-		return apierr.ErrInternal("Error al obtener la sesion", "")
-	}
-
-	if sess.UserID != userID {
-		return apierr.ErrForbidden("No puedes eliminar una sesión que no te pertenece", "")
+		return err
 	}
 
 	if len(sess.Answers) > 0 {
@@ -446,7 +448,13 @@ func (s *sessionService) Delete(sessionID, userID uuid.UUID) error {
 	return s.store.Delete(sessionID)
 }
 
-func (s *sessionService) Summary(sessionID uuid.UUID) (*SessionSummaryResponse, error) {
+func (s *sessionService) Summary(sessionID, userID uuid.UUID) (*SessionSummaryResponse, error) {
+	// FindSummary solo agrega contadores y no filtra por usuario: el dueño se
+	// comprueba antes con la misma regla que el resto (D-AZ-2).
+	if _, err := findOwnedSession(s.store, sessionID, userID); err != nil {
+		return nil, err
+	}
+
 	data, err := s.store.FindSummary(sessionID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {

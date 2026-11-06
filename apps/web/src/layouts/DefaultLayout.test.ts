@@ -68,6 +68,11 @@ describe('DefaultLayout', () => {
     expect(wrapper.find('[aria-label="Notificaciones"]').exists()).toBe(true)
   })
 
+  it('expone Mi perfil en el sidebar', () => {
+    const { wrapper } = mountLayout()
+    expect(wrapper.text()).toContain('Mi perfil')
+  })
+
   it('muestra el badge con el número de no leídas', async () => {
     vi.mocked(getUnreadCount).mockResolvedValue({ count: 3 })
     const { wrapper } = mountLayout()

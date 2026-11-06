@@ -22,6 +22,12 @@ export const user: Credentials = {
   password: 'E2eUser123!',
 }
 
+/**
+ * Token de instalación. Debe coincidir con el `SETUP_TOKEN` con el que arranca
+ * el backend de E2E (por defecto: `e2e-setup-token`).
+ */
+export const setupToken = process.env.E2E_SETUP_TOKEN ?? 'e2e-setup-token'
+
 export const DB_HINT =
   'La DB de E2E ya está configurada (existe un admin). Recrea una DB limpia:\n' +
   '  1) DROP DATABASE devtest_e2e; CREATE DATABASE devtest_e2e;\n' +

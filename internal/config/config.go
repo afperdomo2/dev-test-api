@@ -5,8 +5,18 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
+)
+
+// defaultMaxBodyBytes es el límite por defecto para bodies JSON (1 MiB).
+const defaultMaxBodyBytes int64 = 1 << 20
+
+const (
+	defaultRateLimitPerMinute = 10
+	defaultRateLimitBurst     = 5
+	minSetupTokenLength       = 16
 )
 
 type CorsConfig struct {
@@ -39,6 +49,17 @@ type Config struct {
 	AI       AIConfig
 	OpenCode OpenCodeConfig
 	Push     PushConfig
+
+	// HTTP hardening
+	MaxBodyBytes   int64
+	TrustedProxies []string
+	HSTSEnabled    bool
+	SwaggerEnabled bool
+
+	// Auth hardening
+	SetupToken             string
+	RateLimitAuthPerMinute int
+	RateLimitAuthBurst     int
 }
 
 type DBConfig struct {
@@ -103,6 +124,24 @@ func Load() *Config {
 		},
 	}
 
+	cfg.MaxBodyBytes = getInt64Env("MAX_BODY_BYTES", defaultMaxBodyBytes)
+	if cfg.MaxBodyBytes <= 0 {
+		cfg.MaxBodyBytes = defaultMaxBodyBytes
+	}
+	cfg.TrustedProxies = splitList(getEnv("TRUSTED_PROXIES", ""))
+	cfg.HSTSEnabled = getBoolEnv("HSTS_ENABLED", true)
+	cfg.SwaggerEnabled = swaggerEnabled(cfg.GinMode)
+
+	cfg.SetupToken = getEnv("SETUP_TOKEN", "")
+	cfg.RateLimitAuthPerMinute = getIntEnv("AUTH_RATE_LIMIT_PER_MINUTE", defaultRateLimitPerMinute)
+	if cfg.RateLimitAuthPerMinute < 0 {
+		cfg.RateLimitAuthPerMinute = defaultRateLimitPerMinute
+	}
+	cfg.RateLimitAuthBurst = getIntEnv("AUTH_RATE_LIMIT_BURST", defaultRateLimitBurst)
+	if cfg.RateLimitAuthBurst <= 0 {
+		cfg.RateLimitAuthBurst = defaultRateLimitBurst
+	}
+
 	os.Setenv("GIN_MODE", cfg.GinMode)
 
 	if cfg.JWT.Secret == "" {
@@ -110,6 +149,9 @@ func Load() *Config {
 	}
 	if cfg.DB.Password == "" {
 		log.Fatal("❌ DB_PASSWORD environment variable is required")
+	}
+	if err := validateSetupToken(cfg.SetupToken); err != nil {
+		log.Fatalf("❌ %v", err)
 	}
 
 	if cfg.AI.APIURL != "" && cfg.AI.APIKey != "" {
@@ -119,6 +161,16 @@ func Load() *Config {
 	}
 
 	return cfg
+}
+
+// validateSetupToken exige una longitud mínima cuando el token está informado.
+// Vacío no es error aquí: el guard de arranque decide si es obligatorio
+// (DB vacía) o solo un aviso (sistema ya inicializado). Ver D-38.
+func validateSetupToken(token string) error {
+	if token != "" && len(token) < minSetupTokenLength {
+		return fmt.Errorf("SETUP_TOKEN debe tener al menos %d caracteres", minSetupTokenLength)
+	}
+	return nil
 }
 
 func getEnv(key, fallback string) string {
@@ -135,4 +187,51 @@ func getIntEnv(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+func getInt64Env(key string, fallback int64) int64 {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			return n
+		}
+	}
+	return fallback
+}
+
+func getBoolEnv(key string, fallback bool) bool {
+	if v := os.Getenv(key); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			return b
+		}
+	}
+	return fallback
+}
+
+// splitList convierte "a, b,,c" en ["a","b","c"], descartando vacíos.
+func splitList(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
+}
+
+// swaggerEnabled resuelve SWAGGER_ENABLED: vacío = habilitado salvo en release.
+func swaggerEnabled(ginMode string) bool {
+	raw := os.Getenv("SWAGGER_ENABLED")
+	if raw == "" {
+		return ginMode != "release"
+	}
+
+	if enabled, err := strconv.ParseBool(raw); err == nil {
+		return enabled
+	}
+	return ginMode != "release"
 }

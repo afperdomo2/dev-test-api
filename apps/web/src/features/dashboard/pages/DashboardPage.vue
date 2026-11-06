@@ -7,19 +7,10 @@ import { getOpenCodeUsage } from '@/api/services/opencode.service'
 import { generationStatsOptions } from '@/queries/generation.queries'
 import { formatShortDateTime, formatTimeUntil } from '@/utils/format'
 import GamificationPanel from '@/features/gamification/components/GamificationPanel.vue'
+import UserSummaryCard from '@/components/UserSummaryCard.vue'
 import type { ApiError } from '@/types/api.types'
 
 const authStore = useAuthStore()
-
-const formattedDate = computed(() => {
-  const date = authStore.user?.createdAt
-  if (!date) return ''
-  return new Date(date).toLocaleDateString('es-CO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-})
 
 const isNotAdmin = computed(() => !authStore.isAdmin)
 const isAdmin = computed(() => authStore.isAdmin)
@@ -72,34 +63,7 @@ function openCodeErrorMessage(err: unknown): string {
 
     <v-row>
       <v-col cols="12" md="6" lg="4">
-        <v-card>
-          <v-card-item>
-            <template #prepend>
-              <v-icon color="primary" size="40">mdi-account-circle</v-icon>
-            </template>
-            <v-card-title class="text-h5">
-              {{ authStore.user?.email }}
-            </v-card-title>
-            <v-card-subtitle class="mt-1"> Miembro desde {{ formattedDate }} </v-card-subtitle>
-          </v-card-item>
-          <v-card-text>
-            <v-chip
-              :color="authStore.isAdmin ? 'error' : 'info'"
-              size="small"
-              variant="tonal"
-              class="font-weight-bold"
-            >
-              <v-icon start size="18">
-                {{ authStore.isAdmin ? 'mdi-shield-account' : 'mdi-account' }}
-              </v-icon>
-              {{ authStore.isAdmin ? 'Administrador' : 'Usuario' }}
-            </v-chip>
-            <div class="d-flex align-center ga-2 mt-3 text-caption text-medium-emphasis">
-              <v-icon size="16" color="success">mdi-identifier</v-icon>
-              <span class="text-truncate">{{ authStore.user?.id }}</span>
-            </div>
-          </v-card-text>
-        </v-card>
+        <UserSummaryCard :user="authStore.user" />
       </v-col>
 
       <v-col cols="12" md="6" lg="4">

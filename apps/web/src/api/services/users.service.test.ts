@@ -5,6 +5,7 @@ import {
   updateUser,
   deleteUser,
   getProfile,
+  changePassword,
 } from './users.service'
 import apiClient from '@/api/client'
 
@@ -70,5 +71,12 @@ describe('users.service', () => {
     const result = await getProfile()
     expect(mockedGet).toHaveBeenCalledWith('/api/v1/profile')
     expect(result).toEqual(user)
+  })
+
+  it('changePassword puts to profile/password', async () => {
+    mockedPut.mockResolvedValue({})
+    const payload = { currentPassword: 'current123', newPassword: 'newpass123' }
+    await changePassword(payload)
+    expect(mockedPut).toHaveBeenCalledWith('/api/v1/profile/password', payload)
   })
 })

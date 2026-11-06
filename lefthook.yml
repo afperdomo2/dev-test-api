@@ -57,64 +57,95 @@ pre-commit:
       run: pnpm vitest related {staged_files}
       fail_text: "❌ frontend unit tests failed"
 
+    # Sin `root`: un cambio en shared también debe type-checkear mobile, y `root`
+    # filtraría los archivos fuera de apps/mobile/.
+    - name: mobile-type-check
+      glob: ["apps/mobile/**/*.{ts,tsx}", "apps/mobile/tsconfig.json", "packages/shared/**/*.ts"]
+      run: pnpm --filter mobile typecheck
+      fail_text: "❌ mobile type-check failed"
+
+    - name: mobile-lint
+      glob: "apps/mobile/**/*.{ts,tsx}"
+      root: apps/mobile/
+      run: pnpm eslint {staged_files}
+      fail_text: "❌ mobile lint failed"
+
     - name: mobile-test
       glob: "apps/mobile/**/*.{ts,tsx}"
       root: apps/mobile/
       run: pnpm test:related {staged_files}
       fail_text: "❌ mobile unit tests failed"
 
+# Estrategia de concurrencia (por qué hay `group` y no 13 jobs sueltos):
+#   - `parallel: true` arriba abre solo 3 grupos (un proceso pesado por stack).
+#   - Dentro de cada grupo los jobs corren en secuencia: build/test de Go no
+#     compiten entre sí, y jest/vitest no se pelean por los mismos cores.
+#   - Cada stack tiene su propio `glob`, así que un push de solo docs no arranca nada.
+#   - Se quedan FUERA los checks que ya corren en pre-commit (afectados) y CI
+#     (completo): `fe-build`, `eslint .`, `go vet ./...`, `vue-tsc --build`.
+#     Duplicarlos aquí añadía 4-5 min al push sin detectar nada nuevo.
+#   - Sin límite, 8 cores/14 GB ejecutaban jest (7 workers) + vitest (8 threads) +
+#     vite build + vue-tsc + go build/test a la vez: los tests más lentos
+#     (TopicPicker) agotaban `testTimeout` y el worker se forzaba a salir.
 pre-push:
   parallel: true
   jobs:
-    # --- backend: solo si se empujan cambios Go ---
-    - name: go-fmt
-      glob: ["**/*.go", "go.mod", "go.sum"]
-      run: bash scripts/check-fmt.sh
-      fail_text: "❌ go fmt failed — ejecuta make fmt"
+    # --- backend: vet/build/test en serie dentro del grupo ---
+    - name: backend
+      group:
+        jobs:
+          - name: go-fmt
+            glob: ["**/*.go", "go.mod", "go.sum"]
+            run: bash scripts/check-fmt.sh
+            fail_text: "❌ go fmt failed — ejecuta make fmt"
 
-    - name: go-vet
-      glob: ["**/*.go", "go.mod", "go.sum"]
-      run: go vet ./...
-      fail_text: "❌ go vet failed"
+          - name: go-build
+            glob: ["**/*.go", "go.mod", "go.sum"]
+            run: go build ./...
+            fail_text: "❌ go build failed"
 
-    - name: go-build
-      glob: ["**/*.go", "go.mod", "go.sum"]
-      run: go build ./...
-      fail_text: "❌ go build failed"
-
-    - name: go-test
-      glob: ["**/*.go", "go.mod", "go.sum"]
-      run: go test -short -count=1 -timeout 60s ./...
-      fail_text: "❌ unit tests failed"
+          # `go vet` completo no va aquí: pre-commit lo corre sobre los paquetes
+          # afectados y CI (`backend.yml`) sobre todo el repo. Duplicarlo costaba
+          # ~70 s de push sin detectar nada nuevo.
+          - name: go-test
+            glob: ["**/*.go", "go.mod", "go.sum"]
+            # 120s: con el runner bajo carga, `notifications` (sleeps + scheduler)
+            # llegaba a 48s y el límite anterior de 60s lo dejaba al borde.
+            run: go test -short -count=1 -timeout 120s ./...
+            fail_text: "❌ unit tests failed"
 
     # --- frontend: solo si se empujan cambios de web o de shared ---
-    - name: fe-format-check
-      glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
-      run: cd apps/web && pnpm prettier --check src/
-      fail_text: "❌ frontend format failed — ejecuta pnpm format"
+    - name: web
+      group:
+        jobs:
+          - name: fe-format-check
+            glob: "apps/web/**/*.{ts,vue,tsx,js,scss,css,json}"
+            # --cache: 3 s en re-ejecuciones (antes ~20 s sin cambios).
+            run: cd apps/web && pnpm prettier --check --cache src/
+            fail_text: "❌ frontend format failed — ejecuta pnpm format"
 
-    - name: fe-lint
-      glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
-      run: cd apps/web && pnpm eslint . --ext .vue,.ts,.tsx
-      fail_text: "❌ frontend lint failed"
+          # Fuera de pre-push, a propósito:
+          #   - `eslint .` completo: pre-commit lintea lo staged y CI todo.
+          #   - `vue-tsc --build` (≈100 s): pre-commit lo corre en cada cambio web
+          #     staged y CI lo corre en cada push/PR. Duplicarlo aquí era el job
+          #     más caro del hook.
+          # Si el push incluye commits hechos con `--no-verify`, CI es la red.
+          - name: fe-test
+            glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
+            # 6 workers: vitest con jsdom es el job más caro (≈150 s standalone).
+            run: cd apps/web && pnpm test:run -- --maxWorkers=6
+            fail_text: "❌ frontend unit tests failed"
 
-    - name: fe-type-check
-      glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
-      run: cd apps/web && pnpm type-check
-      fail_text: "❌ frontend type-check failed"
+    # --- mobile: sin CI propia, así que pre-push es su único gate ---
+    - name: mobile
+      group:
+        jobs:
+          - name: mobile-type-check
+            glob: ["apps/mobile/**/*.{ts,tsx}", "apps/mobile/tsconfig.json", "packages/shared/**/*.ts"]
+            run: pnpm --filter mobile typecheck
+            fail_text: "❌ mobile type-check failed"
 
-    - name: fe-test
-      glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
-      run: cd apps/web && pnpm test:run
-      fail_text: "❌ frontend unit tests failed"
-
-    - name: fe-build
-      glob: ["apps/web/**/*.{ts,vue,tsx,js,scss,css,json}", "packages/shared/**/*.ts"]
-      run: cd apps/web && pnpm build-only
-      fail_text: "❌ frontend build failed"
-
-    # --- mobile: solo unit tests (decisión de alcance: sin typecheck/lint) ---
-    - name: mobile-test
-      glob: ["apps/mobile/**/*.{ts,tsx}", "apps/mobile/package.json", "packages/shared/**/*.ts"]
-      run: pnpm --filter mobile test:run
-      fail_text: "❌ mobile unit tests failed"
+          - name: mobile-test
+            glob: ["apps/mobile/**/*.{ts,tsx}", "apps/mobile/package.json", "packages/shared/**/*.ts"]
+            run: pnpm --filter mobile test:run
+            fail_text: "❌ mobile unit tests failed"

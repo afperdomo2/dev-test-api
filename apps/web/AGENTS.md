@@ -34,12 +34,12 @@ Page → useQuery(queries.*Options()) → service → apiClient → backend
 
 ## Key facts
 
-- Contracto API (envelope `{ data }`, errores RFC 9457, camelCase): `.agents/backend/responses.md`.
-- Design system UI: Vuetify (componentes + `VITE_*` env). Ver `.agents/web/architecture.md`.
+- Contracto API (envelope `{ data }`, errores RFC 9457, camelCase): `.agents/context/backend/responses.md`.
+- Design system UI: Vuetify (componentes + `VITE_*` env). Ver `.agents/context/web/architecture.md`.
 
 ## Details
 
-- Arquitectura: `.agents/web/architecture.md`
-- API client: `.agents/web/api-client.md`
-- Patrones: `.agents/web/patterns.md`
-- Seguridad de dependencias: `.agents/web/dependencies.md`
+- Arquitectura: `.agents/context/web/architecture.md`
+- API client: `.agents/context/web/api-client.md`
+- Patrones: `.agents/context/web/patterns.md`
+- Seguridad de dependencias: `.agents/context/web/dependencies.md`

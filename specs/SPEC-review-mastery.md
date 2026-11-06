@@ -237,7 +237,7 @@ export function topicMasteryOptions() {
 
 ## Code style
 
-Convenciones obligatorias (detalle en `specs/DECISIONS.md` y `.agents/backend/architecture.md`):
+Convenciones obligatorias (detalle en `specs/DECISIONS.md` y `.agents/context/backend/architecture.md`):
 
 - Store devuelve errores GORM crudos; el **service** los convierte a `*apierr.APIError`.
 - Service fija `instance` a `""`; el **handler** lo rellena con `c.Request.URL.Path`.

@@ -8,7 +8,7 @@
 | Depende de | — (puede ir en la Ola 1, en paralelo) |
 | Consumido por | todos los módulos `mobile-*` (les da red de seguridad) |
 | Migración goose | Ninguna |
-| Dependencia nueva | `eslint` + `eslint-config-expo` (dev) — **pasa por `.agents/mobile/dependencies.md`** |
+| Dependencia nueva | `eslint` + `eslint-config-expo` (dev) — **pasa por `.agents/context/mobile/dependencies.md`** |
 
 ## Objective
 
@@ -131,7 +131,7 @@ No se persigue un número de cobertura global. Se exige:
 
 ## Boundaries
 
-- **Always**: co-located tests; mocks nativos centralizados; `typecheck` + `test:run` + `lint` en verde; pasar por `.agents/mobile/dependencies.md` antes de instalar ESLint.
+- **Always**: co-located tests; mocks nativos centralizados; `typecheck` + `test:run` + `lint` en verde; pasar por `.agents/context/mobile/dependencies.md` antes de instalar ESLint.
 - **Ask first**: añadir `@testing-library/jest-native` (deprecado), cambiar el preset de Jest, activar umbrales de cobertura en CI, añadir tests E2E mobile (Detox/Maestro — fuera de alcance).
 - **Never**: tests que dependan de red real o de un dispositivo; `jest --watch` en hooks; desactivar reglas de ESLint globalmente para "que pase"; duplicar helpers de test en cada archivo.
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/felipe/dev-test-api/internal/common"
 	"github.com/felipe/dev-test-api/internal/models"
+	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
 	"github.com/felipe/dev-test-api/internal/modules/tips"
 	"github.com/felipe/dev-test-api/pkg/apierr"
@@ -231,20 +232,21 @@ func TestSessionList(t *testing.T) {
 
 func TestSessionGetByID(t *testing.T) {
 	id := uuid.New()
+	uid := uuid.New()
 	t.Run("found", func(t *testing.T) {
 		store := newSessionStore()
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
-			return &models.Session{ID: id, Name: "s"}, nil
+			return &models.Session{ID: id, UserID: uid, Name: "s"}, nil
 		}
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		got, err := svc.GetByID(id)
+		got, err := svc.GetByID(id, uid)
 		require.NoError(t, err)
 		assert.Equal(t, id, got.Session.ID)
 	})
 	t.Run("not found", func(t *testing.T) {
 		store := newSessionStore()
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		_, err := svc.GetByID(id)
+		_, err := svc.GetByID(id, uid)
 		require.Error(t, err)
 	})
 }
@@ -292,34 +294,35 @@ func TestSessionCreate(t *testing.T) {
 
 func TestSessionFinish(t *testing.T) {
 	id := uuid.New()
+	uid := uuid.New()
 	t.Run("success", func(t *testing.T) {
 		store := newSessionStore()
 		calls := 0
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
 			calls++
 			if calls == 1 {
-				return &models.Session{ID: id, Status: "in_progress"}, nil
+				return &models.Session{ID: id, UserID: uid, Status: "in_progress"}, nil
 			}
-			return &models.Session{ID: id, Status: "completed"}, nil
+			return &models.Session{ID: id, UserID: uid, Status: "completed"}, nil
 		}
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		got, err := svc.Finish(id)
+		got, err := svc.Finish(id, uid)
 		require.NoError(t, err)
 		assert.Equal(t, "completed", got.Status)
 	})
 	t.Run("already completed", func(t *testing.T) {
 		store := newSessionStore()
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
-			return &models.Session{ID: id, Status: "completed"}, nil
+			return &models.Session{ID: id, UserID: uid, Status: "completed"}, nil
 		}
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		_, err := svc.Finish(id)
+		_, err := svc.Finish(id, uid)
 		require.Error(t, err)
 	})
 	t.Run("not found", func(t *testing.T) {
 		store := newSessionStore()
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		_, err := svc.Finish(id)
+		_, err := svc.Finish(id, uid)
 		require.Error(t, err)
 	})
 }
@@ -328,6 +331,13 @@ func TestSessionDelete(t *testing.T) {
 	uid := uuid.New()
 	otherUID := uuid.New()
 	id := uuid.New()
+
+	requireStatus := func(t *testing.T, err error, want int) {
+		t.Helper()
+		var apiErr *apierr.APIError
+		require.ErrorAs(t, err, &apiErr)
+		assert.Equal(t, want, apiErr.Status)
+	}
 
 	t.Run("success recent no answers", func(t *testing.T) {
 		store := newSessionStore()
@@ -338,53 +348,53 @@ func TestSessionDelete(t *testing.T) {
 		require.NoError(t, svc.Delete(id, uid))
 	})
 
-	t.Run("not owner", func(t *testing.T) {
+	t.Run("not owner → 404", func(t *testing.T) {
 		store := newSessionStore()
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
 			return &models.Session{ID: id, UserID: otherUID, CreatedAt: time.Now()}, nil
 		}
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		err := svc.Delete(id, uid)
-		require.Error(t, err)
+		requireStatus(t, svc.Delete(id, uid), 404)
 	})
 
-	t.Run("has answers conflict", func(t *testing.T) {
+	t.Run("not found → 404", func(t *testing.T) {
+		store := newSessionStore()
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		requireStatus(t, svc.Delete(id, uid), 404)
+	})
+
+	t.Run("has answers conflict → 409", func(t *testing.T) {
 		store := newSessionStore()
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
 			return &models.Session{ID: id, UserID: uid, CreatedAt: time.Now(), Answers: []models.SessionAnswer{{ID: uuid.New()}}}, nil
 		}
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		err := svc.Delete(id, uid)
-		require.Error(t, err)
+		requireStatus(t, svc.Delete(id, uid), 409)
 	})
 
-	t.Run("older than 24h forbidden", func(t *testing.T) {
+	t.Run("older than 24h forbidden → 403 (política, no ownership)", func(t *testing.T) {
 		store := newSessionStore()
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
 			return &models.Session{ID: id, UserID: uid, CreatedAt: time.Now().Add(-25 * time.Hour)}, nil
 		}
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		err := svc.Delete(id, uid)
-		require.Error(t, err)
-	})
-
-	t.Run("not found", func(t *testing.T) {
-		store := newSessionStore()
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		err := svc.Delete(id, uid)
-		require.Error(t, err)
+		requireStatus(t, svc.Delete(id, uid), 403)
 	})
 }
 
 func TestSessionSummary(t *testing.T) {
 	id := uuid.New()
+	uid := uuid.New()
 	t.Run("success", func(t *testing.T) {
 		store := newSessionStore()
+		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
+			return &models.Session{ID: id, UserID: uid, Status: "in_progress"}, nil
+		}
 		store.findSummaryFn = func(uuid.UUID) (*SessionSummaryData, error) {
 			return &SessionSummaryData{Status: "completed", AnswerCount: 5}, nil
 		}
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		got, err := svc.Summary(id)
+		got, err := svc.Summary(id, uid)
 		require.NoError(t, err)
 		assert.Equal(t, int64(5), int64(got.AnswerCount))
 	})
@@ -394,7 +404,7 @@ func TestSessionSummary(t *testing.T) {
 			return nil, gorm.ErrRecordNotFound
 		}
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
-		_, err := svc.Summary(id)
+		_, err := svc.Summary(id, uid)
 		require.Error(t, err)
 	})
 }
@@ -457,7 +467,7 @@ func TestSessionNextQuestionDaily(t *testing.T) {
 		store.findAnsweredQuestionIDsFn = func(uuid.UUID) ([]uuid.UUID, error) { return nil, nil }
 		store.findNextDailyQuestionFn = func(uuid.UUID, []uuid.UUID) (*models.Question, error) { return q, nil }
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: &fakeTipsAdapter{}}
-		got, err := svc.NextQuestion(id)
+		got, err := svc.NextQuestion(id, uid)
 		require.NoError(t, err)
 		assert.Equal(t, q.ID, got.Question.ID)
 	})
@@ -472,7 +482,7 @@ func TestSessionNextQuestionDaily(t *testing.T) {
 			return nil, gorm.ErrRecordNotFound
 		}
 		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: &fakeTipsAdapter{}}
-		_, err := svc.NextQuestion(id)
+		_, err := svc.NextQuestion(id, uid)
 		require.Error(t, err)
 		var apiErr *apierr.APIError
 		require.ErrorAs(t, err, &apiErr)
@@ -602,5 +612,113 @@ func TestSessionAnswerIdempotency(t *testing.T) {
 		var apiErr *apierr.APIError
 		require.ErrorAs(t, err, &apiErr)
 		assert.Equal(t, 500, apiErr.Status)
+	})
+}
+
+/* ---------- ownership (D-AZ-1 / D-AZ-2) ---------- */
+
+type spyGamification struct {
+	completed int
+}
+
+func (s *spyGamification) RegisterAnswer(uuid.UUID, uuid.UUID, bool) (*gamification.Reward, error) {
+	return nil, nil
+}
+func (s *spyGamification) CompleteSession(uuid.UUID) (*gamification.Reward, error) {
+	s.completed++
+	return nil, nil
+}
+func (s *spyGamification) GetOverview(uuid.UUID) (*gamification.OverviewResponse, error) {
+	return nil, nil
+}
+func (s *spyGamification) GetDailyGoal(uuid.UUID) (int, error) { return 0, nil }
+func (s *spyGamification) SetDailyGoal(uuid.UUID, int) (*gamification.Reward, error) {
+	return nil, nil
+}
+func (s *spyGamification) Freeze(uuid.UUID) (*gamification.Reward, error) { return nil, nil }
+func (s *spyGamification) GetBadges(uuid.UUID) (*gamification.BadgesResponse, error) {
+	return nil, nil
+}
+
+func requireNotFound(t *testing.T, err error) {
+	t.Helper()
+	var apiErr *apierr.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 404, apiErr.Status, "un recurso ajeno debe responder 404 (D-AZ-1)")
+}
+
+func TestSessionOwnership(t *testing.T) {
+	id := uuid.New()
+	owner := uuid.New()
+	other := uuid.New()
+	questionID := uuid.New()
+
+	storeFor := func(t *testing.T) *mockSessionStore {
+		t.Helper()
+		store := newSessionStore()
+		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
+			return &models.Session{ID: id, UserID: owner, Status: "in_progress"}, nil
+		}
+		return store
+	}
+
+	t.Run("GetByID ajeno → 404", func(t *testing.T) {
+		svc := &sessionService{store: storeFor(t), progressService: &fakeProgressAdapter{}}
+		_, err := svc.GetByID(id, other)
+		requireNotFound(t, err)
+	})
+
+	t.Run("GetByID inexistente → mismo 404", func(t *testing.T) {
+		store := newSessionStore() // findByIDFn devuelve gorm.ErrRecordNotFound
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		_, err := svc.GetByID(id, other)
+		requireNotFound(t, err)
+	})
+
+	t.Run("Finish ajeno → 404 y no otorga recompensa", func(t *testing.T) {
+		gam := &spyGamification{}
+		store := storeFor(t)
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, gamificationService: gam}
+		_, err := svc.Finish(id, other)
+		requireNotFound(t, err)
+		assert.Zero(t, gam.completed, "no debe llamarse CompleteSession por una sesión ajena")
+	})
+
+	t.Run("Finish dueño → sí otorga recompensa", func(t *testing.T) {
+		gam := &spyGamification{}
+		store := storeFor(t)
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, gamificationService: gam}
+		_, err := svc.Finish(id, owner)
+		require.NoError(t, err)
+		assert.Equal(t, 1, gam.completed)
+	})
+
+	t.Run("Summary ajeno → 404", func(t *testing.T) {
+		svc := &sessionService{store: storeFor(t), progressService: &fakeProgressAdapter{}}
+		_, err := svc.Summary(id, other)
+		requireNotFound(t, err)
+	})
+
+	t.Run("NextQuestion ajeno → 404", func(t *testing.T) {
+		svc := &sessionService{store: storeFor(t), progressService: &fakeProgressAdapter{}}
+		_, err := svc.NextQuestion(id, other)
+		requireNotFound(t, err)
+	})
+
+	t.Run("Answer ajeno → 404 sin escribir ni aplicar progreso", func(t *testing.T) {
+		store := storeFor(t)
+		created := 0
+		store.createAnswerFn = func(*models.SessionAnswer) (bool, error) {
+			created++
+			return true, nil
+		}
+		progressSvc := &countingProgressAdapter{}
+		svc := &sessionService{store: store, progressService: progressSvc}
+
+		_, err := svc.Answer(id, other, AnswerRequest{QuestionID: questionID})
+
+		requireNotFound(t, err)
+		assert.Zero(t, created, "no debe guardarse una respuesta en una sesión ajena")
+		assert.Zero(t, progressSvc.calls, "no debe aplicarse progreso en una sesión ajena")
 	})
 }

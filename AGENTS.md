@@ -4,9 +4,50 @@ Fullstack monorepo: **Go + Gin** REST API + **Vue 3 + Vite + Vuetify** web SPA +
 
 ## Rule: no duplicar contenido detallado
 
-**AGENTS.md es un índice ligero.** Para reglas detalladas (convenciones UX, patrones de arquitectura, reglas de diseño, etc.), SIEMPRE leer los archivos en `.agents/<ecosystem>/`. Si un detalle vive en `.agents/`, NO duplicarlo aquí — solo referenciarlo.
+**AGENTS.md es un índice ligero.** Para reglas detalladas (convenciones UX, patrones de arquitectura, reglas de diseño, etc.), SIEMPRE leer los archivos en `.agents/context/<ecosystem>/`. Si un detalle vive en `.agents/context/`, NO duplicarlo aquí — solo referenciarlo.
 
-Cada ecosystem tiene su propio `AGENTS.md` rápido (`apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md`) y archivos detallados en `.agents/<ecosystem>/`.
+Cada ecosystem tiene su propio `AGENTS.md` rápido (`apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md`) y archivos detallados en `.agents/context/<ecosystem>/`.
+
+`.agents/` tiene dos ramas y no se mezclan: **`context/`** = docs versionados que detallan las reglas (audiencia humana + agente, se cargan de forma diferida) y **`skills/`** = contenido externo gitignored, registrado en `skills-lock.json` (ver D-50).
+
+## Rule: doc sync (el cambio no termina hasta documentarlo)
+
+Antes de proponer o cerrar un cambio:
+
+1. **Busca si ya existe**: `specs/`, `tasks/`, `.agents/context/` y `git log` son el
+   histórico. Si una tarea o spec ya lo cubre, no lo rehagas: actualízala o
+   continúa desde ahí.
+2. **Actualiza la fuente de verdad**: convención o contrato nuevo →
+   `.agents/context/<ecosystem>/`; decisión → `specs/DECISIONS.md`; alcance → spec +
+   tasks (`[x]` + línea `Hecho:`).
+3. **Actualiza el índice**: `AGENTS.md` (o el de la app) solo si cambia una regla
+   que el agente deba aplicar; `README.md` si cambian comandos o variables.
+4. **Nunca dupliques**: `AGENTS.md` referencia, `.agents/context/` detalla.
+
+Si el código cambia una convención y la doc no, el siguiente agente decide con
+contexto viejo: rehará trabajo o romperá algo que ya estaba resuelto.
+
+## Rule: verificación rápida (no dupliques el gate)
+
+El gate completo vive en **lefthook** (pre-commit/pre-push) y **CI**. El agente da
+feedback rápido; no ejecuta suites completas por cambios menores.
+
+- **Tras cada cambio**: formatea/compila el paquete tocado y corre sus tests si
+  existen (`go test ./internal/modules/x/...`, `vitest related <archivo>`,
+  `jest --findRelatedTests <archivo>`).
+- **Antes de pedir el commit**: `make staged-check` (lefthook pre-commit sobre
+  `{staged_files}`: gofmt/vet/test afectados, prettier/eslint/vitest related,
+  jest related). Tarda ~45–60 s si solo hay Go; **~2 min si incluye web** (el
+  arranque de Vitest/jsdom es el coste). Si vas a commitear de inmediato, el hook
+  pre-commit volverá a correrlo: úsalo cuando quieras saberlo antes.
+- **Nunca por defecto**: `make test`, `make fe-test`, `mobile test:run`,
+  `make fe-build`, E2E ni `eslint .` globales.
+- **Sí ejecutar**: `make swagger` cuando cambian anotaciones/contrato; suites
+  completas solo si el humano lo pide, si el cambio toca `packages/shared` o el
+  contrato de API, o antes de una release.
+- **Si tocás `docker/`, Dockerfiles o compose**: `make docker-config` siempre;
+  `make docker-prod` + `make docker-smoke` si cambia runtime/nginx/env. No
+  levantar los 3 stacks para un cambio de docs.
 
 ## Commands
 
@@ -20,6 +61,7 @@ Cada ecosystem tiene su propio `AGENTS.md` rápido (`apps/mobile/AGENTS.md`, `ap
 | `make run` | `go run main.go` on `:8080` |
 | `make swagger` | Regenerate `docs/` from Swagger annotations |
 | `make check` | `make fmt` then `make vet` |
+| `make staged-check` | lefthook pre-commit sobre `{staged_files}` (verificación rápida) |
 | `make test` | Unit tests (`go test -short -count=1`) |
 | `make test-cover` | Tests with coverage (`-coverprofile`) |
 | `make setup` | Install lefthook git hooks (run once after clone) |
@@ -68,21 +110,47 @@ Always run `make fmt` after any backend change to format Go code, then `make vet
 | `pnpm web` | Start web dev server |
 | `pnpm mobile` | Start Expo dev server |
 
-Always run `make fe-format`, `make fe-check` and `make fe-lint` after any web change (format first, so the prettier check never fails). `make fe-build` is only required in CI and before deploy — it's too slow for the dev loop (~8s) and adds no signal that type-check + lint don't already catch. Pre-commit auto-formats staged files with `stage_fixed`; the explicit `make fe-format` is a safety net.
+### Docker (`docker/`)
+
+Guía completa: `docker/README.md` · invariantes para agentes: `.agents/context/devops/containers.md`.
+
+| Command | Action |
+|---------|--------|
+| `make docker-env` / `docker-env-prod` | Crea `docker/.env` / `docker/.env.prod` desde los ejemplos |
+| `make docker-dev` | Stack dev con **Compose Watch** (Air + Vite HMR) |
+| `make docker-dev-down` / `docker-dev-reset` | Baja dev (reset = `down -v`, borra datos) |
+| `make docker-prod` | Build + up + healthchecks de prod-local (`:8088`) |
+| `make docker-prod-down` / `docker-prod-reset` | Baja prod-local (reset borra datos) |
+| `make docker-build` | Construye las 2 imágenes de producción (`--pull`) |
+| `make docker-config` | Valida los 3 compose con sus env de ejemplo |
+| `make docker-seed` | Siembra las 50 preguntas en la DB de dev |
+| `make docker-smoke` | Verifica nginx, API, SPA y cabeceras |
+| `make docker-backup` / `docker-restore FILE=…` | Backup / restore de la DB de prod-local |
+| `make e2e-docker` | Playwright contra prod-local |
+| `make mobile-apk` | Preflight + APK manual en EAS cloud |
+
+Format the web files you touch with Prettier and let `make staged-check` run
+`vue-tsc`/eslint/vitest for the staged set. Do **not** run `make fe-build` outside
+CI/deploy: it's slow and adds no signal over type-check + lint. The full web
+suite is a close/CI check, not something to run after every edit.
 
 ## Key facts
 
-- **NEVER create commits** — commits are manual. Only stage, diff, suggest.
+- **NEVER create commits, push or open/merge PRs** — son manuales. Solo stage, diff y sugiere los comandos.
 - **Secrets** — never hardcode keys, passwords, or tokens. Use `.env` for Go, `VITE_*` env vars for web. Never commit `.env`.
+- **Ramas** — trabajar en `develop`; `main` solo por PR desde `develop` (checks obligatorios, sin bypass). Flujo, release semanal, hotfix y rollback: `docs/branching.md`.
+- **Seguridad (convenciones)** — autorización por objeto en el **service** → **404** (nunca 403 para ocultar existencia); payload grande → **413** con `ErrPayloadTooLarge`; orden de middlewares y timeouts en `.agents/context/backend/architecture.md`; contrato de errores en `.agents/context/backend/responses.md`.
 - **`internal/` is Go-private** — the compiler blocks external imports.
 - **DB schema is goose-migrated** — `internal/database/migrations/*.sql` is the source of truth (base `00001_init.sql`); migrations run on server start (embedded) and via `make migrate-*`. **Any schema/DDL change = new migration file**, never AutoMigrate. `goose` is a Go tool (`go tool goose`).
 - **`tmp/` is auto-generated and gitignored; `docs/` is auto-generated but IS versioned** — never edit either manually (`make swagger` regenera `docs/swagger.yaml|json|docs.go`).
 - **Air** and **Lefthook** are Go project tools in `go.mod` — invoke via `go tool air`, `go tool lefthook`, or their `make` targets.
 - **Git hooks** (lefthook, `lefthook.yml`) — todos los jobs se filtran por `glob`, así que un cambio de docs/markdown no dispara nada:
-  - **pre-commit** (rápido, sobre los archivos staged): `gofmt` + `go vet` + `go test -short` **solo en los paquetes Go afectados**; `shared-typecheck`; web (`prettier --write`, `eslint`, `vue-tsc`, `vitest related`); mobile (`jest --findRelatedTests`).
-  - **pre-push** (completo, sobre los archivos empujados): gofmt check + `go vet ./...` + `go build ./...` + `go test -short ./...`; web (format-check, lint, type-check, `test:run`, build); mobile (`test:run`).
+  - **pre-commit** (rápido, sobre los archivos staged): `gofmt` + `go vet` + `go test -short` **solo en los paquetes Go afectados**; `shared-typecheck`; web (`prettier --write`, `eslint`, `vue-tsc`, `vitest related`); mobile (`tsc`, `eslint`, `jest --findRelatedTests`).
+  - **pre-push** (completo, sobre los archivos empujados): 3 **grupos** en paralelo — backend (fmt check + build + `go test -short`, en serie), web (format-check con `--cache`, `test:run` con 6 workers) y mobile (typecheck, `test:run`) —. Los jobs de cada grupo corren en serie para no saturar los 8 vCPU: antes 13 jobs a la vez provocaban timeouts en tests lentos y el `worker failed to exit gracefully`. **No repite lo que ya cubren pre-commit/CI**: sin `fe-build`, `eslint .`, `go vet ./...` ni `vue-tsc --build` completos.
+  - Jest de mobile limita a `maxWorkers: 50%` + `workerIdleMemoryLimit` (`apps/mobile/jest.config.js`).
+  - `.gitattributes` fuerza `eol=lf` en `*.go`/`*.ts`/`*.vue`/etc.: un editor en Windows que guarde CRLF hacía fallar `gofmt -l` y `prettier --check` en pre-push sin que el archivo se hubiera tocado.
   - Run `make setup` after clone.
-- **CI** (`.github/workflows/backend.yml` + `frontend.yml`): `gofmt -l`, `go vet ./...`, `go build ./...`, `go test -short ./...` on push/PR to `main`.
+- **CI** (`.github/workflows/`): `backend.yml` (fmt, vet, build, tests), `frontend.yml` (format, lint, type-check, test, build) y `secrets.yml` (gitleaks) corren en push a `main`/`develop` y en PRs. Checks obligatorios de `main`: `backend`, `shared`, `web`, `gitleaks`.
 - **Swagger UI** at `/swagger/index.html` when server is running.
 - **Swagger spec** — the canonical API reference is `docs/swagger.yaml`. When web/mobile types need to match backend endpoints, request/response shapes, or query parameters, read this file first. The JSON equivalent (`docs/swagger.json`) is also valid. Both are auto-generated by `make swagger` — never edit them manually.
 - **Backend ↔ Shared ↔ Apps sync** — the backend is the source of truth for API contracts. Types flow: `docs/swagger.yaml` → `packages/shared/src/types/` → re-exported by `apps/web/src/types/` (thin re-exports) and imported by mobile via `@devtest/shared`. Key mappings:
@@ -91,10 +159,12 @@ Always run `make fe-format`, `make fe-check` and `make fe-lint` after any web ch
   - New/removed endpoints → update `packages/shared/src/types/` + re-exports in `apps/web/src/types/` + `apps/web/src/api/services/`
   - If unsure about endpoint shapes, read `docs/swagger.yaml`
   - **Naming convention**: both sides use camelCase for JSON keys. Go struct tags (`json:"camelCase")` and TypeScript interfaces use the same casing — no conversion needed.
-- **Envelope / RFC 9457 / error language** — the canonical contract is in `.agents/backend/responses.md`. The web and mobile clients implement the consuming side; shared defines the TypeScript mirror (`ApiError`, `PaginatedResponse`).
+- **Envelope / RFC 9457 / error language** — the canonical contract is in `.agents/context/backend/responses.md`. The web and mobile clients implement the consuming side; shared defines the TypeScript mirror (`ApiError`, `PaginatedResponse`).
 - **Context7 MCP** — available for Gin, GORM, jwt, swag docs. Always `resolve-library-id` first, then `query-docs`.
 - **Vuetify MCP** — available via `opencode.json`. Query component APIs with `vuetify_get_component_api_by_version` or `vuetify_get_feature_guide`.
 - **Bash defensive patterns** — any `.sh` script must follow strict mode (`set -Eeuo pipefail`). See skill `bash-defensive-patterns` in the Skills section below.
+- **Contenedores** — 3 entornos: dev (`docker/compose.dev.yaml`, Compose Watch), prod-local (`docker/compose.prod.yaml`, same-origin `:8088`) y Dokploy (`docker/compose.dokploy.yaml`, DB en el stack). Detalles e invariantes en `.agents/context/devops/containers.md`. Nunca publicar la DB en prod/Dokploy, nunca `down -v` fuera de dev, y `TRUSTED_PROXIES` siempre con el CIDR del proxy.
+- **APK manual** — `EXPO_PUBLIC_API_BASE_URL` se compila en el APK (EAS cloud lee `apps/mobile/eas.json`, no el shell) y debe ser HTTPS. Si cambia el backend, recompilar. Ver `docs/mobile-apk.md`.
 - **Log icons** — prefix Go `log.*` calls with emoji (❌ errors, ✅ success, 🚀 startup, 🛢️ database, 🌱 seed). Pick the most descriptive icon per context.
 - **Tests** — backend: `testing` + `testify` unit tests (mocked `Store`). `make test` (unit, no DB), `make test-cover`. Lefthook pre-commit runs `go test -short`.
 
@@ -144,9 +214,9 @@ Load the relevant skill with the `skill` tool when working in each ecosystem. Fu
 
 #### Mobile UX conventions
 
-> **Reglas detalladas**: `.agents/mobile/architecture.md` → sección "UX conventions" + `references/pro-rules.md` del skill `ui-ux-pro-max`.
+> **Reglas detalladas**: `.agents/context/mobile/architecture.md` → sección "UX conventions" + `references/pro-rules.md` del skill `ui-ux-pro-max`.
 
-Reglas clave (resumen — la fuente completa está en `.agents/mobile/architecture.md`):
+Reglas clave (resumen — la fuente completa está en `.agents/context/mobile/architecture.md`):
 - **Icons**: `MaterialCommunityIcons` — nunca emojis para iconos estructurales
 - **Touch targets**: ≥44pt iOS / ≥48dp Android
 - **Tap feedback**: `opacity` en `Pressable` via `({ pressed }) =>` style
@@ -172,9 +242,9 @@ Reglas clave (resumen — la fuente completa está en `.agents/mobile/architectu
 
 ## Domain rules
 
-Backend, web, mobile, and shared have separate rule files with detailed conventions. Each app/package also has a thin `AGENTS.md` (quick context) registered in `opencode.json` → `instructions`: `apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md`. Backend lives at the repo root — covered by this file + `.agents/backend/`.
+Backend, web, mobile, and shared have separate rule files with detailed conventions. Each app/package also has a thin `AGENTS.md` (quick context) registered in `opencode.json` → `instructions`: `apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md`. Backend lives at the repo root — covered by this file + `.agents/context/backend/`.
 
-### Backend: `.agents/backend/`
+### Backend: `.agents/context/backend/`
 
 | File | Purpose |
 |------|---------|
@@ -183,7 +253,7 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 | `dependencies.md` | Safety checks before `go get` — security, maintenance, licensing |
 | `data-model.md` | Contexto de tablas DB: 13 tablas + enums + índices (fuente canónica: `internal/models/*.go` + `internal/database/migrations/*.sql`) |
 
-### Web: `.agents/web/`
+### Web: `.agents/context/web/`
 
 | File | Purpose |
 |------|---------|
@@ -192,7 +262,7 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 | `patterns.md` | TanStack Query patterns, debounce 500ms, Vue/TS conventions, Pinia stores, pagination, v-slot bracket syntax |
 | `dependencies.md` | Safety checks before `pnpm add` — security, maintenance, licensing |
 
-### Mobile: `.agents/mobile/`
+### Mobile: `.agents/context/mobile/`
 
 | File | Purpose |
 |------|---------|
@@ -200,11 +270,17 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 | `design-system.md` | **SOURCE OF TRUTH** del diseño mobile: Dark Mode (OLED), paleta, tipografía, anti-patrones |
 | `dependencies.md` | Safety checks before `pnpm add` — Expo compatibility, native module checks |
 
-### Shared: `.agents/shared/`
+### Shared: `.agents/context/shared/`
 
 | File | Purpose |
 |------|---------|
 | `architecture.md` | What goes in shared vs app, barrel exports, re-export pattern in web, CodeChallenge dedup, sync flow (swagger → shared → apps) |
+
+### DevOps: `.agents/context/devops/`
+
+| File | Purpose |
+|------|---------|
+| `containers.md` | **SOURCE OF TRUTH** de Docker: 3 entornos, mapa de archivos, invariantes (non-root, DB no publicada, same-origin, TZ, `TRUSTED_PROXIES`), Compose Watch, Dokploy y troubleshooting |
 
 ## Documentation map
 
@@ -212,14 +288,18 @@ Each fact has a **single source of truth**. Other files reference it, not duplic
 
 | Fact | Source of truth | Referenced from |
 |---|---|---|
-| Envelope + RFC 9457 + camelCase + error language | `.agents/backend/responses.md` | `.agents/web/api-client.md`, `.agents/shared/architecture.md`, this file |
-| DTOs TypeScript (API contract mirror) | `packages/shared/src/types/` + `.agents/shared/architecture.md` | `.agents/web/architecture.md`, `.agents/mobile/architecture.md`, this file |
-| Sync rules (backend ↔ shared ↔ apps) | `.agents/shared/architecture.md` ("Sync" section) | this file |
+| Envelope + RFC 9457 + camelCase + error language | `.agents/context/backend/responses.md` | `.agents/context/web/api-client.md`, `.agents/context/shared/architecture.md`, this file |
+| DTOs TypeScript (API contract mirror) | `packages/shared/src/types/` + `.agents/context/shared/architecture.md` | `.agents/context/web/architecture.md`, `.agents/context/mobile/architecture.md`, this file |
+| Sync rules (backend ↔ shared ↔ apps) | `.agents/context/shared/architecture.md` ("Sync" section) | this file |
 | Directory structure | `README.md` (root) | this file (light reference) |
+| Ramas, releases y hotfix | `docs/branching.md` | `README.md`, this file |
+| Convenciones de seguridad (authz 404, 413, middleware/timeouts) | `.agents/context/backend/architecture.md` + `.agents/context/backend/responses.md` | this file |
 | Commands | `Makefile` + `package.json` scripts | README.md, this file |
-| Dependency safety | per-ecosystem: `.agents/{backend,web,mobile}/dependencies.md` | this file |
-| Data model (backend) | `.agents/backend/data-model.md` | `.agents/backend/architecture.md`, this file |
-| Design system (mobile) | `.agents/mobile/design-system.md` | `apps/mobile/src/core/theme/tokens.ts`, `.agents/mobile/architecture.md`, `apps/mobile/README.md`, this file |
+| Dependency safety | per-ecosystem: `.agents/context/{backend,web,mobile}/dependencies.md` | this file |
+| Data model (backend) | `.agents/context/backend/data-model.md` | `.agents/context/backend/architecture.md`, this file |
+| Design system (mobile) | `.agents/context/mobile/design-system.md` | `apps/mobile/src/core/theme/tokens.ts`, `.agents/context/mobile/architecture.md`, `apps/mobile/README.md`, this file |
+| Docker / entornos / Dokploy | `.agents/context/devops/containers.md` + `docker/README.md` | this file, `README.md` |
+| Build del APK (URL compilada, EAS) | `docs/mobile-apk.md` | this file, `apps/mobile/README.md` |
 | Per-project quick context | `apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md` | `opencode.json` (`instructions`), this file |
 
 **When updating architecture**: touch the source of truth, then update every file that references it. Never duplicate the same fact in two places.

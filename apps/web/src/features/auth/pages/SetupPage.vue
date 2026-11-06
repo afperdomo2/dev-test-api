@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
-import { setup as setupApi } from '@/api/services/auth.service'
+import { getStatus, setup as setupApi } from '@/api/services/auth.service'
 import type { SetupRequest } from '@/types/auth.types'
 import {
   confirmPasswordRule,
@@ -20,10 +20,25 @@ const appStore = useAppStore()
 const form = ref<SetupRequest & { confirmPassword: string }>({
   email: '',
   password: '',
+  setupToken: '',
   confirmPassword: '',
 })
 const errors = ref<Record<string, Array<string>>>({})
 const loading = ref(false)
+const statusLoaded = ref(false)
+const setupRequiresToken = ref(false)
+
+onMounted(async () => {
+  try {
+    const status = await getStatus()
+    setupRequiresToken.value = status.setupRequiresToken
+  } catch {
+    // Fail closed: sin estado no se permite enviar el formulario.
+    setupRequiresToken.value = false
+  } finally {
+    statusLoaded.value = true
+  }
+})
 
 function validate(): boolean {
   const newErrors: Record<string, Array<string>> = {}
@@ -36,11 +51,18 @@ function validate(): boolean {
     [requiredRule('Confirma la contraseña'), confirmPasswordRule(form.value.password)],
     form.value.confirmPassword,
   )
+  if (setupRequiresToken.value) {
+    newErrors.setupToken = validateRules(
+      [requiredRule('El token de instalación es obligatorio')],
+      form.value.setupToken ?? '',
+    )
+  }
   errors.value = newErrors
   return Object.values(newErrors).every((e) => e.length === 0)
 }
 
 async function submit() {
+  if (!statusLoaded.value || !setupRequiresToken.value) return
   if (!validate()) return
   loading.value = true
   try {
@@ -67,6 +89,17 @@ async function submit() {
       <v-card-title class="text-center text-h5 mb-2">Configuración inicial</v-card-title>
       <v-card-subtitle class="text-center mb-4"> Crea la cuenta de administrador </v-card-subtitle>
 
+      <v-alert
+        v-if="statusLoaded && !setupRequiresToken"
+        type="warning"
+        variant="tonal"
+        class="mb-4"
+        data-test="setup-disabled"
+      >
+        La configuración inicial está deshabilitada en este servidor. Pide al administrador que
+        configure <code>SETUP_TOKEN</code>.
+      </v-alert>
+
       <v-form @submit.prevent="submit">
         <v-text-field
           v-model="form.email"
@@ -92,7 +125,26 @@ async function submit() {
           :disabled="loading"
           required
         />
-        <v-btn color="primary" block type="submit" :loading="loading" size="large" class="mt-2">
+        <v-text-field
+          v-if="setupRequiresToken"
+          v-model="form.setupToken"
+          label="Token de instalación"
+          type="password"
+          autocomplete="off"
+          :error-messages="errors.setupToken"
+          :disabled="loading"
+          data-test="setup-token"
+          required
+        />
+        <v-btn
+          color="primary"
+          block
+          type="submit"
+          :loading="loading"
+          :disabled="!statusLoaded || !setupRequiresToken"
+          size="large"
+          class="mt-2"
+        >
           Crear cuenta
         </v-btn>
       </v-form>

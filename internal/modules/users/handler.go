@@ -209,6 +209,42 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	response.Success(c, http.StatusOK, ToUserResponse(*user))
 }
 
+// @Summary      Cambiar contraseña
+// @Description  Cambia la contraseña del usuario autenticado. Requiere la contraseña actual y mantiene la sesión activa.
+// @Tags         profile
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  ChangePasswordRequest  true  "Contraseña actual y nueva"
+// @Success      200   {object}  map[string]string
+// @Failure      401   {object}  apierr.APIError
+// @Failure      404   {object}  apierr.APIError
+// @Failure      422   {object}  apierr.APIError
+// @Router       /api/v1/profile/password [put]
+func (h *Handler) ChangePassword(c *gin.Context) {
+	userID, apiErr := getUserID(c)
+	if apiErr != nil {
+		apiErr.Instance = c.Request.URL.Path
+		response.Problem(c, apiErr)
+		return
+	}
+
+	var req ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ValidationError(c, err.Error(), c.Request.URL.Path)
+		return
+	}
+
+	if err := h.service.ChangePassword(userID, req.CurrentPassword, req.NewPassword); err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, gin.H{"message": "Contraseña actualizada correctamente"})
+}
+
 func getUserID(c *gin.Context) (uuid.UUID, *apierr.APIError) {
 	claims, exists := c.Get("user_claims")
 	if !exists {

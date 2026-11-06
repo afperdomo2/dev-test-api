@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -12,6 +13,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+// dummyPasswordHash se usa cuando el email no existe: comparar contra él
+// iguala el coste de bcrypt y evita filtrar por timing si el email está
+// registrado. Se calcula una sola vez al arrancar.
+var dummyPasswordHash = func() []byte {
+	h, err := bcrypt.GenerateFromPassword([]byte("timing-defense-not-a-real-password"), bcrypt.DefaultCost)
+	if err != nil {
+		panic("no se pudo generar el hash dummy de timing: " + err.Error())
+	}
+	return h
+}()
 
 type Service interface {
 	Setup(email, password string) (*AuthResponse, error)
@@ -80,7 +92,9 @@ func (s *authService) Setup(email, password string) (*AuthResponse, error) {
 func (s *authService) Login(email, password string) (*AuthResponse, error) {
 	user, err := s.store.FindByEmail(email)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Mismo coste que una comparación real (anti-timing).
+			_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
 			return nil, apierr.ErrUnauthorized("Email o contraseña inválidos", "")
 		}
 		return nil, apierr.ErrInternal("Error al buscar el usuario", "")

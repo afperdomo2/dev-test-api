@@ -70,7 +70,7 @@ apps/web/deploy/_headers                       # NUEVO: Netlify / Cloudflare Pag
 apps/web/deploy/README.md                      # NUEVO: cómo aplicar y verificar
 apps/web/README.md                             # + sección de seguridad
 .env.example                                   # comentario de JWT_EXPIRY_HOURS
-.agents/web/architecture.md                    # + sección de seguridad del cliente
+.agents/context/web/architecture.md                    # + sección de seguridad del cliente
 ```
 
 ## Contrato
@@ -120,7 +120,7 @@ EXPO_PUBLIC_API_BASE_URL=https://api.tu-dominio.com
 - Mitigaciones obligatorias: CSP estricta en el borde (§3), `removeToken()` en
   cualquier 401 (ya existe en `apps/web/src/api/client.ts:41`), TTL de JWT corta
   recomendada (8–12 h) y `Referrer-Policy: no-referrer`.
-- Se documenta en `apps/web/README.md` y `.agents/web/architecture.md` con este
+- Se documenta en `apps/web/README.md` y `.agents/context/web/architecture.md` con este
   texto de riesgo: *"un XSS en la SPA puede leer `auth_token`; la defensa es la
   CSP y la revisión de cualquier `v-html`"*.
 
@@ -187,7 +187,7 @@ Notas:
 JWT_EXPIRY_HOURS=12
 ```
 
-- `apps/web/README.md` y `.agents/backend/responses.md` (sección JWT) mencionan
+- `apps/web/README.md` y `.agents/context/backend/responses.md` (sección JWT) mencionan
   que no hay refresh token ni revocación: un token robado es válido hasta `exp`.
 
 ## Testing strategy

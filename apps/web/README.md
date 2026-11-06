@@ -20,6 +20,13 @@ pnpm web              # Servidor de desarrollo (:3000)
 make fe-dev
 ```
 
+## Primera instalación
+
+`/setup` crea el primer admin y exige el **Token de instalación** (`SETUP_TOKEN`
+del backend). Si el backend no lo tiene configurado, la página muestra un aviso y
+deshabilita el formulario. El flujo completo está en el `README.md` raíz →
+**Primer uso**.
+
 ## 📁 Estructura
 
 ```
@@ -93,7 +100,7 @@ Los `types/*`, `constants/*` y `utils/format.ts` son **re-exports** desde `packa
 
 Al agregar un tipo nuevo: agregar la definición en `packages/shared/src/types/` y luego el re-export en `apps/web/src/types/`.
 
-Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/backend/responses.md`.
+Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/context/backend/responses.md`.
 
 ## 🔗 Conexión con la API
 

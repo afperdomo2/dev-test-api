@@ -1,1 +1,7 @@
-export type { LoginRequest, SetupRequest, StatusResponse, AuthResponse } from '@devtest/shared'
+export type {
+  LoginRequest,
+  SetupRequest,
+  StatusResponse,
+  AuthResponse,
+  ChangePasswordRequest,
+} from '@devtest/shared'

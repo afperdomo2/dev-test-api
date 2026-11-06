@@ -8,13 +8,20 @@ export interface LoginRequest {
 export interface SetupRequest {
   email: string
   password: string
+  setupToken?: string
 }
 
 export interface StatusResponse {
   initialized: boolean
+  setupRequiresToken: boolean
 }
 
 export interface AuthResponse {
   token: string
   user: User
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
 }

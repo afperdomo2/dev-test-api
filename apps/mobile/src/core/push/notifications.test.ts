@@ -25,10 +25,12 @@ jest.mock('expo-device', () => ({ isDevice: true }))
 jest.mock('expo-constants', () => ({
   __esModule: true,
   default: { expoConfig: { extra: {} } },
+  ExecutionEnvironment: { Bare: 'bare', Standalone: 'standalone', StoreClient: 'storeClient' },
 }))
 
 const constants = Constants as unknown as {
   expoConfig: { extra: Record<string, unknown> }
+  executionEnvironment?: string
 }
 
 function setProjectId(projectId: string | undefined) {
@@ -107,6 +109,30 @@ describe('getDevicePushToken', () => {
 
     await expect(getDevicePushToken()).resolves.toBe('tok')
     expect(Notifications.setNotificationChannelAsync).not.toHaveBeenCalled()
+  })
+})
+
+describe('Expo Go en Android', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+    delete constants.executionEnvironment
+  })
+
+  it('desactiva el push sin cargar expo-notifications', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android')
+    constants.executionEnvironment = 'storeClient'
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+    // Instancia limpia: el módulo real cachea la carga entre tests.
+    let isolated!: typeof import('./notifications')
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      isolated = require('./notifications') as typeof import('./notifications')
+    })
+
+    await expect(isolated.ensurePermission()).resolves.toBe(false)
+    await expect(isolated.getDevicePushToken()).resolves.toBeNull()
+    expect(Notifications.getExpoPushTokenAsync).not.toHaveBeenCalled()
   })
 })
 

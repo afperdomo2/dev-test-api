@@ -19,3 +19,8 @@ type UpdateUserRequest struct {
 	IsAdmin          *bool  `json:"isAdmin,omitempty"`
 	DailyImportLimit *int   `json:"dailyImportLimit,omitempty" binding:"omitempty,min=1,max=10000"`
 }
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"currentPassword" binding:"required,min=1,max=72"`
+	NewPassword     string `json:"newPassword"     binding:"required,min=8,max=72"`
+}

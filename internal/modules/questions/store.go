@@ -12,6 +12,9 @@ type Store interface {
 	FindPage(params ListQuestionsParams) ([]models.Question, int64, error)
 	FindAll() ([]models.Question, error)
 	FindByID(id uuid.UUID) (*models.Question, error)
+	// FindVisibleByID aplica la misma regla de visibilidad que FindPage:
+	// públicas, generadas por IA o propias; el admin ve todo (D-AZ-4).
+	FindVisibleByID(id, userID uuid.UUID, isAdmin bool) (*models.Question, error)
 	Create(question *models.Question) error
 	Update(question *models.Question) error
 	Delete(id uuid.UUID) error
@@ -71,6 +74,28 @@ func (s *gormStore) FindByID(id uuid.UUID) (*models.Question, error) {
 	err := s.db.Preload("Options").Preload("CodeChallenge").Preload("Topics").
 		First(&question, "id = ?", id).Error
 	if err != nil {
+		return nil, err
+	}
+	return &question, nil
+}
+
+// FindVisibleByID devuelve la pregunta solo si el usuario puede verla. La regla
+// es la misma que la del listado (FindPage) para que no haya dos definiciones:
+// públicas, generadas por IA o propias. El admin ve cualquier pregunta.
+func (s *gormStore) FindVisibleByID(id, userID uuid.UUID, isAdmin bool) (*models.Question, error) {
+	var question models.Question
+
+	query := s.db.Preload("Options").Preload("CodeChallenge").Preload("Topics")
+	if isAdmin {
+		query = query.Where("id = ?", id)
+	} else {
+		query = query.Where(
+			"id = ? AND (is_public = ? OR source = ? OR user_id = ?)",
+			id, true, "ai_generated", userID,
+		)
+	}
+
+	if err := query.First(&question).Error; err != nil {
 		return nil, err
 	}
 	return &question, nil

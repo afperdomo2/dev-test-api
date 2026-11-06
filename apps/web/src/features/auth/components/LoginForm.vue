@@ -6,6 +6,7 @@ import { useAppStore } from '@/stores/app.store'
 import { login as loginApi } from '@/api/services/auth.service'
 import type { LoginRequest } from '@/types/auth.types'
 import { emailRule, requiredRule, validateRules } from '@/utils/validators'
+import PasswordField from '@/features/auth/components/PasswordField.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -50,17 +51,20 @@ async function submit() {
       v-model="form.email"
       label="Email"
       type="email"
+      name="email"
+      autocomplete="username"
       :error-messages="errors.email"
       :disabled="loading"
       required
     />
-    <v-text-field
+    <PasswordField
       v-model="form.password"
       label="Contraseña"
-      type="password"
+      name="password"
+      autocomplete="current-password"
       :error-messages="errors.password"
       :disabled="loading"
-      required
+      data-test="login-password"
     />
     <v-btn color="primary" block type="submit" :loading="loading" size="large" class="mt-2">
       Iniciar sesión

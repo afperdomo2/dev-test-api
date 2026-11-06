@@ -22,7 +22,7 @@ type userStore interface {
 
 type Service interface {
 	List(params ListQuestionsParams) ([]QuestionListResponse, int64, error)
-	GetByID(id uuid.UUID) (*QuestionResponse, error)
+	GetByID(id, userID uuid.UUID, isAdmin bool) (*QuestionResponse, error)
 	Create(userID uuid.UUID, input CreateQuestionRequest) (*QuestionResponse, error)
 	Update(id uuid.UUID, userID uuid.UUID, input UpdateQuestionRequest) (*QuestionResponse, error)
 	Delete(id uuid.UUID, userID uuid.UUID) error
@@ -54,8 +54,8 @@ func (s *questionService) List(params ListQuestionsParams) ([]QuestionListRespon
 	return result, total, nil
 }
 
-func (s *questionService) GetByID(id uuid.UUID) (*QuestionResponse, error) {
-	question, err := s.store.FindByID(id)
+func (s *questionService) GetByID(id, userID uuid.UUID, isAdmin bool) (*QuestionResponse, error) {
+	question, err := s.store.FindVisibleByID(id, userID, isAdmin)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, apierr.ErrNotFound("Pregunta", "")

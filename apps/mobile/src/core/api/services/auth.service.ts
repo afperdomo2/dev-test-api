@@ -1,5 +1,6 @@
 import type {
   AuthResponse,
+  ChangePasswordRequest,
   LoginRequest,
   SetupRequest,
   StatusResponse,
@@ -22,4 +23,8 @@ export async function getStatus(): Promise<StatusResponse> {
 
 export async function getProfile(): Promise<User> {
   return apiClient.get<User>('/api/v1/profile')
+}
+
+export async function changePassword(data: ChangePasswordRequest): Promise<void> {
+  await apiClient.put<void>('/api/v1/profile/password', data)
 }

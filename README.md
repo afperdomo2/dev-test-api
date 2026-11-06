@@ -17,6 +17,32 @@
 | Node.js    | 20+     |
 | pnpm       | —       |
 | make       | —       |
+| Docker + Compose | 29+ (opcional, recomendado) |
+
+## 🐳 Docker
+
+Tres entornos listos para usar (guía completa: [`docker/README.md`](docker/README.md)):
+
+| Entorno | Comando | URL | Para qué |
+|---|---|---|---|
+| **dev** | `make docker-dev` | http://localhost:3030 | Hot reload (Air + Vite HMR) |
+| **prod-local** | `make docker-prod` | http://localhost:8088 | Ensayo real en la PC (DB incluida) |
+| **Dokploy** | `docker/compose.dokploy.yaml` | `https://tu-dominio` | Deploy en VPS |
+
+```bash
+make docker-env         # crea docker/.env (dev)
+make docker-dev         # levanta dev con Compose Watch
+make docker-env-prod    # crea docker/.env.prod (prod-local)
+make docker-prod        # build + up + healthchecks
+make docker-smoke       # verifica API, SPA y cabeceras
+```
+
+La primera vez: editá `docker/.env.prod`, levantá prod-local, creá el admin con
+el `SETUP_TOKEN`, vacialo y redeployá. La DB no se publica; backup/restore con
+`make docker-backup` / `make docker-restore FILE=…`.
+
+Mobile no corre en Docker: Metro en el host y APK manual con EAS cloud
+([`docs/mobile-apk.md`](docs/mobile-apk.md)).
 
 ## 📁 Estructura del proyecto
 
@@ -37,7 +63,9 @@ dev-test-api/
 │   └── mobile/                # Expo React Native (ver apps/mobile/README.md)
 ├── packages/
 │   └── shared/                # Tipos, utils, constants compartidos (ver packages/shared/)
-├── .agents/                   # Reglas de arquitectura por capa
+├── .agents/
+│   ├── context/               # Reglas de arquitectura por capa (backend, web, mobile, shared, devops)
+│   └── skills/                # Skills de agentes (gitignored, ver skills-lock.json)
 ├── pnpm-workspace.yaml
 ├── Makefile
 └── README.md
@@ -85,15 +113,37 @@ cp .env.example .env
 | Variable | Default | Descripción |
 |----------|---------|-------------|
 | `PORT` | `8080` | Puerto del servidor |
-| `GIN_MODE` | `debug` | `debug` o `release` |
+| `GIN_MODE` | `release` | `debug` o `release` |
 | `DB_HOST` | `localhost` | Host de PostgreSQL |
 | `DB_PORT` | `5432` | Puerto de PostgreSQL |
 | `DB_USER` | `postgres` | Usuario de la DB |
-| `DB_PASSWORD` | `secret` | Contraseña de la DB |
+| `DB_PASSWORD` | — | Contraseña de la DB (obligatoria) |
 | `DB_NAME` | `dev_test_api` | Nombre de la base de datos |
 | `DB_SSL_MODE` | `disable` | SSL mode |
-| `JWT_SECRET` | — | Secreto para firmar JWTs |
+| `JWT_SECRET` | — | Secreto para firmar JWTs (obligatorio) |
 | `JWT_EXPIRY_HOURS` | `24` | Expiración del token |
+| `SETUP_TOKEN` | — | Token del primer admin (obligatorio con la DB vacía; ≥16 chars) |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Orígenes permitidos, separados por coma |
+| `MAX_BODY_BYTES` | `1048576` | Límite del body JSON (1 MiB) |
+| `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Rate limit de `/auth/setup` y `/auth/login`; `0` = deshabilitado |
+| `AUTH_RATE_LIMIT_BURST` | `5` | Ráfaga inicial del rate limit |
+| `TRUSTED_PROXIES` | — | IPs/CIDR del reverse proxy; vacío = no confiar en `X-Forwarded-For` |
+| `HSTS_ENABLED` | `true` | Emitir `Strict-Transport-Security` (solo si el borde sirve HTTPS) |
+| `SWAGGER_ENABLED` | — | Swagger UI; vacío = on en debug, off en release |
+| `AI_API_URL` | — | Endpoint compatible con OpenAI (sin esto la IA queda deshabilitada) |
+| `AI_API_KEY` | — | Clave de la API de IA |
+| `AI_MODEL` | `gpt-4o-mini` | Modelo a usar (los `.example` traen `deepseek-v4.1-flash`) |
+| `AI_REQUEST_TIMEOUT` | `120` | Timeout de la IA, en segundos |
+| `OPENCODE_USAGE_URL` | `https://opencode.ai/zen/go/v1/usage` | Consumo en el panel admin |
+| `OPENCODE_USAGE_TIMEOUT` | `10` | Timeout del consumo, en segundos |
+| `EXPO_PUSH_URL` | `https://exp.host/--/api/v2/push/send` | Endpoint de push de Expo |
+| `EXPO_ACCESS_TOKEN` | — | Token de Expo (opcional) |
+
+> La fuente completa y con comentarios es `.env.example`. La columna **Default**
+> es el fallback del código cuando la variable está vacía. Los compose de Docker
+> reenvían estas variables con los mismos defaults, salvo `DB_HOST`, `DB_PORT` y
+> `DB_SSL_MODE`, que los fija el compose por la red interna (ver
+> `docker/README.md`).
 
 ## 🛠️ Scripts (Makefile)
 
@@ -141,6 +191,23 @@ cp .env.example .env
 | `make mobile-web` | Abrir en web (Expo) |
 | `make mobile-typecheck` | TypeScript check |
 | `make mobile-lint` | Lint |
+| `make mobile-apk` | Preflight + APK manual en EAS cloud ([runbook](docs/mobile-apk.md)) |
+
+### Docker
+
+| Comando | Descripción |
+|---------|-------------|
+| `make docker-env` / `docker-env-prod` | Crea `docker/.env` / `docker/.env.prod` desde los ejemplos |
+| `make docker-dev` | Dev con hot reload (Compose Watch) |
+| `make docker-dev-up` / `docker-dev-down` / `docker-dev-reset` | Dev en background / bajar / borrar datos |
+| `make docker-prod` | Prod-local: build + up + healthchecks (`:8088`) |
+| `make docker-prod-down` / `docker-prod-reset` / `docker-prod-logs` | Operación de prod-local |
+| `make docker-build` | Construye las imágenes de producción |
+| `make docker-config` | Valida los 3 compose |
+| `make docker-seed` | Siembra las 50 preguntas en dev |
+| `make docker-smoke` | Verifica nginx, API, SPA y cabeceras |
+| `make docker-backup` / `docker-restore FILE=…` | Backup / restore de la DB |
+| `make e2e-docker` | Playwright contra prod-local |
 
 Equivalentes directos con pnpm:
 
@@ -192,7 +259,7 @@ Paquete de TypeScript puro compartido entre web y mobile:
 - Predicados de validación (`isValidEmail`, `isRequired`)
 - Constantes (`ITEMS_PER_PAGE_OPTIONS`, `DEFAULT_PER_PAGE`)
 
-Ver `packages/shared/` y `.agents/shared/architecture.md` para detalles.
+Ver `packages/shared/` y `.agents/context/shared/architecture.md` para detalles.
 
 ## 🧪 Testing
 
@@ -270,19 +337,25 @@ Detalle (hotfix, rollback, migraciones, Dokploy): [`docs/branching.md`](docs/bra
 make install
 pnpm install
 
-# 2. Configurar .env con los datos de tu PostgreSQL
+# 2. Configurar .env con los datos de PostgreSQL y SETUP_TOKEN
 cp .env.example .env
+# SETUP_TOKEN: mínimo 16 caracteres (ej: openssl rand -hex 32).
+# Con la DB vacía es obligatorio: sin él el servidor no arranca.
 
 # 3. Crear el primer usuario admin
 make dev
 curl -X POST http://localhost:8080/api/v1/auth/setup \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@test.com","password":"admin123456"}'
+  -d '{"email":"admin@test.com","password":"admin123456","setupToken":"<tu-setup-token>"}'
 
 # 4. Usar el token devuelto para los endpoints protegidos
 curl http://localhost:8080/api/v1/users \
   -H "Authorization: Bearer <tu-token>"
 ```
+
+El formulario de setup web (`/setup`) y mobile piden el mismo token en el campo
+**“Token de instalación”**. Si `SETUP_TOKEN` está vacío y ya existen usuarios, el
+setup queda deshabilitado (403) y el servidor solo muestra un aviso al arrancar.
 
 ## 📝 Respuestas
 

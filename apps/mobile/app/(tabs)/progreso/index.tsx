@@ -1,1 +1,1 @@
-export { default } from '@/features/progress/screens/ProgressHubScreen'
+export { default } from '@/features/progress/screens/ProgressDashboardScreen'

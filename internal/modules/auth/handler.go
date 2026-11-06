@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"net/http"
 
 	"github.com/felipe/dev-test-api/pkg/apierr"
@@ -8,28 +10,48 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const setupDisabledDetail = "Configuración inicial deshabilitada o token inválido"
+
 type Handler struct {
-	service Service
+	service    Service
+	setupToken string
 }
 
-func NewHandler(service Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service Service, setupToken string) *Handler {
+	return &Handler{service: service, setupToken: setupToken}
+}
+
+// setupTokenMatches compara en tiempo constante sobre SHA-256. El hash evita
+// filtrar la longitud del token; el vacío siempre falla (fail closed, D-38).
+func setupTokenMatches(got, want string) bool {
+	if want == "" {
+		return false
+	}
+	a, b := sha256.Sum256([]byte(got)), sha256.Sum256([]byte(want))
+	return subtle.ConstantTimeCompare(a[:], b[:]) == 1
 }
 
 // @Summary      Inicializar sistema (primer usuario admin)
-// @Description  Crea el primer usuario admin del sistema. Solo funciona si no hay usuarios creados.
+// @Description  Crea el primer usuario admin del sistema. Solo funciona si no hay usuarios creados y el body incluye un `setupToken` válido (SETUP_TOKEN del servidor). Sin token o con token incorrecto responde 403; si ya hay usuarios, 409.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        body  body  SetupRequest  true  "Credenciales del admin inicial"
+// @Param        body  body  SetupRequest  true  "Credenciales del admin inicial + setupToken"
 // @Success      201   {object}  AuthResponse
 // @Failure      400   {object}  apierr.APIError
+// @Failure      403   {object}  apierr.APIError
 // @Failure      409   {object}  apierr.APIError  "System Already Initialized"
+// @Failure      429   {object}  apierr.APIError
 // @Router       /api/v1/auth/setup [post]
 func (h *Handler) Setup(c *gin.Context) {
 	var req SetupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error(), c.Request.URL.Path)
+		return
+	}
+
+	if !setupTokenMatches(req.SetupToken, h.setupToken) {
+		response.Problem(c, apierr.ErrForbidden(setupDisabledDetail, c.Request.URL.Path))
 		return
 	}
 
@@ -59,6 +81,7 @@ func (h *Handler) Status(c *gin.Context) {
 		return
 	}
 
+	res.SetupRequiresToken = h.setupToken != ""
 	response.Success(c, http.StatusOK, res)
 }
 
@@ -71,6 +94,7 @@ func (h *Handler) Status(c *gin.Context) {
 // @Success      200   {object}  AuthResponse
 // @Failure      400   {object}  apierr.APIError
 // @Failure      401   {object}  apierr.APIError
+// @Failure      429   {object}  apierr.APIError
 // @Router       /api/v1/auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest

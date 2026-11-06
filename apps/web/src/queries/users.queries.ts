@@ -52,3 +52,10 @@ export function deleteUserMutation() {
     mutationFn: usersService.deleteUser,
   }
 }
+
+export function changePasswordMutation() {
+  return {
+    mutationKey: ['users', 'change-password'],
+    mutationFn: usersService.changePassword,
+  }
+}
