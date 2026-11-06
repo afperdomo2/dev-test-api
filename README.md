@@ -132,7 +132,7 @@ cp .env.example .env
 | `SWAGGER_ENABLED` | — | Swagger UI; vacío = on en debug, off en release |
 | `AI_API_URL` | — | Endpoint compatible con OpenAI (sin esto la IA queda deshabilitada) |
 | `AI_API_KEY` | — | Clave de la API de IA |
-| `AI_MODEL` | `gpt-4o-mini` | Modelo a usar (los `.example` traen `deepseek-v4-flash`) |
+| `AI_MODEL` | `gpt-4o-mini` | Modelo a usar (los `.example` traen `deepseek-v4.1-flash`) |
 | `AI_REQUEST_TIMEOUT` | `120` | Timeout de la IA, en segundos |
 | `OPENCODE_USAGE_URL` | `https://opencode.ai/zen/go/v1/usage` | Consumo en el panel admin |
 | `OPENCODE_USAGE_TIMEOUT` | `10` | Timeout del consumo, en segundos |
