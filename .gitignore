@@ -45,6 +45,9 @@ go.work
 # Air build output
 tmp/
 
+# Artefacto de `2>nul` en Unix (Makefiles viejos)
+/nul
+
 ### Linux ###
 *~
 

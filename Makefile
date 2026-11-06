@@ -73,9 +73,18 @@ staged-check:
 	@echo "🔎 Verificando archivos en staging (lefthook pre-commit)..."
 	@go tool lefthook run pre-commit
 
+# El seed se ejecuta via script por SO (mismo patron que migrate.sh):
+#   scripts/seed-db.sh  → Unix / Git Bash / WSL
+#   scripts/seed-db.ps1 → Windows PowerShell
+ifeq ($(OS),Windows_NT)
+SEED_RUN = powershell -ExecutionPolicy Bypass -File scripts/seed-db.ps1
+else
+SEED_RUN = bash scripts/seed-db.sh
+endif
+
 db-seed:
 	@echo "🌱 Seeding 50 preguntas..."
-	@bash scripts/seed-db.sh 2>nul || powershell -ExecutionPolicy Bypass -File scripts/seed-db.ps1
+	@$(SEED_RUN)
 	@echo "✅ Seed completado"
 
 # ── Migrations (goose) ────────────────────────────────
