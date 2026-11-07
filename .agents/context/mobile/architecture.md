@@ -23,7 +23,8 @@
 | `src/core/auth/` | Almacenamiento del token (`expo-secure-store`) y estado de sesión | Yes |
 | `src/core/utils/` | Shared utilities | Yes |
 | `apps/mobile/package.json` | `"main": "expo-router/entry"` | Rarely |
-| `apps/mobile/app.json` | Expo config (plugins, scheme, userInterfaceStyle: "dark") | Yes |
+| `apps/mobile/app.json` | Expo config (plugins, scheme, userInterfaceStyle: "dark", `version`/`versionCode`) | Yes |
+| `apps/mobile/app.config.ts` | Config dinámica: sobreescribe `expo.name` con `EXPO_PUBLIC_APP_NAME` | Yes |
 | `apps/mobile/tsconfig.json` | Extends `expo/tsconfig.base`, `@/*` → `src/*` | Rarely |
 | `.agents/context/mobile/design-system.md` | Design system (Dark OLED, paleta, tipografía, anti-patrones) — source of truth | Yes |
 
@@ -221,6 +222,20 @@ The mobile app uses `fetch` (not axios). The client must:
 The envelope/error contract is defined in `.agents/context/backend/responses.md` — the mobile client implements the consuming side.
 
 Servicios por dominio en `src/core/api/services/` (`sessions`, `topics`, `gamification`, `insights`, `progress`, `questions`, `push`, `auth`). Cada uno es una función fina sobre `apiClient`; las pantallas no llaman a `apiClient` directamente.
+
+## Environment variables
+
+`EXPO_PUBLIC_*` se compilan en el bundle: cambiarlas exige recompilar el APK.
+
+| Variable | Default | Uso |
+|---|---|---|
+| `EXPO_PUBLIC_API_BASE_URL` | `http://localhost:8080` | URL del backend (HTTPS fuera de dev, D-41) |
+| `EXPO_PUBLIC_APP_NAME` | `DevTest` | Nombre visible de la app (launcher y Perfil); en pruebas `DevTest Pruebas` |
+
+`app.config.ts` solo sobreescribe `name`; `app.json` sigue siendo la fuente de
+`version` y `versionCode` (los leen los scripts de bump/preflight). En local,
+`make mobile-apk-local APP_NAME=...` ejecuta el prebuild necesario para
+actualizar `android/app/src/main/res/values/strings.xml`.
 
 ## Push notifications
 

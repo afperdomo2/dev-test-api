@@ -150,6 +150,15 @@ Comandos: `pnpm lint`, `make fe-lint`
 | Variable | Default | Descripción |
 |----------|---------|-------------|
 | `VITE_API_BASE_URL` | `http://localhost:8080` | URL base de la API |
+| `VITE_APP_NAME` | `DevTest` | Nombre visible (barra, sidebar, título de la pestaña) |
+| `VITE_APP_COLOR` | `blue` | Color de identificación del entorno en la barra y el login |
+
+Presets de `VITE_APP_COLOR` (se usa la clave, no el hex): `blue`, `green`,
+`amber`, `red`, `purple`, `teal`, `slate`. Un valor desconocido cae a `blue`.
+
+Las tres variables se **compilan en el bundle**: cambiar cualquiera exige
+rebuild. Convención sugerida: desarrollo `blue`, pruebas `amber`, producción
+`red`; el nombre puede acompañar (`DevTest Pruebas`).
 
 El servidor de desarrollo usa el proxy en `vite.config.ts` para `/api` → `localhost:8080`.
 

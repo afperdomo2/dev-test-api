@@ -26,6 +26,7 @@ describe('ProfileScreen', () => {
     expect(screen.getAllByText('Usuario').length).toBeGreaterThan(0)
     expect(screen.getByText('Miembro desde')).toBeOnTheScreen()
     expect(screen.getByText('ID de usuario')).toBeOnTheScreen()
+    expect(screen.getByText('Aplicación')).toBeOnTheScreen()
   })
 
   it('incluye la sección de seguridad con el cambio de contraseña', async () => {

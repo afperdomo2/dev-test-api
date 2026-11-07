@@ -15,6 +15,8 @@ APK  â”€â”€HTTPSâ”€â”€â–¶  https://app.tu-dominio.com  �
 - El APK **solo** habla con el API. **No** se conecta a Postgres.
 - `EXPO_PUBLIC_API_BASE_URL` se **compila dentro del bundle**. No es una
   variable de runtime.
+- `EXPO_PUBLIC_APP_NAME` también es **build-time** y define el nombre visible
+  (launcher). Default: `DevTest`; para pruebas: `DevTest Pruebas`.
 - EAS cloud **no lee** `apps/mobile/.env` ni las variables exportadas en tu
   shell. Usa `apps/mobile/eas.json` â†’ `build.preview.env.EXPO_PUBLIC_API_BASE_URL`.
 - Fuera de desarrollo la URL debe ser **HTTPS** (D-41).
@@ -58,6 +60,10 @@ volver a firmar actualizaciones.
 
 Cambiar `app.example.com` por el dominio real **antes** de compilar. El
 preflight falla si sigue el placeholder.
+
+`apps/mobile/app.config.ts` sobreescribe `expo.name` con
+`EXPO_PUBLIC_APP_NAME` (default `DevTest`). `app.json` sigue siendo la fuente de
+`version` y `versionCode`.
 
 ### Versionado (mobile)
 
@@ -154,8 +160,9 @@ Si la app no conecta:
 ## Build local con Gradle (sin cuenta Expo)
 
 Camino **preferido para iterar**: compila en la PC con el Android SDK + JDK 21.
-No necesita login ni `eas init`; `EXPO_PUBLIC_API_BASE_URL` se pasa como
-variable de entorno y queda compilada en el bundle.
+No necesita login ni `eas init`; `EXPO_PUBLIC_API_BASE_URL` y
+`EXPO_PUBLIC_APP_NAME` se pasan como variables de entorno y quedan compiladas
+en el bundle.
 
 Requisitos: `~/Android/Sdk` y `/usr/lib/jvm/java-21-openjdk-amd64`.
 
@@ -164,7 +171,15 @@ Versioná antes de compilar (ver "Versionado" arriba): `make mobile-bump [VERSIO
 ```bash
 make mobile-apk-local                      # URL por defecto: devtest.afperdomo.cloud
 make mobile-apk-local API_URL=https://otro-dominio.com
+make mobile-apk-local APP_NAME="DevTest Pruebas" API_URL=https://devtest-staging.afperdomo.cloud
 ```
+
+Para cambiar el nombre visible de la app, pasá `APP_NAME`. El target ejecuta
+`npx expo prebuild --platform android --no-install` antes de Gradle: el label
+vive en `android/app/src/main/res/values/strings.xml` y Gradle no evalúa
+`app.config.ts`. El target respalda y restaura `android/app/debug.keystore`
+automáticamente (misma firma = se instala encima). Sin `APP_NAME` no se ejecuta
+prebuild y se conserva el nombre actual.
 
 Equivale a:
 
@@ -202,10 +217,12 @@ Store. Instalación: `adb install -r <ruta>.apk` o copiando el APK al teléfono.
 
 Notas:
 
-- `android/` es prebuild generado (gitignored): no lee `app.json`. Si cambiás
-  `expo.version`/`versionCode`, corré
-  `npx expo prebuild --platform android --clean --no-install`, respaldando y
-  restaurando `android/app/debug.keystore` (misma firma = se instala encima).
+- `android/` es prebuild generado (gitignored): no lee `app.json` ni
+  `app.config.ts`. Si cambiás `expo.version`/`versionCode` **o el nombre**
+  (`EXPO_PUBLIC_APP_NAME`), corré
+  `npx expo prebuild --platform android --no-install` (el target
+  `mobile-apk-local APP_NAME=...` ya lo hace). Si usás `--clean`, respaldá y
+  restaurá `android/app/debug.keystore` (misma firma = se instala encima).
 - Si el APK sigue con la URL vieja: `./gradlew clean` y repetir el paso 2.
 
 ## Pruebas locales (sin APK)

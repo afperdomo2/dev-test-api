@@ -10,7 +10,7 @@ Stack: **React Native + Expo SDK 57** + **Expo Router** (file-based) + **NativeT
 | `pnpm --filter mobile typecheck` | `tsc --noEmit` (corre tras cada cambio) |
 | `pnpm --filter mobile test:run` | Unit tests (`jest-expo`, co-located `*.test.ts`) |
 | `pnpm --filter mobile android` / `ios` | Abrir en dispositivo |
-| `make mobile-apk-local` | APK Android local con Gradle (`API_URL=…`); ruta y detalle en `docs/mobile-apk.md` |
+| `make mobile-apk-local` | APK Android local con Gradle (`API_URL=…`, `APP_NAME=…` opcional); ruta y detalle en `docs/mobile-apk.md` |
 | `make mobile-bump [VERSION=x.y.z]` | Sube `version` (semver) y `versionCode` (+1) y sincroniza el proyecto nativo |
 
 ## Structure
@@ -34,6 +34,7 @@ Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Ini
 - **`expo-notifications` se carga en diferido** (`loadNotifications()` en `src/core/push/notifications.ts`): un import estático rompe Expo Go en Android (N-12).
 - **Bottom sheet**: `@gorhom/bottom-sheet` para menús de acciones (requiere reanimated + gesture-handler del SDK).
 - **Markdown**: `react-native-markdown-display` para contenido de preguntas/explicaciones.
+- **Nombre por entorno**: `EXPO_PUBLIC_APP_NAME` (build-time, default `DevTest`). En local: `make mobile-apk-local APP_NAME="DevTest Pruebas"` (ejecuta prebuild). `app.config.ts` sobreescribe `expo.name`; `app.json` sigue siendo la fuente de `version`/`versionCode`.
 
 ## Versionado
 

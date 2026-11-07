@@ -5,6 +5,7 @@ import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import DefaultLayout from './DefaultLayout.vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { getUnreadCount } from '@/api/services/notifications.service'
+import { APP_NAME } from '@/config/app'
 
 vi.mock('@/utils/storage', () => ({
   getToken: vi.fn(() => null),
@@ -58,9 +59,9 @@ describe('DefaultLayout', () => {
     vi.mocked(getUnreadCount).mockResolvedValue({ count: 0 })
   })
 
-  it('renders DevTest branding', () => {
+  it('renders the configured app name', () => {
     const { wrapper } = mountLayout()
-    expect(wrapper.text()).toContain('DevTest')
+    expect(wrapper.text()).toContain(APP_NAME)
   })
 
   it('muestra la campana de notificaciones', () => {

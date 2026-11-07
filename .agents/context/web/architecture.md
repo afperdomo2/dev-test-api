@@ -17,6 +17,7 @@
 | `apps/web/src/utils/validators.ts` | Vuetify rule factories (import predicates from `@devtest/shared`) | Yes |
 | `apps/web/src/components/` | Shared components (`ErrorState`, `ListPageHeader`, `PaginatedFooter`, `CodeContent`, `DifficultySelect`, `TopicSelect`, `TopicAutocomplete`, `UserSummaryCard`) | Yes — add reusable UI here |
 | `apps/web/src/constants/` | Re-exports from `@devtest/shared` | Keep in sync with shared |
+| `apps/web/src/config/` | Identidad de build por entorno (`APP_NAME`, `APP_COLOR`) | Yes — add build-time config here |
 | `apps/web/src/plugins/` | Vuetify + VueQueryPlugin setup | Rarely |
 | `apps/web/dist/` | Build output | **NEVER** — use `pnpm build` |
 

@@ -42,6 +42,7 @@ export default function ProfileScreen() {
   const avatarColor = isAdmin ? colors.primary : colors.mutedForeground
   const initials = getInitials(user.email)
   const version = Constants.expoConfig?.version ?? '1.0.0'
+  const appName = Constants.expoConfig?.name ?? 'DevTest'
 
   return (
     <ScrollView
@@ -91,6 +92,7 @@ export default function ProfileScreen() {
           label="ID de usuario"
           value={user.id.length > 20 ? `${user.id.slice(0, 20)}...` : user.id}
         />
+        <InfoRow icon="application" label="Aplicación" value={appName} />
         <InfoRow
           icon="cellphone"
           label="Version"

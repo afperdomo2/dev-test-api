@@ -36,6 +36,7 @@ Page → useQuery(queries.*Options()) → service → apiClient → backend
 
 - Contracto API (envelope `{ data }`, errores RFC 9457, camelCase): `.agents/context/backend/responses.md`.
 - Design system UI: Vuetify (componentes + `VITE_*` env). Ver `.agents/context/web/architecture.md`.
+- Identidad de build: `VITE_APP_NAME` (default `DevTest`) y `VITE_APP_COLOR` (presets en `src/config/app.ts`); se compilan en el bundle y exigen rebuild.
 
 ## Details
 

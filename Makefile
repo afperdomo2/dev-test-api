@@ -221,16 +221,27 @@ mobile-apk:
 	@echo "🏗️  Compilando APK en EAS cloud (perfil preview)..."
 	cd apps/mobile && npx --yes eas-cli@latest build -p android --profile preview
 
-# Build local con Gradle (sin cuenta Expo). La URL se hornea en el bundle: si
-# cambia, hay que recompilar. Detalle: docs/mobile-apk.md → "Build local".
+# Build local con Gradle (sin cuenta Expo). La URL y el nombre se hornean en el
+# bundle/recursos: si cambian, hay que recompilar. Detalle: docs/mobile-apk.md.
 API_URL ?= https://devtest.afperdomo.cloud
+APP_NAME ?=
 APK_PATH ?= apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 
 mobile-apk-local:
 	@echo "🏗️  Compilando APK local (Gradle) → $(API_URL)..."
+	@if [ -n "$(APP_NAME)" ]; then \
+		echo "🏷️  Nombre de la app → $(APP_NAME) (prebuild)"; \
+		KEYSTORE="$(CURDIR)/apps/mobile/android/app/debug.keystore"; \
+		KEYSTORE_BAK="$$(mktemp)"; \
+		if [ -f "$$KEYSTORE" ]; then cp "$$KEYSTORE" "$$KEYSTORE_BAK"; fi; \
+		cd apps/mobile && CI=1 EXPO_PUBLIC_APP_NAME="$(APP_NAME)" npx expo prebuild --platform android --no-install; \
+		if [ -s "$$KEYSTORE_BAK" ]; then cp "$$KEYSTORE_BAK" "$$KEYSTORE"; fi; \
+		rm -f "$$KEYSTORE_BAK"; \
+	fi
 	cd apps/mobile/android && rm -rf app/build/generated/assets app/build/intermediates/assets app/build/intermediates/compressed_assets
 	cd apps/mobile/android && ANDROID_HOME=$${ANDROID_HOME:-$$HOME/Android/Sdk} \
 		JAVA_HOME=$${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk-amd64} \
+		EXPO_PUBLIC_APP_NAME="$(APP_NAME)" \
 		EXPO_PUBLIC_API_BASE_URL=$(API_URL) ./gradlew assembleRelease
 	@echo "✅ APK: $(CURDIR)/$(APK_PATH)"
 

@@ -52,6 +52,13 @@ FROM deps AS build
 ARG VITE_API_BASE_URL=""
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
+# Identidad visual por entorno. Son públicos (se compilan en el bundle) y
+# cambiarlos exige rebuild. Ver apps/web/.env.example.
+ARG VITE_APP_NAME="DevTest"
+ARG VITE_APP_COLOR="blue"
+ENV VITE_APP_NAME=$VITE_APP_NAME
+ENV VITE_APP_COLOR=$VITE_APP_COLOR
+
 COPY packages/shared ./packages/shared
 COPY apps/web ./apps/web
 RUN pnpm --filter dev-test-frontend build

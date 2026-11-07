@@ -70,10 +70,12 @@ scripts/{docker-env,docker-seed,docker-smoke,docker-backup,docker-restore,e2e-do
    Dokploy. Los backups de Dokploy solo funcionan con volúmenes nombrados.
 5. **Sin `container_name`**: rompe logs/métricas de Dokploy y el escalado.
 6. **Sin secretos en `ARG`/`ENV` de build**. `VITE_*` y `EXPO_PUBLIC_*` son
-   públicos por definición: solo URLs.
-7. **`EXPO_PUBLIC_API_BASE_URL` es build-time**. Si cambia la URL del backend hay
-   que recompilar el APK. EAS cloud usa `apps/mobile/eas.json`, no el shell.
-   Debe ser `https://` fuera de desarrollo (D-41).
+   públicos por definición: solo URLs y datos de presentación
+   (`VITE_APP_NAME`, `VITE_APP_COLOR`, `EXPO_PUBLIC_APP_NAME`).
+7. **`EXPO_PUBLIC_API_BASE_URL` y `EXPO_PUBLIC_APP_NAME` son build-time**. Si
+   cambia la URL del backend o el nombre visible hay que recompilar el APK.
+   EAS cloud usa `apps/mobile/eas.json`, no el shell. La URL debe ser
+   `https://` fuera de desarrollo (D-41).
 8. **`TRUSTED_PROXIES`** debe incluir el CIDR del proxy (Docker `172.16.0.0/12`,
    Dokploy `10.0.0.0/8`). Si queda vacío, el rate-limit de auth cuenta todo como
    una sola IP.

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import { useRouter } from 'vue-router'
 import NotificationBell from '@/features/notifications/components/NotificationBell.vue'
+import { APP_COLOR, APP_NAME } from '@/config/app'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -84,7 +85,7 @@ function logout() {
       <v-list-item
         class="pa-4"
         prepend-icon="mdi-code-braces"
-        title="DevTest"
+        :title="APP_NAME"
         subtitle="Estudio inteligente"
       />
 
@@ -113,9 +114,9 @@ function logout() {
       </template>
     </v-navigation-drawer>
 
-    <v-app-bar color="primary" density="compact">
+    <v-app-bar :color="APP_COLOR" density="compact">
       <v-app-bar-nav-icon @click="appStore.toggleSidebar" />
-      <v-toolbar-title>DevTest</v-toolbar-title>
+      <v-toolbar-title>{{ APP_NAME }}</v-toolbar-title>
 
       <v-spacer />
 
