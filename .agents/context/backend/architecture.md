@@ -273,8 +273,9 @@ Patrón canónico para trabajo en segundo plano. **No** usa `errgroup`: son goro
 
 - `Pool` con `N` goroutines `run()` + `sync.WaitGroup`; cada una hace su propio bucle `claim → process → sleep`.
 - Cancelación por `context`: cada iteración comprueba `ctx.Err()` y encola cualquier job que ya estaba reclamado para que el shutdown no lo deje huérfano en `running`.
-- **Concurrencia ajustable en caliente** desde `settings` (`ai.worker_concurrency`): cada iteración llama a `reconcile(ctx)`, que compara el objetivo con la actual y hace `spawn` o cierra el canal `quit` del worker sobrante.
+- **Concurrencia ajustable en caliente** desde `settings` (`ai.worker_concurrency`): cada iteración llama a `reconcile(ctx)`, que compara el objetivo con la actual y hace `spawn` o cierra el canal `quit` del worker sobrante. Como cada worker lo consulta en cada vuelta, `settings` cachea en memoria cada clave 60 s (`cacheTTL` en `settings/service.go`) y silencia esas lecturas (`logSettingsReads = false` en `settings/store.go`); `Update()` invalida la caché, así que un cambio del admin surte efecto al instante.
 - Al arrancar, `recoverRunning` devuelve a `pending` los jobs que quedaron en `running` de un proceso anterior.
+- El claim (`ClaimNextPending`) silencia su propio log con `logger.Discard` (`logClaimQueries = false` en `generation/store.go`): corre cada 3 s por worker y en reposo es solo ruido. Los errores los loguea el worker (`❌ Worker …`). Ponlo a `true` para depurar el claim.
 - El pool se detiene **antes** que el HTTP server en `Run()` (`stopPool` + espera), para no perder trabajo a mitad de una llamada a la IA.
 - Cuando se implemente el scheduler de notificaciones (`specs/SPEC-notifications.md`, tarea `NT-5`), reutilizar este patrón (o extraerlo a un worker genérico) en lugar de inventar otro.
 

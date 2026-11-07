@@ -2,6 +2,7 @@ package settings
 
 import (
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/config"
@@ -10,6 +11,13 @@ import (
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
 )
+
+// cacheTTL es cuánto se reutiliza un ajuste leído de la DB. El pool de
+// generación consulta ai.worker_concurrency cada 3 s y por worker; sin caché
+// eso son decenas de SELECT por minuto para un valor que casi nunca cambia.
+// Update() invalida la caché, así que un cambio del admin se aplica al
+// instante en este proceso y el TTL solo cubre la relectura "por si acaso".
+const cacheTTL = 60 * time.Second
 
 type Service interface {
 	List() ([]SettingResponse, error)
@@ -24,10 +32,25 @@ type Service interface {
 type service struct {
 	store    Store
 	registry map[string]definition
+
+	mu    sync.RWMutex
+	cache map[string]cachedValue
+}
+
+// cachedValue es un ajuste ya resuelto (fila de la DB o default del registro)
+// con su fecha de caducidad.
+type cachedValue struct {
+	value     string
+	expiresAt time.Time
 }
 
 func NewService(store Store, aiCfg config.AIConfig) Service {
-	return &service{store: store, registry: buildRegistry(aiCfg)}
+	registry := buildRegistry(aiCfg)
+	return &service{
+		store:    store,
+		registry: registry,
+		cache:    make(map[string]cachedValue, len(registry)),
+	}
 }
 
 // resolve devuelve el valor efectivo de un ajuste: el de la base de datos si
@@ -141,6 +164,10 @@ func (s *service) Update(items []UpdateSettingRequest, updatedBy uuid.UUID) ([]S
 		)
 	}
 
+	// Cualquier escritura invalida la caché aunque falle a mitad: las filas
+	// anteriores ya se persistieron.
+	defer s.invalidateCache()
+
 	for key, value := range normalized {
 		row := &models.Setting{
 			Key:         key,
@@ -157,7 +184,24 @@ func (s *service) Update(items []UpdateSettingRequest, updatedBy uuid.UUID) ([]S
 }
 
 // getOne resuelve un único ajuste (fila si existe, default del registro si no).
+// Va a la DB como mucho una vez por clave cada cacheTTL.
 func (s *service) getOne(key string) (string, error) {
+	if value, ok := s.cached(key); ok {
+		return value, nil
+	}
+
+	value, err := s.loadOne(key)
+	if err != nil {
+		// Un error no se cachea: el siguiente intento vuelve a consultar.
+		return "", err
+	}
+
+	s.remember(key, value)
+	return value, nil
+}
+
+// loadOne es la lectura real: fila persistida o default del registro.
+func (s *service) loadOne(key string) (string, error) {
 	rows, err := s.store.FindByKeys([]string{key})
 	if err != nil {
 		return "", err
@@ -167,6 +211,36 @@ func (s *service) getOne(key string) (string, error) {
 		byKey[r.Key] = r
 	}
 	return s.resolve(key, byKey)
+}
+
+func (s *service) cached(key string) (string, bool) {
+	s.mu.RLock()
+	entry, ok := s.cache[key]
+	s.mu.RUnlock()
+
+	if !ok || time.Now().After(entry.expiresAt) {
+		return "", false
+	}
+	return entry.value, true
+}
+
+func (s *service) remember(key, value string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// El mapa puede ser nil si el service se construyó a mano (tests).
+	if s.cache == nil {
+		s.cache = make(map[string]cachedValue, len(s.registry))
+	}
+	s.cache[key] = cachedValue{value: value, expiresAt: time.Now().Add(cacheTTL)}
+}
+
+// invalidateCache se llama tras cualquier escritura: lo cacheado deja de
+// reflejar la DB.
+func (s *service) invalidateCache() {
+	s.mu.Lock()
+	clear(s.cache)
+	s.mu.Unlock()
 }
 
 func (s *service) GetInt(key string) (int, error) {

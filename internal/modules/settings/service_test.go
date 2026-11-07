@@ -16,6 +16,9 @@ type fakeStore struct {
 	findErr  error
 	upserted []models.Setting
 	upsertFn func(*models.Setting) error
+
+	// findByKeysCalls cuenta lecturas por clave, para verificar la caché.
+	findByKeysCalls int
 }
 
 func (s *fakeStore) FindAll() ([]models.Setting, error) {
@@ -26,6 +29,7 @@ func (s *fakeStore) FindAll() ([]models.Setting, error) {
 }
 
 func (s *fakeStore) FindByKeys(keys []string) ([]models.Setting, error) {
+	s.findByKeysCalls++
 	if s.findErr != nil {
 		return nil, s.findErr
 	}
@@ -189,6 +193,48 @@ func TestMaxPerDayIsNotCappedToThePerJobLimit(t *testing.T) {
 	maxPerDay, err := svc.MaxPerDay()
 	require.NoError(t, err)
 	assert.Equal(t, 200, maxPerDay)
+}
+
+func TestWorkerConcurrencyIsCachedBetweenReads(t *testing.T) {
+	// El pool de generación lee este ajuste cada 3 s y por worker: la segunda
+	// lectura no debe volver a la DB.
+	svc, store := newTestService([]models.Setting{{Key: KeyAIWorkerConcurrency, Value: "4"}})
+
+	first, err := svc.WorkerConcurrency()
+	require.NoError(t, err)
+	second, err := svc.WorkerConcurrency()
+	require.NoError(t, err)
+
+	assert.Equal(t, 4, first)
+	assert.Equal(t, 4, second)
+	assert.Equal(t, 1, store.findByKeysCalls, "la segunda lectura debe salir de la caché")
+}
+
+func TestUpdateInvalidatesTheCache(t *testing.T) {
+	svc, _ := newTestService([]models.Setting{{Key: KeyAIWorkerConcurrency, Value: "2"}})
+
+	before, err := svc.WorkerConcurrency()
+	require.NoError(t, err)
+	require.Equal(t, 2, before)
+
+	_, err = svc.Update([]UpdateSettingRequest{{Key: KeyAIWorkerConcurrency, Value: "6"}}, uuid.New())
+	require.NoError(t, err)
+
+	after, err := svc.WorkerConcurrency()
+	require.NoError(t, err)
+	assert.Equal(t, 6, after, "tras un Update el ajuste debe releerse de la DB")
+}
+
+func TestGetOneDoesNotCacheErrors(t *testing.T) {
+	svc, store := newTestService(nil)
+	store.findErr = assert.AnError
+
+	_, firstErr := svc.WorkerConcurrency()
+	_, secondErr := svc.WorkerConcurrency()
+
+	require.Error(t, firstErr)
+	require.Error(t, secondErr)
+	assert.Equal(t, 2, store.findByKeysCalls, "un error no se cachea: cada intento consulta la DB")
 }
 
 func settingValue(t *testing.T, items []SettingResponse, key string) string {

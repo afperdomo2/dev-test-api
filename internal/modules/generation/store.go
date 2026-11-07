@@ -7,12 +7,18 @@ import (
 	"github.com/felipe/dev-test-api/internal/services/ai"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // dailyBudgetLockKey es la clave del lock consultivo de Postgres que serializa
 // el encolado de trabajos. Así dos requests simultáneos no pueden sobrepasar el
 // tope diario por una condición de carrera entre el SELECT y el INSERT.
 const dailyBudgetLockKey int64 = 837421
+
+// logClaimQueries vuelve a imprimir el polling del worker en el log, para
+// cuando haya que depurar el propio claim. Apagado por defecto: en reposo es
+// una línea cada 3 s por worker y los errores ya los reporta el worker.
+const logClaimQueries = false
 
 // DailyBudget resume el consumo de la generación con IA del día en curso.
 type DailyBudget struct {
@@ -141,9 +147,18 @@ func (s *gormStore) TopicNames(jobID uuid.UUID) ([]string, error) {
 // ClaimNextPending reclama atómicamente el trabajo pending más antiguo. El
 // subquery con FOR UPDATE SKIP LOCKED hace que dos workers concurrentes nunca
 // reclamen el mismo job.
+//
+// El polling de los workers corre cada 3 s, así que esta consulta no se loguea
+// (logger.Discard) para no inundar la consola cuando no hay trabajo. Los
+// errores los reporta el propio worker.
 func (s *gormStore) ClaimNextPending() (*models.GenerationJob, error) {
+	db := s.db
+	if !logClaimQueries {
+		db = db.Session(&gorm.Session{Logger: logger.Discard})
+	}
+
 	var job models.GenerationJob
-	err := s.db.Raw(`
+	err := db.Raw(`
 		UPDATE generation_jobs
 		SET status = ?, started_at = now(), updated_at = now()
 		WHERE id = (
