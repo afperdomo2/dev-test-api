@@ -171,8 +171,8 @@ describe('DefaultLayout', () => {
     const adminItems = vm.filteredSections.find((s) => s.title === 'Administración')?.items ?? []
     const titles = adminItems.map((i) => i.title)
 
-    expect(titles).toEqual(expect.arrayContaining(['Generar preguntas', 'Configuración de IA']))
-    expect(adminItems.find((i) => i.title === 'Generar preguntas')?.to).toBe('/generation')
+    expect(titles).toEqual(expect.arrayContaining(['Generación con IA', 'Configuración de IA']))
+    expect(adminItems.find((i) => i.title === 'Generación con IA')?.to).toBe('/generation')
     expect(adminItems.find((i) => i.title === 'Configuración de IA')?.to).toBe(
       '/generation/settings',
     )
@@ -184,7 +184,7 @@ describe('DefaultLayout', () => {
       filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
     }
     const titles = vm.filteredSections.flatMap((s) => s.items.map((n) => n.title))
-    expect(titles).not.toContain('Generar preguntas')
+    expect(titles).not.toContain('Generación con IA')
     expect(titles).not.toContain('Configuración de IA')
   })
 

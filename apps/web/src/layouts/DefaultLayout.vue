@@ -48,7 +48,7 @@ const navSections: Array<NavSection> = [
     title: 'Administración',
     items: [
       { title: 'Usuarios', to: '/users', icon: 'mdi-account-group', adminOnly: true },
-      { title: 'Generar preguntas', to: '/generation', icon: 'mdi-auto-fix', adminOnly: true },
+      { title: 'Generación con IA', to: '/generation', icon: 'mdi-auto-fix', adminOnly: true },
       {
         title: 'Configuración de IA',
         to: '/generation/settings',

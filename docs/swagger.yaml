@@ -154,11 +154,18 @@ definitions:
   generation.CreateJobRequest:
     properties:
       difficulty:
+        description: Difficulty solo aplica a preguntas; en tips se ignora.
         enum:
         - beginner
         - intermediate
         - advanced
         - random
+        type: string
+      kind:
+        description: Kind elige qué se genera. Vacío = "question" (retrocompatible).
+        enum:
+        - question
+        - tip
         type: string
       quantity:
         description: 'Quantity es opcional: si se omite se usa el ajuste ai.default_quantity.'
@@ -170,7 +177,6 @@ definitions:
         minItems: 1
         type: array
     required:
-    - difficulty
     - topicIds
     type: object
   insights.DailyActivityItem:
@@ -1231,11 +1237,15 @@ paths:
   /api/v1/generation:
     get:
       description: Lista paginada de los trabajos de generación con IA (solo administradores),
-        filtrable por estado.
+        filtrable por estado y tipo de contenido.
       parameters:
       - description: 'Filtrar por estado: pending, running, completed o failed'
         in: query
         name: status
+        type: string
+      - description: 'Filtrar por tipo: question o tip'
+        in: query
+        name: kind
         type: string
       - description: Página (default 1)
         in: query
@@ -1281,9 +1291,9 @@ paths:
       consumes:
       - application/json
       description: Encola un trabajo de generación por lotes (solo administradores).
-        Resuelve N preguntas en una única llamada a la IA. La cantidad es opcional
-        y por defecto usa el ajuste ai.default_quantity. Rechaza si se supera el tope
-        diario.
+        `kind` elige preguntas (`question`, default) o tips (`tip`); un trabajo =
+        una llamada a la IA. La cantidad es opcional y por defecto usa el ajuste ai.default_quantity.
+        Rechaza si se supera el tope diario compartido.
       parameters:
       - description: Trabajo a encolar
         in: body
@@ -1316,7 +1326,7 @@ paths:
             $ref: '#/definitions/apierr.APIError'
       security:
       - BearerAuth: []
-      summary: Encolar generación de preguntas con IA
+      summary: Encolar generación con IA
       tags:
       - generation
   /api/v1/generation/{id}:
@@ -1355,7 +1365,13 @@ paths:
   /api/v1/generation/stats:
     get:
       description: Consumo del día (reservado y generado), topes vigentes y colas
-        por estado (solo administradores).
+        por estado (solo administradores). El presupuesto diario es compartido; `kind`
+        solo filtra los contadores de cola.
+      parameters:
+      - description: 'Filtrar contadores por tipo: question o tip'
+        in: query
+        name: kind
+        type: string
       produces:
       - application/json
       responses:
@@ -1369,6 +1385,10 @@ paths:
             $ref: '#/definitions/apierr.APIError'
         "403":
           description: Forbidden
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "422":
+          description: Unprocessable Entity
           schema:
             $ref: '#/definitions/apierr.APIError'
       security:

@@ -24,9 +24,15 @@ func toJobResponse(job models.GenerationJob, topicNames []string) JobResponse {
 		topics = topicNames
 	}
 
+	kind := job.Kind
+	if kind == "" {
+		kind = models.GenerationKindQuestion
+	}
+
 	return JobResponse{
 		ID:          job.ID.String(),
 		RequestedBy: job.RequestedBy.String(),
+		Kind:        kind,
 		TopicIDs:    topicIDs,
 		Topics:      topics,
 		Difficulty:  job.Difficulty,

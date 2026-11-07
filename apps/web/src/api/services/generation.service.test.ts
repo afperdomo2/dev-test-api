@@ -56,12 +56,28 @@ describe('generation.service', () => {
     })
   })
 
+  it('listGenerationJobs with kind filter', async () => {
+    mockedGet.mockResolvedValue({ data: { data: [], meta: { total: 0 } } })
+    await listGenerationJobs(1, 10, undefined, 'tip')
+    expect(mockedGet).toHaveBeenCalledWith('/api/v1/generation', {
+      params: { page: 1, perPage: 10, kind: 'tip' },
+    })
+  })
+
   it('getGenerationStats hits the stats subroute', async () => {
     const stats = { reservedToday: 3, dailyCap: 200 }
     mockedGet.mockResolvedValue({ data: stats })
     const res = await getGenerationStats()
     expect(mockedGet).toHaveBeenCalledWith('/api/v1/generation/stats')
     expect(res).toEqual(stats)
+  })
+
+  it('getGenerationStats filters by kind', async () => {
+    mockedGet.mockResolvedValue({ data: {} })
+    await getGenerationStats('tip')
+    expect(mockedGet).toHaveBeenCalledWith('/api/v1/generation/stats', {
+      params: { kind: 'tip' },
+    })
   })
 
   it('listSettings hits the settings route', async () => {

@@ -420,7 +420,13 @@ Ahora genera el CSV solicitado.`
 
 export const TIPS_CSV_HEADER = 'content,topic'
 
-/** Prompt externo para generar tips con IA (copy-paste a ChatGPT/Claude). */
+/** Prompt externo para generar tips con IA (copy-paste a ChatGPT/Claude).
+ *
+ * Espejo manual del prompt del backend (`internal/services/ai/prompts.go` →
+ * `tipsSystemPrompt`, usado por `GenerateTips`). Si cambiás las reglas de
+ * contenido acá, actualizá también el de Go para que el flujo manual y el
+ * automático no deriven.
+ */
 export function buildTipsImportPrompt(
   topics: Array<Topic>,
   quantity: number = 20,

@@ -1,6 +1,7 @@
 import {
   createGenerationJobMutation,
   generationJobsListOptions,
+  generationStatsOptions,
   settingsListOptions,
   updateSettingsMutation,
 } from './generation.queries'
@@ -21,6 +22,7 @@ function job(status: GenerationJob['status']): GenerationJob {
   return {
     id: 'j1',
     requestedBy: 'u1',
+    kind: 'question',
     topicIds: [],
     topics: [],
     difficulty: 'beginner',
@@ -40,20 +42,29 @@ describe('generation.queries', () => {
       () => 1,
       () => 10,
       () => undefined,
+      () => 'question',
     )
     await (opts as unknown as QueryOptions).queryFn({} as never)
-    expect(generationService.listGenerationJobs).toHaveBeenCalledWith(1, 10, undefined)
+    expect(generationService.listGenerationJobs).toHaveBeenCalledWith(1, 10, undefined, 'question')
   })
 
-  it('generationJobsListOptions passes the status filter', async () => {
+  it('generationJobsListOptions passes the status filter and kind', async () => {
     vi.mocked(generationService.listGenerationJobs).mockResolvedValue({ data: [] } as never)
     const opts = generationJobsListOptions(
       () => 2,
       () => 25,
       () => 'failed',
+      () => 'tip',
     )
     await (opts as unknown as QueryOptions).queryFn({} as never)
-    expect(generationService.listGenerationJobs).toHaveBeenCalledWith(2, 25, 'failed')
+    expect(generationService.listGenerationJobs).toHaveBeenCalledWith(2, 25, 'failed', 'tip')
+  })
+
+  it('generationStatsOptions passes the kind', async () => {
+    vi.mocked(generationService.getGenerationStats).mockResolvedValue({} as never)
+    const opts = generationStatsOptions(() => 'tip')
+    await (opts as unknown as QueryOptions).queryFn({} as never)
+    expect(generationService.getGenerationStats).toHaveBeenCalledWith('tip')
   })
 
   it('createGenerationJobMutation keys on generation/create', async () => {

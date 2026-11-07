@@ -2,9 +2,13 @@ export type GenerationJobStatus = 'pending' | 'running' | 'completed' | 'failed'
 
 export type GenerationDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'random'
 
+/** Tipo de contenido que genera el trabajo. */
+export type GenerationKind = 'question' | 'tip'
+
 export interface GenerationJob {
   id: string
   requestedBy: string
+  kind: GenerationKind
   topicIds: Array<string>
   topics: Array<string>
   difficulty: string
@@ -25,6 +29,7 @@ export interface GenerationStats {
   dailyCap: number
   perJobCap: number
   defaultQuantity: number
+  /** Contadores de cola del tipo consultado (o todos si no se filtró). */
   pending: number
   running: number
   failed: number
@@ -33,9 +38,12 @@ export interface GenerationStats {
 
 export interface CreateGenerationJobRequest {
   topicIds: Array<string>
-  difficulty: GenerationDifficulty
+  /** Opcional en tips: el backend lo ignora. */
+  difficulty?: GenerationDifficulty
   /** Opcional: si se omite, el backend usa el ajuste ai.default_quantity. */
   quantity?: number
+  /** Vacío = 'question' (retrocompatible). */
+  kind?: GenerationKind
 }
 
 export interface Setting {

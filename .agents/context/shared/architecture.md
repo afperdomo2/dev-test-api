@@ -29,7 +29,7 @@ packages/shared/src/
 │   ├── tip.types.ts            # Tip, CreateTipRequest
 │   ├── moderation.types.ts     # Report, CreateReportRequest, ReportStatus
 │   ├── gamification.types.ts   # Reward, OverviewResponse, StreakInfo, DailyGoalInfo
-│   ├── generation.types.ts     # GenerationJob, GenerationStats, Setting
+│   ├── generation.types.ts     # GenerationJob, GenerationKind, GenerationStats, Setting
 │   └── opencode.types.ts       # OpenCodeUsage
 ├── utils/
 │   ├── format.ts           # formatDateTime, formatDate, formatShortDateTime, formatScore, formatTimeUntil, formatRelativeTime, formatDuration

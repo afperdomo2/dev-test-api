@@ -1,6 +1,8 @@
 package generation
 
 import (
+	"log"
+	"strings"
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/models"
@@ -41,12 +43,18 @@ type Store interface {
 	FailJob(id uuid.UUID, cause string) error
 	RecoverRunning() (int64, error)
 	DailyBudget(since time.Time) (*DailyBudget, error)
-	StatusCounts() (map[string]int64, error)
+	StatusCounts(kind string) (map[string]int64, error)
 	ExistingContentByTopics(topicIDs []uuid.UUID, limit int) ([]string, error)
+	// ExistingTipContentByTopics devuelve los tips ya guardados en los temas,
+	// para inyectarlos en el prompt y evitar duplicados.
+	ExistingTipContentByTopics(topicIDs []uuid.UUID, limit int) ([]string, error)
 	// EnqueueWithBudget hace el INSERT del job teniendo ya tomado el lock
 	// consultivo del tope diario.
 	EnqueueWithBudget(job *models.GenerationJob, topicIDs []uuid.UUID) (int, error)
 	SaveQuestions(userID uuid.UUID, topicIDs []uuid.UUID, questions []*ai.GeneratedQuestion) (int, error)
+	// SaveTips persiste un lote de tips. Cada tip trae el slug de un tema de
+	// `topics`; los que no matcheen se descartan. Devuelve cuántos se guardaron.
+	SaveTips(userID uuid.UUID, topics []models.Topic, tips []*ai.GeneratedTip) (int, error)
 	TopicsExist(topicIDs []uuid.UUID) ([]uuid.UUID, error)
 	TopicsByIDs(topicIDs []uuid.UUID) ([]models.Topic, error)
 	TopicNamesByJobs(jobIDs []uuid.UUID) (map[uuid.UUID][]string, error)
@@ -113,6 +121,9 @@ func (s *gormStore) FindPage(params ListJobsParams) ([]models.GenerationJob, int
 	query := s.db.Model(&models.GenerationJob{})
 	if params.Status != "" {
 		query = query.Where("status = ?", params.Status)
+	}
+	if params.Kind != "" {
+		query = query.Where("kind = ?", params.Kind)
 	}
 
 	if err := query.Count(&total).Error; err != nil {
@@ -244,13 +255,17 @@ func (s *gormStore) DailyBudget(since time.Time) (*DailyBudget, error) {
 	return budget, nil
 }
 
-func (s *gormStore) StatusCounts() (map[string]int64, error) {
+func (s *gormStore) StatusCounts(kind string) (map[string]int64, error) {
 	type row struct {
 		Status string
 		Count  int64
 	}
 	var rows []row
-	err := s.db.Model(&models.GenerationJob{}).
+	query := s.db.Model(&models.GenerationJob{})
+	if kind != "" {
+		query = query.Where("kind = ?", kind)
+	}
+	err := query.
 		Select("status, COUNT(*) as count").
 		Group("status").
 		Scan(&rows).Error
@@ -279,6 +294,21 @@ func (s *gormStore) ExistingContentByTopics(topicIDs []uuid.UUID, limit int) ([]
 		Order("questions.created_at DESC").
 		Limit(limit).
 		Pluck("questions.content", &contents).Error
+	return contents, err
+}
+
+// ExistingTipContentByTopics devuelve los tips ya guardados en los temas, para
+// inyectarlos en el prompt y evitar duplicados.
+func (s *gormStore) ExistingTipContentByTopics(topicIDs []uuid.UUID, limit int) ([]string, error) {
+	if len(topicIDs) == 0 {
+		return nil, nil
+	}
+	var contents []string
+	err := s.db.Model(&models.Tip{}).
+		Where("topic_id IN ?", topicIDs).
+		Order("created_at DESC").
+		Limit(limit).
+		Pluck("content", &contents).Error
 	return contents, err
 }
 
@@ -334,6 +364,58 @@ func (s *gormStore) SaveQuestions(userID uuid.UUID, topicIDs []uuid.UUID, questi
 		return nil
 	})
 	return saved, err
+}
+
+// SaveTips persiste un lote de tips generados en una única transacción. Cada
+// tip trae el slug (o el nombre) de un tema del job; los que no matcheen se
+// descartan con un warning en vez de tumbar el lote. Devuelve cuántos se
+// guardaron.
+func (s *gormStore) SaveTips(userID uuid.UUID, topics []models.Topic, tips []*ai.GeneratedTip) (int, error) {
+	if len(tips) == 0 {
+		return 0, nil
+	}
+
+	index := topicLookup(topics)
+	saved := 0
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		for _, gen := range tips {
+			topicID, ok := index[normalizeTopicKey(gen.Topic)]
+			if !ok {
+				log.Printf("⚠️ Tip descartado: tema desconocido %q", gen.Topic)
+				continue
+			}
+
+			tip := &models.Tip{
+				UserID:  userID,
+				TopicID: topicID,
+				Content: gen.Content,
+				Source:  "ai_generated",
+			}
+			if err := tx.Create(tip).Error; err != nil {
+				return err
+			}
+			saved++
+		}
+		return nil
+	})
+	return saved, err
+}
+
+// topicLookup indexa los temas por slug y por nombre (normalizados) para
+// resolver lo que devuelve la IA sin consultas por tip.
+func topicLookup(topics []models.Topic) map[string]uuid.UUID {
+	index := make(map[string]uuid.UUID, len(topics)*2)
+	for _, t := range topics {
+		index[normalizeTopicKey(t.Slug)] = t.ID
+		index[normalizeTopicKey(t.Name)] = t.ID
+	}
+	return index
+}
+
+// normalizeTopicKey unifica mayúsculas, espacios y comillas para comparar el
+// tema devuelto por la IA con los slugs/nombres reales.
+func normalizeTopicKey(s string) string {
+	return strings.ToLower(strings.Trim(strings.TrimSpace(s), "\"'`"))
 }
 
 // TopicsExist filtra los IDs que no existen, para responder 422 con precision

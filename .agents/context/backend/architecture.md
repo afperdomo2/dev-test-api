@@ -30,7 +30,7 @@
 | `gamification` | Gamificación: `GET /overview`, `PUT /daily-goal`, `POST /streak/freeze` |
 | `opencode` | Admin: `GET /opencode/usage` |
 | `settings` | Configuración tunable en runtime: `GET/PUT /settings` (admin) |
-| `generation` | Jobs de generación IA por lotes (admin): `POST/GET /generation`, `GET /generation/stats`, `GET /generation/{id}` + worker pool en `worker.go` |
+| `generation` | Jobs de generación IA por lotes (admin) para **preguntas o tips** (`kind`): `POST/GET /generation`, `GET /generation/stats`, `GET /generation/{id}` + worker pool en `worker.go` |
 
 Servicios compartidos: `internal/services/ai` (generación IA: cliente + batch), `internal/services/opencode` (client).
 
@@ -276,6 +276,7 @@ Patrón canónico para trabajo en segundo plano. **No** usa `errgroup`: son goro
 - **Concurrencia ajustable en caliente** desde `settings` (`ai.worker_concurrency`): cada iteración llama a `reconcile(ctx)`, que compara el objetivo con la actual y hace `spawn` o cierra el canal `quit` del worker sobrante. Como cada worker lo consulta en cada vuelta, `settings` cachea en memoria cada clave 60 s (`cacheTTL` en `settings/service.go`) y silencia esas lecturas (`logSettingsReads = false` en `settings/store.go`); `Update()` invalida la caché, así que un cambio del admin surte efecto al instante.
 - Al arrancar, `recoverRunning` devuelve a `pending` los jobs que quedaron en `running` de un proceso anterior.
 - El claim (`ClaimNextPending`) silencia su propio log con `logger.Discard` (`logClaimQueries = false` en `generation/store.go`): corre cada 3 s por worker y en reposo es solo ruido. Los errores los loguea el worker (`❌ Worker …`). Ponlo a `true` para depurar el claim.
+- Un mismo pool procesa ambos tipos de contenido (`generation_jobs.kind` = `question` | `tip`). `ProcessJob` ramifica al generador y al store correspondiente; el presupuesto diario es compartido (D-51). No crear un pool ni un cron separado para tips.
 - El pool se detiene **antes** que el HTTP server en `Run()` (`stopPool` + espera), para no perder trabajo a mitad de una llamada a la IA.
 - Cuando se implemente el scheduler de notificaciones (`specs/SPEC-notifications.md`, tarea `NT-5`), reutilizar este patrón (o extraerlo a un worker genérico) en lugar de inventar otro.
 

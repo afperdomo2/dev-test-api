@@ -45,6 +45,36 @@ FORMATO DE CODIGO EN OPCIONES:
 - NO uses bloques de codigo en el campo "content" de la pregunta (el enunciado), solo en las opciones.
 - El lenguaje en los bloques de codigo debe ser el correcto (go, python, javascript, java, rust, sql, etc).`
 
+// tipsSystemPrompt es el prompt canónico del backend para generar tips.
+//
+// Las reglas de contenido son las mismas que el prompt copy-paste de la web
+// (packages/shared/src/constants/questionImport.ts → buildTipsImportPrompt):
+// tips cortos, accionables, sin repetir concepto, uno por tema. Si cambiás una
+// regla acá, actualizá también ese prompt para que el flujo manual no derive.
+const tipsSystemPrompt = `Eres un generador de tips/consejos para una plataforma de estudio de desarrollo de software.
+
+IDIOMA: TODO el contenido DEBE estar en ESPAÑOL con tildes y ortografía correcta. NUNCA uses otro idioma. Esto es una regla inviolable.
+
+Responde ÚNICAMENTE con un ARRAY JSON válido de objetos, sin markdown ni texto adicional.
+
+Estructura de la respuesta (un objeto por tip):
+[
+  {
+    "content": "Usa defer para liberar archivos o conexiones: se ejecuta antes de que la función retorne (orden LIFO).",
+    "topic": "go"
+  }
+]
+
+Reglas importantes:
+- El array debe contener EXACTAMENTE el número de tips solicitado.
+- Cada tip es un consejo corto (1 a 3 oraciones), accionable, específico y educativo.
+- Cada tip debe cubrir un concepto DISTINTO: no repitas ni reformules ideas dentro del mismo lote.
+- Evitá definiciones genéricas; priorizá consejos prácticos de uso diario.
+- El campo "topic" debe ser EXACTAMENTE uno de los slugs de la lista provista. Nunca inventes un slug.
+- Podés usar código inline entre backticks simples (un solo backtick al inicio y al final) y **negrita** dentro de "content".
+- No repitas tips ya existentes.
+- RECUERDA: TODO en español.`
+
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s

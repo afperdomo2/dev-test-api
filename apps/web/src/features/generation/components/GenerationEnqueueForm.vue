@@ -2,15 +2,21 @@
 import { computed, ref, watch } from 'vue'
 import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
 import DifficultySelect from '@/components/DifficultySelect.vue'
-import type { GenerationDifficulty, GenerationStats } from '@/types/generation.types'
+import type {
+  GenerationDifficulty,
+  GenerationKind,
+  GenerationStats,
+} from '@/types/generation.types'
 
 interface Props {
+  kind?: GenerationKind
   stats?: GenerationStats | null
   loading?: boolean
   disabled?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  kind: 'question',
   stats: null,
   loading: false,
   disabled: false,
@@ -24,6 +30,9 @@ const topicIds = ref<Array<string>>([])
 const difficulty = ref<GenerationDifficulty>('random')
 const quantity = ref<number>(20)
 const touched = ref(false)
+
+const isTips = computed(() => props.kind === 'tip')
+const noun = computed(() => (isTips.value ? 'tips' : 'preguntas'))
 
 const perJobCap = computed(() => props.stats?.perJobCap ?? 20)
 const defaultQuantity = computed(() => props.stats?.defaultQuantity ?? 20)
@@ -64,7 +73,7 @@ const quantityHint = computed(() => {
   if (maxSelectable.value < perJobCap.value) {
     return `Máx. ${maxSelectable.value} (quedan ${remainingToday.value} de ${dailyCap.value} hoy)`
   }
-  return `Máx. ${perJobCap.value} por trabajo`
+  return `Máx. ${perJobCap.value} ${noun.value} por trabajo`
 })
 
 function submit() {
@@ -89,21 +98,31 @@ defineExpose({ reset })
 <template>
   <v-card>
     <v-card-item>
-      <v-card-title class="text-subtitle-1">Encolar generación</v-card-title>
+      <v-card-title class="text-subtitle-1">
+        {{ isTips ? 'Encolar generación de tips' : 'Encolar generación de preguntas' }}
+      </v-card-title>
       <v-card-subtitle>
-        Un trabajo = una llamada a la IA. Las preguntas se guardan como públicas.
+        {{
+          isTips
+            ? 'Un trabajo = una llamada a la IA. Cada tip se asigna a un tema.'
+            : 'Un trabajo = una llamada a la IA. Las preguntas se guardan como públicas.'
+        }}
       </v-card-subtitle>
     </v-card-item>
 
     <v-card-text>
       <v-row dense>
-        <v-col cols="12" md="6">
-          <TopicAutocomplete v-model="topicIds" label="Temas" required />
+        <v-col cols="12" :md="isTips ? 8 : 6">
+          <TopicAutocomplete
+            v-model="topicIds"
+            :label="isTips ? 'Temas para los tips' : 'Temas'"
+            required
+          />
         </v-col>
-        <v-col cols="12" md="3">
+        <v-col v-if="!isTips" cols="12" md="3">
           <DifficultySelect v-model="difficulty" />
         </v-col>
-        <v-col cols="12" md="3">
+        <v-col cols="12" :md="isTips ? 4 : 3">
           <v-text-field
             v-model.number="quantity"
             :min="1"
@@ -130,7 +149,7 @@ defineExpose({ reset })
         :disabled="!canSubmit"
         @click="submit"
       >
-        Generar
+        Generar {{ isTips ? 'tips' : 'preguntas' }}
       </v-btn>
     </v-card-actions>
   </v-card>

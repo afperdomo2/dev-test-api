@@ -5,6 +5,7 @@ import "time"
 type JobResponse struct {
 	ID          string     `json:"id"`
 	RequestedBy string     `json:"requestedBy"`
+	Kind        string     `json:"kind"`
 	TopicIDs    []string   `json:"topicIds"`
 	Topics      []string   `json:"topics"`
 	Difficulty  string     `json:"difficulty"`

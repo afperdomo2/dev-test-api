@@ -14,12 +14,20 @@ const (
 	GenerationJobStatusFailed    = "failed"
 )
 
-// GenerationJob es una solicitud de generación de preguntas con IA en lote.
+// Kind diferencia qué tipo de contenido genera el trabajo. Ambos tipos
+// comparten la misma cola, worker y presupuesto diario (ver D-51).
+const (
+	GenerationKindQuestion = "question"
+	GenerationKindTip      = "tip"
+)
+
+// GenerationJob es una solicitud de generación de contenido con IA en lote.
 // Solo puede crearla un administrador; la ejecuta un worker del pool.
 type GenerationJob struct {
 	ID          uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	RequestedBy uuid.UUID  `gorm:"type:uuid;not null;index" json:"requestedBy"`
 	Requester   *User      `gorm:"foreignKey:RequestedBy" json:"-"`
+	Kind        string     `gorm:"not null;default:question;size:20;index" json:"kind"`
 	Difficulty  string     `gorm:"not null;default:intermediate;size:20" json:"difficulty"`
 	Quantity    int        `gorm:"not null" json:"quantity"`
 	Status      string     `gorm:"not null;default:pending;size:20;index" json:"status"`

@@ -53,7 +53,7 @@ const counters = computed(() => {
       <v-card-title class="text-subtitle-1">Consumo de hoy</v-card-title>
       <v-card-subtitle v-if="stats">
         {{ stats.reservedToday }} de {{ stats.dailyCap }} reservadas · {{ stats.generatedToday }}
-        generadas
+        generadas en total
       </v-card-subtitle>
     </v-card-item>
 
@@ -84,6 +84,10 @@ const counters = computed(() => {
         La IA no está configurada. Define <code>AI_API_URL</code> y <code>AI_API_KEY</code> en el
         servidor para encolar trabajos.
       </v-alert>
+
+      <p class="text-caption text-medium-emphasis mt-3 mb-0">
+        El tope diario es compartido entre preguntas y tips.
+      </p>
     </v-card-text>
   </v-card>
 </template>

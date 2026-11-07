@@ -3,6 +3,7 @@ import * as generationService from '@/api/services/generation.service'
 import type {
   CreateGenerationJobRequest,
   GenerationJobStatus,
+  GenerationKind,
   UpdateSettingsRequest,
 } from '@/types/generation.types'
 
@@ -19,18 +20,19 @@ export function generationJobsListOptions(
   page: () => number,
   perPage: () => number,
   status: () => GenerationJobStatus | undefined,
+  kind: () => GenerationKind,
 ) {
   return queryOptions({
-    queryKey: ['generation', 'list', page, perPage, status],
-    queryFn: () => generationService.listGenerationJobs(page(), perPage(), status()),
+    queryKey: ['generation', 'list', page, perPage, status, kind],
+    queryFn: () => generationService.listGenerationJobs(page(), perPage(), status(), kind()),
     staleTime: 5 * 1000,
   })
 }
 
-export function generationStatsOptions() {
+export function generationStatsOptions(kind: () => GenerationKind | undefined = () => undefined) {
   return queryOptions({
-    queryKey: ['generation', 'stats'],
-    queryFn: () => generationService.getGenerationStats(),
+    queryKey: ['generation', 'stats', kind],
+    queryFn: () => generationService.getGenerationStats(kind()),
     staleTime: 5 * 1000,
   })
 }

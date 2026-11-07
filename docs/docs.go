@@ -316,7 +316,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista paginada de los trabajos de generación con IA (solo administradores), filtrable por estado.",
+                "description": "Lista paginada de los trabajos de generación con IA (solo administradores), filtrable por estado y tipo de contenido.",
                 "produces": [
                     "application/json"
                 ],
@@ -329,6 +329,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filtrar por estado: pending, running, completed o failed",
                         "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por tipo: question o tip",
+                        "name": "kind",
                         "in": "query"
                     },
                     {
@@ -389,7 +395,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Encola un trabajo de generación por lotes (solo administradores). Resuelve N preguntas en una única llamada a la IA. La cantidad es opcional y por defecto usa el ajuste ai.default_quantity. Rechaza si se supera el tope diario.",
+                "description": "Encola un trabajo de generación por lotes (solo administradores). ` + "`" + `kind` + "`" + ` elige preguntas (` + "`" + `question` + "`" + `, default) o tips (` + "`" + `tip` + "`" + `); un trabajo = una llamada a la IA. La cantidad es opcional y por defecto usa el ajuste ai.default_quantity. Rechaza si se supera el tope diario compartido.",
                 "consumes": [
                     "application/json"
                 ],
@@ -399,7 +405,7 @@ const docTemplate = `{
                 "tags": [
                     "generation"
                 ],
-                "summary": "Encolar generación de preguntas con IA",
+                "summary": "Encolar generación con IA",
                 "parameters": [
                     {
                         "description": "Trabajo a encolar",
@@ -452,7 +458,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Consumo del día (reservado y generado), topes vigentes y colas por estado (solo administradores).",
+                "description": "Consumo del día (reservado y generado), topes vigentes y colas por estado (solo administradores). El presupuesto diario es compartido; ` + "`" + `kind` + "`" + ` solo filtra los contadores de cola.",
                 "produces": [
                     "application/json"
                 ],
@@ -460,6 +466,14 @@ const docTemplate = `{
                     "generation"
                 ],
                 "summary": "Estadísticas de generación con IA",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar contadores por tipo: question o tip",
+                        "name": "kind",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Estadísticas",
@@ -475,6 +489,12 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -3737,17 +3757,25 @@ const docTemplate = `{
         "generation.CreateJobRequest": {
             "type": "object",
             "required": [
-                "difficulty",
                 "topicIds"
             ],
             "properties": {
                 "difficulty": {
+                    "description": "Difficulty solo aplica a preguntas; en tips se ignora.",
                     "type": "string",
                     "enum": [
                         "beginner",
                         "intermediate",
                         "advanced",
                         "random"
+                    ]
+                },
+                "kind": {
+                    "description": "Kind elige qué se genera. Vacío = \"question\" (retrocompatible).",
+                    "type": "string",
+                    "enum": [
+                        "question",
+                        "tip"
                     ]
                 },
                 "quantity": {

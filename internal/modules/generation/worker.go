@@ -182,8 +182,12 @@ func (w *Worker) run(ctx context.Context, h *handle) {
 }
 
 func (w *Worker) process(ctx context.Context, id int, job *models.GenerationJob) {
-	log.Printf("▶️ Worker %d: procesando trabajo %s (%d preguntas, dificultad %s)",
-		id, job.ID, job.Quantity, job.Difficulty)
+	if job.Kind == models.GenerationKindTip {
+		log.Printf("▶️ Worker %d: procesando trabajo %s (%d tips)", id, job.ID, job.Quantity)
+	} else {
+		log.Printf("▶️ Worker %d: procesando trabajo %s (%d preguntas, dificultad %s)",
+			id, job.ID, job.Quantity, job.Difficulty)
+	}
 
 	if err := w.service.ProcessJob(ctx, *job); err != nil {
 		// Si el error viene del cierre del servidor el trabajo no se marca
