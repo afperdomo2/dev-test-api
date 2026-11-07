@@ -71,8 +71,8 @@ func TestListReturnsEveryRegisteredKey(t *testing.T) {
 	items, err := svc.List()
 	require.NoError(t, err)
 	assert.Len(t, items, 7, "deben listarse las 7 claves registradas aunque la tabla esté vacía")
-	assert.Equal(t, "10", settingValue(t, items, KeyAIMaxPerJob))
-	assert.Equal(t, "5", settingValue(t, items, KeyAIDefaultQuantity))
+	assert.Equal(t, "20", settingValue(t, items, KeyAIMaxPerJob))
+	assert.Equal(t, "20", settingValue(t, items, KeyAIDefaultQuantity))
 	assert.Equal(t, "2", settingValue(t, items, KeyAIWorkerConcurrency))
 }
 
@@ -90,7 +90,7 @@ func TestListFallsBackToDefaultWhenPersistedValueIsInvalid(t *testing.T) {
 
 	items, err := svc.List()
 	require.NoError(t, err)
-	assert.Equal(t, "10", settingValue(t, items, KeyAIMaxPerJob))
+	assert.Equal(t, "20", settingValue(t, items, KeyAIMaxPerJob))
 }
 
 func TestUpdateValidatesTypeAndRange(t *testing.T) {
@@ -102,8 +102,14 @@ func TestUpdateValidatesTypeAndRange(t *testing.T) {
 	})
 
 	t.Run("rechaza un valor fuera de rango", func(t *testing.T) {
-		_, err := svc.Update([]UpdateSettingRequest{{Key: KeyAIMaxPerJob, Value: "50"}}, uuid.New())
+		_, err := svc.Update([]UpdateSettingRequest{{Key: KeyAIMaxPerJob, Value: "51"}}, uuid.New())
 		requireAPIError(t, err, apierr.ErrValidation)
+	})
+
+	t.Run("acepta el nuevo techo de 50", func(t *testing.T) {
+		svc, _ := newTestService(nil)
+		_, err := svc.Update([]UpdateSettingRequest{{Key: KeyAIMaxPerJob, Value: "50"}}, uuid.New())
+		require.NoError(t, err)
 	})
 
 	t.Run("rechaza un float en un campo entero", func(t *testing.T) {
@@ -142,7 +148,7 @@ func TestUpdateRecordsWhoChangedTheSetting(t *testing.T) {
 	adminID := uuid.New()
 	svc, store := newTestService(nil)
 
-	_, err := svc.Update([]UpdateSettingRequest{{Key: KeyAIMaxPerJob, Value: "7"}}, adminID)
+	_, err := svc.Update([]UpdateSettingRequest{{Key: KeyAIMaxPerJob, Value: "25"}}, adminID)
 	require.NoError(t, err)
 	require.Len(t, store.upserted, 1)
 	require.NotNil(t, store.upserted[0].UpdatedBy)

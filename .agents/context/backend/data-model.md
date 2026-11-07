@@ -45,13 +45,13 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 Configuración **tunable** administrable en runtime vía `GET/PUT /api/v1/settings`. Los **secretos no viven aquí** (`AI_API_KEY`, `JWT_SECRET` siguen en `.env`).
 
 - Columnas: `key` (text, PK), `value` (text — el tipo lo define el registry de Go), `description`, `updated_by` (uuid FK `users`, `ON DELETE` restringido; NULL si viene del seed), `created_at`, `updated_at`.
-- Seeding idempotente de 5 claves con `ON CONFLICT (key) DO NOTHING` (no pisa valores ya editados): `ai.max_per_job=10`, `ai.max_per_day=200`, `ai.default_quantity=5`, `ai.temperature=0.8`, `ai.worker_concurrency=2`.
+- Seeding idempotente de 5 claves con `ON CONFLICT (key) DO NOTHING` (no pisa valores ya editados): `ai.max_per_job=20`, `ai.max_per_day=200`, `ai.default_quantity=20`, `ai.temperature=0.8`, `ai.worker_concurrency=2`.
 - `ai.model` y `ai.request_timeout` **no** se siembran: su default es el valor de `config.AIConfig` (`.env`).
-- El registry (`internal/modules/settings/registry.go`) valida 7 claves; `ai.max_per_job` y `ai.default_quantity` tienen techo duro 10. `ai.temperature` es decimal válido y el service lo expone como `*float64` para distinguir "sin definir" de `0`.
+- El registry (`internal/modules/settings/registry.go`) valida 7 claves; `ai.max_per_job` y `ai.default_quantity` tienen techo duro 50 (default 20). `ai.temperature` es decimal válido y el service lo expone como `*float64` para distinguir "sin definir" de `0`.
 
 ## `generation_jobs` (`00003_generation_jobs.sql`)
 
-Un registro = una llamada a la IA que produce hasta 10 preguntas. `quantity` es lo **reservado** al encolar (cobrable contra el tope); `generated` es lo realmente devuelto y persistido en `questions`.
+Un registro = una llamada a la IA que produce hasta `ai.max_per_job` preguntas (20 por defecto, máximo configurable 50). `quantity` es lo **reservado** al encolar (cobrable contra el tope); `generated` es lo realmente devuelto y persistido en `questions`.
 
 - Columnas: `id` (uuid PK), `requested_by` (uuid FK `users`, sin acción en borrado), `difficulty` (default `intermediate`), `quantity`, `status` (default `pending`), `generated` (default 0), `error` (text, solo si `failed`), `created_at`, `updated_at`, `started_at`, `finished_at`.
 - CHECKs: `quantity > 0`, `generated >= 0`, `status IN ('pending','running','completed','failed')`, `difficulty IN ('beginner','intermediate','advanced','random')`.

@@ -8,13 +8,13 @@ import TipImportPanel from '@/features/tips/components/TipImportPanel.vue'
 import { MAX_QUESTIONS_PER_FILE, type ImportResult } from '@/types/question.types'
 import {
   IMPORT_CSV_HEADER,
-  IMPORT_QUESTION_KINDS,
+  IMPORT_PROMPT_KINDS,
   PROMPT_DIFFICULTIES,
   PROMPT_OBJECTIVES,
   buildImportPrompt,
   buildTipsImportPrompt,
   getImportCsvTemplate,
-  type ImportQuestionKind,
+  type PromptQuestionKind,
   type PromptDifficulty,
   type PromptObjective,
 } from '@/constants/questionImport'
@@ -27,7 +27,7 @@ const appStore = useAppStore()
 const queryClient = useQueryClient()
 
 const contentType = ref<ContentType>('questions')
-const questionKind = ref<ImportQuestionKind>('single_choice')
+const questionKind = ref<PromptQuestionKind>('mixed')
 
 const contentTypeOptions = computed<Array<{ title: string; value: ContentType; icon: string }>>(
   () => [
@@ -42,13 +42,15 @@ const csvPlaceholder = computed(() => {
       return 'type,content,difficulty,topics,explanation,options\ntrue_false,"¿...?",beginner,go,"...","[v] Verdadero | [ ] Falso"'
     case 'multiple_choice':
       return 'type,content,difficulty,topics,explanation,options\nmultiple_choice,"¿...?",beginner,go,"...","[v] a | [ ] b | [v] c"'
+    case 'mixed':
+      return 'type,content,difficulty,topics,explanation,options\nsingle_choice,"¿...?",beginner,go,"...","[v] a | [ ] b | [ ] c | [ ] d"\nmultiple_choice,"¿...?",beginner,go,"...","[v] a | [ ] b | [v] c | [ ] d"\ntrue_false,"¿...?",beginner,go,"...","[v] Verdadero | [ ] Falso"'
     default:
       return 'type,content,difficulty,topics,explanation,options\nsingle_choice,"¿...?",beginner,go,"...","[v] a | [ ] b"'
   }
 })
 
 const selectedTopicIds = ref<Array<string>>([])
-const questionCount = ref<number>(10)
+const questionCount = ref<number>(20)
 const selectedDifficulty = ref<PromptDifficulty>('mixed')
 const selectedObjective = ref<PromptObjective>('review')
 const customContext = ref('')
@@ -64,7 +66,7 @@ const promptValidated = ref(false)
 // Tips
 const tipsTopicIds = ref<Array<string>>([])
 const tipsTopicTitles = ref<Array<Topic>>([])
-const tipsCount = ref<number>(10)
+const tipsCount = ref<number>(20)
 const tipsContext = ref('')
 const tipsPromptText = ref('')
 
@@ -110,7 +112,7 @@ const tipsCountError = computed(() => {
 
 function rebuildPrompt() {
   const n = Number(questionCount.value)
-  const qty = Number.isInteger(n) && n >= 1 && n <= 50 ? n : 5
+  const qty = Number.isInteger(n) && n >= 1 && n <= 50 ? n : 20
   promptText.value = buildImportPrompt(selectedTopics.value, qty, {
     kind: questionKind.value,
     difficulty: selectedDifficulty.value,
@@ -121,7 +123,7 @@ function rebuildPrompt() {
 
 function rebuildTipsPrompt() {
   const n = Number(tipsCount.value)
-  const qty = Number.isInteger(n) && n >= 1 && n <= 50 ? n : 10
+  const qty = Number.isInteger(n) && n >= 1 && n <= 50 ? n : 20
   tipsPromptText.value = buildTipsImportPrompt(tipsTopicTitles.value, qty, {
     customContext: tipsContext.value,
   })
@@ -361,11 +363,18 @@ async function doImport() {
                   <v-select
                     v-model="questionKind"
                     label="Tipo de pregunta"
-                    :items="IMPORT_QUESTION_KINDS"
+                    :items="IMPORT_PROMPT_KINDS"
                     density="compact"
                     variant="outlined"
                     hide-details
                   />
+                  <div
+                    v-if="questionKind === 'mixed'"
+                    class="text-caption text-medium-emphasis mt-1"
+                  >
+                    Mixta reparte la cantidad entre selección única, selección múltiple y
+                    verdadero/falso.
+                  </div>
                 </v-col>
               </v-row>
               <v-row dense class="mb-3">

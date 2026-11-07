@@ -22,11 +22,11 @@ const emit = defineEmits<{
 
 const topicIds = ref<Array<string>>([])
 const difficulty = ref<GenerationDifficulty>('random')
-const quantity = ref<number>(5)
+const quantity = ref<number>(20)
 const touched = ref(false)
 
-const perJobCap = computed(() => props.stats?.perJobCap ?? 10)
-const defaultQuantity = computed(() => props.stats?.defaultQuantity ?? 5)
+const perJobCap = computed(() => props.stats?.perJobCap ?? 20)
+const defaultQuantity = computed(() => props.stats?.defaultQuantity ?? 20)
 const reservedToday = computed(() => props.stats?.reservedToday ?? 0)
 const dailyCap = computed(() => props.stats?.dailyCap ?? 200)
 const remainingToday = computed(() => Math.max(0, dailyCap.value - reservedToday.value))
@@ -35,9 +35,16 @@ const remainingToday = computed(() => Math.max(0, dailyCap.value - reservedToday
 const maxSelectable = computed(() => Math.min(perJobCap.value, remainingToday.value))
 const budgetExhausted = computed(() => remainingToday.value === 0)
 
-watch(defaultQuantity, (value) => {
-  if (!touched.value) quantity.value = Math.min(value, maxSelectable.value || value)
-})
+// La cantidad inicial sigue al default del servidor y se recorta si queda poco
+// presupuesto hoy. No pisa lo que el usuario ya escribió.
+watch(
+  [defaultQuantity, maxSelectable],
+  ([value, cap]) => {
+    if (touched.value) return
+    quantity.value = Math.max(1, Math.min(value, cap || value))
+  },
+  { immediate: true },
+)
 
 watch([difficulty, quantity, topicIds], () => {
   touched.value = true

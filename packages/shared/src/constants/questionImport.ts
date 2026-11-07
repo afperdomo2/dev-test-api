@@ -10,6 +10,7 @@ defer fmt.Println(""adios"")
 fmt.Println(""hola"")
 \`\`\`",beginner,go,"**defer** programa la llamada para ejecutarse justo antes de que la función retorne, en orden **LIFO**. Ideal para liberar recursos como \`file.Close()\`.","[v] Se ejecuta al retornar la función (LIFO) | [ ] Se ejecuta al inicio de la iteración | [ ] Cancela la goroutine | [ ] Convierte la función en asíncrona"
 multiple_choice,"¿Cuáles de estas afirmaciones sobre **interfaces** en Go son correctas?",intermediate,go,"En Go las interfaces se implementan **implícitamente**: un tipo la satisface si posee todos sus métodos. La interfaz vacía \`interface{}\` puede contener cualquier valor.","[v] La implementación es implícita, no se declara \`implements\` | [ ] Un tipo debe declarar explícitamente qué interfaces implementa | [v] \`interface{}\` puede contener cualquier valor | [ ] Las interfaces solo pueden tener métodos privados"
+true_false,"¿En Go las funciones anónimas pueden capturar variables del alcance externo?",beginner,go,"**Sí**, las closures capturan variables por referencia: si la variable cambia después, la closure ve el valor actualizado.","[v] Verdadero | [ ] Falso"
 `
 
 export const IMPORT_CSV_TEMPLATE_TRUE_FALSE = `${IMPORT_CSV_HEADER}
@@ -21,7 +22,7 @@ multiple_choice,"¿Cuáles de estas afirmaciones sobre **goroutines** en Go son 
 `
 
 /** Devuelve la plantilla CSV de ejemplo para el tipo de pregunta dado. */
-export function getImportCsvTemplate(kind: ImportQuestionKind): string {
+export function getImportCsvTemplate(kind: PromptQuestionKind): string {
   switch (kind) {
     case 'true_false':
       return IMPORT_CSV_TEMPLATE_TRUE_FALSE
@@ -39,6 +40,17 @@ export const IMPORT_QUESTION_KINDS: Array<{ title: string; value: ImportQuestion
   { title: 'Selección múltiple', value: 'multiple_choice' },
   { title: 'Verdadero / Falso', value: 'true_false' },
 ]
+
+/**
+ * Tipo elegido para generar el prompt con IA. `mixed` reparte la cantidad pedida
+ * entre los 3 tipos (single_choice, multiple_choice y true_false).
+ */
+export type PromptQuestionKind = ImportQuestionKind | 'mixed'
+
+export const IMPORT_PROMPT_KINDS: Array<{
+  title: string
+  value: PromptQuestionKind
+}> = [{ title: 'Mixta (3 tipos)', value: 'mixed' }, ...IMPORT_QUESTION_KINDS]
 
 export type PromptDifficulty = 'mixed' | 'beginner' | 'intermediate' | 'advanced'
 
@@ -123,8 +135,57 @@ Preguntas cortas, variadas y directas para mantener la práctica diaria y la ret
 Mezcla ángulos distintos del tema y niveles de dificultad. Sé conciso pero preciso.`,
 }
 
+const OPTION_RULES: Record<ImportQuestionKind, string> = {
+  single_choice: `Reglas de options:
+- EXACTAMENTE 4 opciones por pregunta.
+- single_choice: EXACTAMENTE 1 opción con [v].
+- Usa: [v] para correctas, [ ] para incorrectas.`,
+  multiple_choice: `Reglas de options:
+- EXACTAMENTE 4 opciones por pregunta.
+- multiple_choice: entre 2 y 3 opciones con [v] (nunca 1 ni las 4).
+- Usa: [v] para correctas, [ ] para incorrectas.`,
+  true_false: `Reglas de options (Verdadero / Falso):
+- EXACTAMENTE 2 opciones por pregunta: una "Verdadero" y una "Falso".
+- EXACTAMENTE 1 opción con [v] (la correcta), la otra con [ ].
+- NO uses más de 2 opciones.
+- Puedes reordenar cuál es Verdadero y cuál es Falso para evitar que siempre sea la primera.
+- Puedes usar la forma "Verdadero: ..." o "Falso: ..." seguido de una breve razón.`,
+}
+
+/** Fila CSV de ejemplo por tipo de pregunta (usa el primer slug seleccionado). */
+function exampleRow(kind: ImportQuestionKind, slugsExample: string): string {
+  switch (kind) {
+    case 'multiple_choice':
+      return `multiple_choice,"¿Cuáles de estas afirmaciones sobre **goroutines** en Go son correctas?",intermediate,${slugsExample},"Las goroutines son hilos ligeros gestionados por el runtime; se comunican principalmente con channels.","[v] Son hilos ligeros gestionados por el runtime | [ ] Cada goroutine tiene su propio proceso | [v] Se comunican principalmente con channels | [ ] Solo puede haber una goroutine por programa"`
+    case 'true_false':
+      return `true_false,"¿En Go las funciones anónimas pueden capturar variables del alcance externo?",beginner,${slugsExample},"**Sí**, las closures en Go capturan variables por referencia. La variable capturada puede modificar su valor después.","[v] Verdadero | [ ] Falso"`
+    default:
+      return `single_choice,"¿Qué imprime este código en Go?
+
+\`\`\`go
+fmt.Println(len(""hola""))
+\`\`\`",beginner,${slugsExample},"**len** devuelve la longitud en bytes de la cadena. Para ""hola"" son 4 bytes.","[v] 4 | [ ] 5 | [ ] 0 | [ ] error"`
+  }
+}
+
+const ENRICHED_FORMAT_BLOCK = `FORMATO ENRIQUECIDO (soportado por la UI en content, explanation y options):
+- Usa \`código inline\` para identificadores, funciones, comandos y valores literales (ej: \`defer\`, \`Array<T>\`, \`useState\`).
+- Usa bloques de código con fences cuando el enunciado o la explicación lo requiera:
+  \`\`\`go
+  defer file.Close()
+  \`\`\`
+  Idiomas soportados: go, javascript, typescript, python, java, csharp, rust, sql, bash. Si el ejemplo no es código ejecutable usa plaintext.
+- Usa **negrita** para resaltar conceptos clave.
+- Aprovecha el formato para que la pregunta sea atractiva y legible: si hay código, muéstralo con formato; si hay un concepto clave, destácalo.`
+
+const CSV_RULES_BLOCK = `REGLAS DE CSV:
+- Si un campo contiene comas, saltos de línea o comillas dobles, enciérralo entre comillas dobles.
+- Escapa comillas dobles internas duplicándolas ("").
+- Los campos multilínea (con bloques de código) DEBEN ir entre comillas dobles y conservar los saltos de línea dentro del campo.
+- Solo texto, comas y ; están permitidos en los slugs.`
+
 export interface BuildImportPromptOptions {
-  kind?: ImportQuestionKind
+  kind?: PromptQuestionKind
   difficulty?: PromptDifficulty
   objective?: PromptObjective
   customContext?: string
@@ -132,11 +193,11 @@ export interface BuildImportPromptOptions {
 
 export function buildImportPrompt(
   topics: Array<Topic>,
-  quantity: number = 5,
+  quantity: number = 20,
   opts: BuildImportPromptOptions = {},
 ): string {
-  const qty = Math.min(50, Math.max(1, Math.floor(quantity) || 5))
-  const kind: ImportQuestionKind = opts.kind ?? 'single_choice'
+  const qty = Math.min(50, Math.max(1, Math.floor(quantity) || 20))
+  const kind: PromptQuestionKind = opts.kind ?? 'mixed'
   const difficulty: PromptDifficulty = opts.difficulty ?? 'mixed'
   const objective: PromptObjective = opts.objective ?? 'review'
   const customContext = opts.customContext?.trim() ?? ''
@@ -168,24 +229,25 @@ export function buildImportPrompt(
       ? `\nCONTEXTO ADICIONAL DEL USUARIO:\n${customContext}\n`
       : ''
 
-  if (kind === 'true_false') {
-    return buildTrueFalsePrompt(qty, difficultyBlock, objectiveBlock, customBlock, topicLines, topicsNote, slugsExample)
+  const commonArgs = [
+    qty,
+    difficultyBlock,
+    objectiveBlock,
+    customBlock,
+    topicLines,
+    topicsNote,
+    slugsExample,
+  ] as const
+
+  if (kind === 'mixed') {
+    return buildMixedPrompt(...commonArgs)
   }
 
-  const typeLine =
-    kind === 'multiple_choice'
-      ? 'multiple_choice'
-      : 'single_choice'
-  const optionRules =
-    kind === 'multiple_choice'
-      ? `Reglas de options:
-- EXACTAMENTE 4 opciones por pregunta.
-- multiple_choice: entre 2 y 3 opciones con [v] (nunca 1 ni las 4).
-- Usa: [v] para correctas, [ ] para incorrectas.`
-      : `Reglas de options:
-- EXACTAMENTE 4 opciones por pregunta.
-- single_choice: EXACTAMENTE 1 opción con [v].
-- Usa: [v] para correctas, [ ] para incorrectas.`
+  if (kind === 'true_false') {
+    return buildTrueFalsePrompt(...commonArgs)
+  }
+
+  const typeLine: ImportQuestionKind = kind
 
   return `Eres un generador de preguntas para una plataforma de estudio de desarrollo de software.
 
@@ -212,24 +274,12 @@ ${topicLines}
 - explanation: explicación educativa en español. Puede incluir formato enriquecido.
 - options: opciones separadas por | . Cada opción con prefijo [v] si es CORRECTA o [ ] si es INCORRECTA.
 
-${optionRules}
+${OPTION_RULES[typeLine]}
 - Las opciones también pueden usar \`código inline\` y **negrita**, pero NO bloques de código multilínea ni el carácter | dentro del texto de una opción (es el separador).
 
-FORMATO ENRIQUECIDO (soportado por la UI en content, explanation y options):
-- Usa \`código inline\` para identificadores, funciones, comandos y valores literales (ej: \`defer\`, \`Array<T>\`, \`useState\`).
-- Usa bloques de código con fences cuando el enunciado o la explicación lo requiera:
-  \`\`\`go
-  defer file.Close()
-  \`\`\`
-  Idiomas soportados: go, javascript, typescript, python, java, csharp, rust, sql, bash. Si el ejemplo no es código ejecutable usa plaintext.
-- Usa **negrita** para resaltar conceptos clave.
-- Aprovecha el formato para que la pregunta sea atractiva y legible: si hay código, muéstralo con formato; si hay un concepto clave, destácalo.
+${ENRICHED_FORMAT_BLOCK}
 
-REGLAS DE CSV:
-- Si un campo contiene comas, saltos de línea o comillas dobles, enciérralo entre comillas dobles.
-- Escapa comillas dobles internas duplicándolas ("").
-- Los campos multilínea (con bloques de código) DEBEN ir entre comillas dobles y conservar los saltos de línea dentro del campo.
-- Solo texto, comas y ; están permitidos en los slugs.
+${CSV_RULES_BLOCK}
 
 REGLAS IMPORTANTES:
 - TODO el contenido debe estar en ESPAÑOL (con tildes y ortografía correcta).
@@ -239,12 +289,8 @@ REGLAS IMPORTANTES:
 - No repitas preguntas.
 - No pongas comillas simples alrededor de [v]/[ ].
 
-Ejemplo de fila con bloque de código:
-${typeLine},"¿Qué imprime este código en Go?
-
-\`\`\`go
-fmt.Println(len(""hola""))
-\`\`\`",beginner,${slugsExample},"**len** devuelve la longitud en bytes de la cadena. Para ""hola"" son 4 bytes.","[v] 4 | [ ] 5 | [ ] 0 | [ ] error"
+Ejemplo de fila:
+${exampleRow(typeLine, slugsExample)}
 
 Ahora genera el CSV solicitado.`
 }
@@ -283,28 +329,11 @@ ${topicLines}
 - explanation: explicación educativa en español. Puede incluir formato enriquecido.
 - options: EXACTAMENTE 2 opciones separadas por |. Una marcada con [v] (correcta) y otra con [ ] (incorrecta).
 
-Reglas de options (Verdadero / Falso):
-- EXACTAMENTE 2 opciones por pregunta: una "Verdadero" y una "Falso".
-- EXACTAMENTE 1 opción con [v] (la correcta), la otra con [ ].
-- NO uses más de 2 opciones.
-- Puedes reordenar cuál es Verdadero y cuál es Falso para evitar que siempre sea la primera.
-- Puedes usar la forma "Verdadero: ..." o "Falso: ..." seguido de una breve razón.
+${OPTION_RULES.true_false}
 
-FORMATO ENRIQUECIDO (soportado por la UI en content, explanation y options):
-- Usa \`código inline\` para identificadores, funciones, comandos y valores literales (ej: \`defer\`, \`Array<T>\`, \`useState\`).
-- Usa bloques de código con fences cuando el enunciado o la explicación lo requiera:
-  \`\`\`go
-  defer file.Close()
-  \`\`\`
-  Idiomas soportados: go, javascript, typescript, python, java, csharp, rust, sql, bash. Si el ejemplo no es código ejecutable usa plaintext.
-- Usa **negrita** para resaltar conceptos clave.
-- Aprovecha el formato para que la pregunta sea atractiva y legible: si hay código, muéstralo con formato; si hay un concepto clave, destácalo.
+${ENRICHED_FORMAT_BLOCK}
 
-REGLAS DE CSV:
-- Si un campo contiene comas, saltos de línea o comillas dobles, enciérralo entre comillas dobles.
-- Escapa comillas dobles internas duplicándolas ("").
-- Los campos multilínea (con bloques de código) DEBEN ir entre comillas dobles y conservar los saltos de línea dentro del campo.
-- Solo texto, comas y ; están permitidos en los slugs.
+${CSV_RULES_BLOCK}
 
 REGLAS IMPORTANTES:
 - TODO el contenido debe estar en ESPAÑOL (con tildes y ortografía correcta).
@@ -315,7 +344,74 @@ REGLAS IMPORTANTES:
 - No pongas comillas simples alrededor de [v]/[ ].
 
 Ejemplo de fila:
-true_false,"¿En Go las funciones anónimas pueden capturar variables del alcance externo?",beginner,${slugsExample},"**Sí**, las closures en Go capturan variables por referencia. La variable capturada puede modificar su valor después.","[v] Verdadero | [ ] Falso"
+${exampleRow('true_false', slugsExample)}
+
+Ahora genera el CSV solicitado.`
+}
+
+function buildMixedPrompt(
+  qty: number,
+  difficultyBlock: string,
+  objectiveBlock: string,
+  customBlock: string,
+  topicLines: string,
+  topicsNote: string,
+  slugsExample: string,
+): string {
+  const perKind = Math.max(1, Math.round(qty / 3))
+
+  return `Eres un generador de preguntas para una plataforma de estudio de desarrollo de software.
+
+Genera EXACTAMENTE ${qty} preguntas en formato CSV MEZCLANDO los 3 tipos: single_choice (selección única), multiple_choice (selección múltiple) y true_false (Verdadero / Falso). NO uses code_completion.
+
+${difficultyBlock}
+
+${objectiveBlock}${customBlock}
+Evita preguntas genéricas o triviales. Cada pregunta debe ser específica del tema, con enunciado concreto y, cuando aporte valor, apoyada en un ejemplo de código o escenario práctico.
+
+DISTRIBUCIÓN OBLIGATORIA DE TIPOS:
+- Reparte las ${qty} preguntas entre los 3 tipos de forma equilibrada (~${perKind} de cada uno).
+- Si son 6 o más preguntas, incluye AL MENOS 2 de cada tipo.
+- Intercala los tipos: no agrupes todas las de un mismo tipo al inicio ni al final.
+
+FORMATO OBLIGATORIO:
+- Encabezado: ${IMPORT_CSV_HEADER}
+- Delimitador: coma (,) con comillas dobles si el campo contiene comas o saltos de línea.
+- Codificación UTF-8.
+
+Columnas:
+- type: single_choice | multiple_choice | true_false
+- content: enunciado en ESPAÑOL (claro y específico). Puede incluir formato enriquecido (ver FORMATO ENRIQUECIDO).
+- difficulty: beginner | intermediate | advanced
+- topics: slugs separados por ; — USA EXACTAMENTE ESTOS SLUGS, sin traducir ni cambiar mayúsculas:
+${topicLines}
+  ${topicsNote}
+  Ejemplo topics: ${slugsExample}  (si varias: ${slugsExample};otro-slug)
+- explanation: explicación educativa en español. Puede incluir formato enriquecido.
+- options: opciones separadas por | . Cada opción con prefijo [v] si es CORRECTA o [ ] si es INCORRECTA.
+
+Reglas de options SEGÚN EL type DE CADA FILA (cada fila usa solo las de su tipo, no mezcles formatos):
+- type=single_choice: EXACTAMENTE 4 opciones y EXACTAMENTE 1 con [v].
+- type=multiple_choice: EXACTAMENTE 4 opciones y entre 2 y 3 con [v] (nunca 1 ni las 4).
+- type=true_false: EXACTAMENTE 2 opciones ("Verdadero" y "Falso"), EXACTAMENTE 1 con [v] y la otra con [ ]. Puedes reordenarlas.
+- Las opciones también pueden usar \`código inline\` y **negrita**, pero NO bloques de código multilínea ni el carácter | dentro del texto de una opción (es el separador).
+
+${ENRICHED_FORMAT_BLOCK}
+
+${CSV_RULES_BLOCK}
+
+REGLAS IMPORTANTES:
+- TODO el contenido debe estar en ESPAÑOL (con tildes y ortografía correcta).
+- NO añadas texto, comentarios, explicaciones ni fences markdown FUERA del CSV. Devuelve SOLO el CSV (encabezado + ${qty} filas).
+- Dentro de los campos SÍ usa markdown inline/bloques según las reglas de FORMATO ENRIQUECIDO.
+- Genera exactamente ${qty} filas de datos + la fila de encabezado (total ${qty + 1} filas).
+- No repitas preguntas.
+- No pongas comillas simples alrededor de [v]/[ ].
+
+Ejemplos de fila (uno por tipo):
+${exampleRow('single_choice', slugsExample)}
+${exampleRow('multiple_choice', slugsExample)}
+${exampleRow('true_false', slugsExample)}
 
 Ahora genera el CSV solicitado.`
 }
@@ -327,10 +423,10 @@ export const TIPS_CSV_HEADER = 'content,topic'
 /** Prompt externo para generar tips con IA (copy-paste a ChatGPT/Claude). */
 export function buildTipsImportPrompt(
   topics: Array<Topic>,
-  quantity: number = 10,
+  quantity: number = 20,
   opts: { customContext?: string } = {},
 ): string {
-  const qty = Math.min(50, Math.max(1, Math.floor(quantity) || 10))
+  const qty = Math.min(50, Math.max(1, Math.floor(quantity) || 20))
   const customContext = opts.customContext?.trim() ?? ''
 
   const topicLines =
