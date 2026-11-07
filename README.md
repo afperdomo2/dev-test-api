@@ -104,46 +104,30 @@ DELETE /api/v1/users/:id      # soft-delete
 
 ## ⚙️ Variables de entorno
 
-Copiá `.env.example` a `.env` y ajustá los valores:
+Copiá `.env.example` a `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `PORT` | `8080` | Puerto del servidor |
-| `GIN_MODE` | `release` | `debug` o `release` |
-| `DB_HOST` | `localhost` | Host de PostgreSQL |
-| `DB_PORT` | `5432` | Puerto de PostgreSQL |
-| `DB_USER` | `postgres` | Usuario de la DB |
-| `DB_PASSWORD` | — | Contraseña de la DB (obligatoria) |
-| `DB_NAME` | `dev_test_api` | Nombre de la base de datos |
-| `DB_SSL_MODE` | `disable` | SSL mode |
-| `JWT_SECRET` | — | Secreto para firmar JWTs (obligatorio) |
-| `JWT_EXPIRY_HOURS` | `24` | Expiración del token |
-| `SETUP_TOKEN` | — | Token del primer admin (obligatorio con la DB vacía; ≥16 chars) |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Orígenes permitidos, separados por coma |
-| `MAX_BODY_BYTES` | `1048576` | Límite del body JSON (1 MiB) |
-| `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Rate limit de `/auth/setup` y `/auth/login`; `0` = deshabilitado |
-| `AUTH_RATE_LIMIT_BURST` | `5` | Ráfaga inicial del rate limit |
-| `TRUSTED_PROXIES` | — | IPs/CIDR del reverse proxy; vacío = no confiar en `X-Forwarded-For` |
-| `HSTS_ENABLED` | `true` | Emitir `Strict-Transport-Security` (solo si el borde sirve HTTPS) |
-| `SWAGGER_ENABLED` | — | Swagger UI; vacío = on en debug, off en release |
-| `AI_API_URL` | — | Endpoint compatible con OpenAI (sin esto la IA queda deshabilitada) |
-| `AI_API_KEY` | — | Clave de la API de IA |
-| `AI_MODEL` | `gpt-4o-mini` | Modelo a usar (los `.example` traen `deepseek-v4.1-flash`) |
-| `AI_REQUEST_TIMEOUT` | `120` | Timeout de la IA, en segundos |
-| `OPENCODE_USAGE_URL` | `https://opencode.ai/zen/go/v1/usage` | Consumo en el panel admin |
-| `OPENCODE_USAGE_TIMEOUT` | `10` | Timeout del consumo, en segundos |
-| `EXPO_PUSH_URL` | `https://exp.host/--/api/v2/push/send` | Endpoint de push de Expo |
-| `EXPO_ACCESS_TOKEN` | — | Token de Expo (opcional) |
+Los valores de `.env.example` son los defaults del código. En `.env` solo
+necesitás:
 
-> La fuente completa y con comentarios es `.env.example`. La columna **Default**
-> es el fallback del código cuando la variable está vacía. Los compose de Docker
-> reenvían estas variables con los mismos defaults, salvo `DB_HOST`, `DB_PORT` y
-> `DB_SSL_MODE`, que los fija el compose por la red interna (ver
-> `docker/README.md`).
+| Variable | Cuándo |
+|---|---|
+| `JWT_SECRET` | Siempre (obligatoria) |
+| `DB_PASSWORD` | Siempre (obligatoria) |
+| `SETUP_TOKEN` | Solo con la DB vacía (mínimo 16 caracteres) |
+
+El resto podés omitirlo salvo que quieras cambiar el default. La lista completa,
+con comentarios, está en [`.env.example`](.env.example).
+
+Los compose de Docker fijan defaults propios por entorno (CORS, HSTS,
+`TRUSTED_PROXIES`, `JWT_EXPIRY_HOURS`, `GIN_MODE`, `SWAGGER_ENABLED`); ver
+[`docker/env/`](docker/env/) y [`docker/README.md`](docker/README.md).
+
+Para web y mobile: [`apps/web/.env.example`](apps/web/.env.example) y
+[`apps/mobile/.env.example`](apps/mobile/.env.example).
 
 ## 🛠️ Scripts (Makefile)
 
