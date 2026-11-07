@@ -3,7 +3,7 @@
         migrate-up migrate-down migrate-status migrate-create \
         fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover \
         e2e e2e-ui e2e-report e2e-docker \
-        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint mobile-apk \
+        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint mobile-apk mobile-apk-local \
         docker-env docker-env-prod docker-dev docker-dev-up docker-dev-down docker-dev-reset \
         docker-prod docker-prod-down docker-prod-reset docker-prod-logs \
         docker-build docker-config docker-seed docker-smoke docker-backup docker-restore
@@ -220,6 +220,19 @@ mobile-apk:
 	@bash scripts/preflight-apk.sh
 	@echo "🏗️  Compilando APK en EAS cloud (perfil preview)..."
 	cd apps/mobile && npx --yes eas-cli@latest build -p android --profile preview
+
+# Build local con Gradle (sin cuenta Expo). La URL se hornea en el bundle: si
+# cambia, hay que recompilar. Detalle: docs/mobile-apk.md → "Build local".
+API_URL ?= https://devtest.afperdomo.cloud
+APK_PATH ?= apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+
+mobile-apk-local:
+	@echo "🏗️  Compilando APK local (Gradle) → $(API_URL)..."
+	cd apps/mobile/android && rm -rf app/build/generated/assets app/build/intermediates/assets app/build/intermediates/compressed_assets
+	cd apps/mobile/android && ANDROID_HOME=$${ANDROID_HOME:-$$HOME/Android/Sdk} \
+		JAVA_HOME=$${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk-amd64} \
+		EXPO_PUBLIC_API_BASE_URL=$(API_URL) ./gradlew assembleRelease
+	@echo "✅ APK: $(CURDIR)/$(APK_PATH)"
 
 # ── Docker ────────────────────────────────────────────────
 # Guía completa: docker/README.md

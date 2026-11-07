@@ -19,6 +19,8 @@ APK  â”€â”€HTTPSâ”€â”€â–¶  https://app.tu-dominio.com  �
   shell. Usa `apps/mobile/eas.json` â†’ `build.preview.env.EXPO_PUBLIC_API_BASE_URL`.
 - Fuera de desarrollo la URL debe ser **HTTPS** (D-41).
 - Si el backend cambia de dominio, hay que **volver a compilar** el APK.
+- Dos caminos: **Gradle local** (día a día, sin cuenta Expo) y **EAS cloud**
+  (release). Ambos hornean la URL en el bundle.
 
 ## Requisitos (una vez)
 
@@ -120,6 +122,61 @@ Si la app no conecta:
 - `curl https://tu-dominio/health` desde la PC.
 - HTTPS vÃ¡lido (certificado de Let's Encrypt, no autofirmado).
 - El APK de release **no** permite HTTP en claro; no insistas con `http://LAN`.
+
+## Build local con Gradle (sin cuenta Expo)
+
+Camino **preferido para iterar**: compila en la PC con el Android SDK + JDK 21.
+No necesita login ni `eas init`; `EXPO_PUBLIC_API_BASE_URL` se pasa como
+variable de entorno y queda compilada en el bundle.
+
+Requisitos: `~/Android/Sdk` y `/usr/lib/jvm/java-21-openjdk-amd64`.
+
+```bash
+make mobile-apk-local                      # URL por defecto: devtest.afperdomo.cloud
+make mobile-apk-local API_URL=https://otro-dominio.com
+```
+
+Equivale a:
+
+```bash
+cd apps/mobile/android
+
+# 1) Borrar el bundle previo: Gradle NO invalida la tarea al cambiar la env
+rm -rf app/build/generated/assets app/build/intermediates/assets app/build/intermediates/compressed_assets
+
+# 2) Compilar (la env va en el mismo comando que gradlew)
+ANDROID_HOME=$HOME/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 \
+EXPO_PUBLIC_API_BASE_URL=https://devtest.afperdomo.cloud ./gradlew assembleRelease
+
+# 3) Verificar la URL horneada
+unzip -p app/build/outputs/apk/release/app-release.apk assets/index.android.bundle \
+  | grep -ao "devtest[a-z.-]*\.cloud" | sort -u
+```
+
+Salida (ruta para copiar y pegar en el gestor de archivos):
+
+```
+apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+```
+
+Para abrir la carpeta directamente:
+
+```bash
+xdg-open "$(realpath apps/mobile/android/app/build/outputs/apk/release)"
+# o el archivo exacto:
+realpath apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+```
+
+Firmado con **debug keystore**: sirve para instalar a mano, **no** para Play
+Store. Instalación: `adb install -r <ruta>.apk` o copiando el APK al teléfono.
+
+Notas:
+
+- `android/` es prebuild generado (gitignored): no lee `app.json`. Si cambiás
+  `expo.version`/`versionCode`, corré
+  `npx expo prebuild --platform android --clean --no-install`, respaldando y
+  restaurando `android/app/debug.keystore` (misma firma = se instala encima).
+- Si el APK sigue con la URL vieja: `./gradlew clean` y repetir el paso 2.
 
 ## Pruebas locales (sin APK)
 

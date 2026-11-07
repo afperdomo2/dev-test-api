@@ -98,12 +98,19 @@ Contrato API (envelope, errores RFC 9457, camelCase): ver `.agents/context/backe
 
 ## 📱 APK manual (Android)
 
-El APK se compila a mano con **EAS cloud** (no hay CI de APK). La URL del API se
-**compila dentro del APK**: se configura en `eas.json` → `build.preview.env`,
-no en `.env`, y debe ser HTTPS.
+El APK se compila a mano (no hay CI de APK). La URL del API se **compila dentro
+del APK** y debe ser HTTPS: en el build local va como variable de entorno; en
+EAS cloud se lee de `eas.json` → `build.preview.env`.
 
 ```bash
-make mobile-apk      # preflight + eas build -p android --profile preview
+make mobile-apk-local   # Gradle local, sin cuenta Expo (iteración)
+make mobile-apk         # preflight + eas build (release)
+```
+
+APK resultante (ruta para pegar en el gestor de archivos):
+
+```
+apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 ```
 
 Runbook completo, checklist de versión y cómo conectarse a la DB de la nube:

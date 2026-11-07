@@ -128,6 +128,7 @@ Guía completa: `docker/README.md` · invariantes para agentes: `.agents/context
 | `make docker-backup` / `docker-restore FILE=…` | Backup / restore de la DB de prod-local |
 | `make e2e-docker` | Playwright contra prod-local |
 | `make mobile-apk` | Preflight + APK manual en EAS cloud |
+| `make mobile-apk-local` | APK release local con Gradle (`API_URL=…` opcional) |
 
 Format the web files you touch with Prettier and let `make staged-check` run
 `vue-tsc`/eslint/vitest for the staged set. Do **not** run `make fe-build` outside
@@ -164,7 +165,13 @@ suite is a close/CI check, not something to run after every edit.
 - **Vuetify MCP** — available via `opencode.json`. Query component APIs with `vuetify_get_component_api_by_version` or `vuetify_get_feature_guide`.
 - **Bash defensive patterns** — any `.sh` script must follow strict mode (`set -Eeuo pipefail`). See skill `bash-defensive-patterns` in the Skills section below.
 - **Contenedores** — 3 entornos: dev (`docker/compose.dev.yaml`, Compose Watch), prod-local (`docker/compose.prod.yaml`, same-origin `:8088`) y Dokploy (`docker/compose.dokploy.yaml`, DB en el stack). Detalles e invariantes en `.agents/context/devops/containers.md`. Nunca publicar la DB en prod/Dokploy, nunca `down -v` fuera de dev, y `TRUSTED_PROXIES` siempre con el CIDR del proxy.
-- **APK manual** — `EXPO_PUBLIC_API_BASE_URL` se compila en el APK (EAS cloud lee `apps/mobile/eas.json`, no el shell) y debe ser HTTPS. Si cambia el backend, recompilar. Ver `docs/mobile-apk.md`.
+- **APK mobile** — el humano **prefiere build local con Gradle**, no EAS cloud.
+  Comando: `make mobile-apk-local API_URL=https://…` (o el detalle en
+  `docs/mobile-apk.md` → "Build local con Gradle"). `EXPO_PUBLIC_API_BASE_URL`
+  se compila en el bundle: si cambia el backend, recompilar. Obligatorio borrar
+  `app/build/generated/assets` + `app/build/intermediates/assets` antes de
+  compilar, si no Gradle reusa el bundle con la URL vieja. EAS cloud
+  (`make mobile-apk`) solo si lo pide explícitamente.
 - **Log icons** — prefix Go `log.*` calls with emoji (❌ errors, ✅ success, 🚀 startup, 🛢️ database, 🌱 seed). Pick the most descriptive icon per context.
 - **Tests** — backend: `testing` + `testify` unit tests (mocked `Store`). `make test` (unit, no DB), `make test-cover`. Lefthook pre-commit runs `go test -short`.
 
@@ -299,7 +306,7 @@ Each fact has a **single source of truth**. Other files reference it, not duplic
 | Data model (backend) | `.agents/context/backend/data-model.md` | `.agents/context/backend/architecture.md`, this file |
 | Design system (mobile) | `.agents/context/mobile/design-system.md` | `apps/mobile/src/core/theme/tokens.ts`, `.agents/context/mobile/architecture.md`, `apps/mobile/README.md`, this file |
 | Docker / entornos / Dokploy | `.agents/context/devops/containers.md` + `docker/README.md` | this file, `README.md` |
-| Build del APK (URL compilada, EAS) | `docs/mobile-apk.md` | this file, `apps/mobile/README.md` |
+| Build del APK (URL compilada, Gradle local / EAS) | `docs/mobile-apk.md` | this file, `README.md`, `apps/mobile/AGENTS.md` |
 | Per-project quick context | `apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md` | `opencode.json` (`instructions`), this file |
 
 **When updating architecture**: touch the source of truth, then update every file that references it. Never duplicate the same fact in two places.

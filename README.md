@@ -41,8 +41,8 @@ La primera vez: editá `docker/.env.prod`, levantá prod-local, creá el admin c
 el `SETUP_TOKEN`, vacialo y redeployá. La DB no se publica; backup/restore con
 `make docker-backup` / `make docker-restore FILE=…`.
 
-Mobile no corre en Docker: Metro en el host y APK manual con EAS cloud
-([`docs/mobile-apk.md`](docs/mobile-apk.md)).
+Mobile no corre en Docker: Metro en el host y APK manual — **Gradle local**
+(iteración) o **EAS cloud** (release) — [`docs/mobile-apk.md`](docs/mobile-apk.md).
 
 ## 📁 Estructura del proyecto
 
@@ -192,6 +192,33 @@ cp .env.example .env
 | `make mobile-typecheck` | TypeScript check |
 | `make mobile-lint` | Lint |
 | `make mobile-apk` | Preflight + APK manual en EAS cloud ([runbook](docs/mobile-apk.md)) |
+| `make mobile-apk-local` | APK release local con Gradle (sin EAS, sin cuenta Expo) |
+
+#### APK local (Android, sin EAS)
+
+```bash
+make mobile-apk-local                             # URL: devtest.afperdomo.cloud
+make mobile-apk-local API_URL=https://otro.com    # otra URL (se hornea en el bundle)
+```
+
+Equivalente manual (requiere `~/Android/Sdk` + JDK 21):
+
+```bash
+cd apps/mobile/android
+rm -rf app/build/generated/assets app/build/intermediates/assets app/build/intermediates/compressed_assets
+ANDROID_HOME=$HOME/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 \
+EXPO_PUBLIC_API_BASE_URL=https://devtest.afperdomo.cloud ./gradlew assembleRelease
+```
+
+`EXPO_PUBLIC_API_BASE_URL` queda **compilada** en el APK: si cambia el backend,
+recompilá. Si cambiás `version`/`versionCode`, regenerá `android/` con
+`npx expo prebuild -p android --clean --no-install` (ver [`docs/mobile-apk.md`](docs/mobile-apk.md)).
+
+**APK resultante** (ruta para pegar en el gestor de archivos):
+
+```
+apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+```
 
 ### Docker
 

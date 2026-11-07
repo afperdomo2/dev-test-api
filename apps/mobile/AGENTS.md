@@ -10,6 +10,7 @@ Stack: **React Native + Expo SDK 57** + **Expo Router** (file-based) + **NativeT
 | `pnpm --filter mobile typecheck` | `tsc --noEmit` (corre tras cada cambio) |
 | `pnpm --filter mobile test:run` | Unit tests (`jest-expo`, co-located `*.test.ts`) |
 | `pnpm --filter mobile android` / `ios` | Abrir en dispositivo |
+| `make mobile-apk-local` | APK Android local con Gradle (`API_URL=…`); ruta y detalle en `docs/mobile-apk.md` |
 
 ## Structure
 
