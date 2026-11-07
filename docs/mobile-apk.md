@@ -59,14 +59,42 @@ volver a firmar actualizaciones.
 Cambiar `app.example.com` por el dominio real **antes** de compilar. El
 preflight falla si sigue el placeholder.
 
-### Versionado
+### Versionado (mobile)
 
-Antes de **cada** APK nuevo:
+Todo APK nuevo se versiona. Dos números, ambos en `apps/mobile/app.json`
+(fuente única):
 
-1. Subir `expo.version` (visible al usuario, ej. `1.0.1`).
-2. Subir `expo.android.versionCode` (entero, siempre creciente; Android no
-   instala un APK con `versionCode` menor o igual al instalado).
-3. `npx --yes eas-cli@latest build -p android --profile preview`.
+| Campo | Ejemplo | Regla |
+|---|---|---|
+| `expo.version` | `1.1.0` | Semver visible; se muestra en Perfil |
+| `expo.android.versionCode` | `3` | Entero **+1 en cada APK** entregado; nunca se reusa ni baja |
+
+Cuándo subir `version`:
+
+- **MAJOR** (`2.0.0`): rompe compatibilidad con el backend o rediseño de la app.
+- **MINOR** (`1.1.0`): funcionalidad nueva visible (pantalla, flujo, sección).
+- **PATCH** (`1.0.1`): fixes, textos, estilos, config (URL, nombre, iconos) y
+  dependencias sin cambio funcional.
+
+`versionCode` sube **siempre**, incluso si el `version` no cambia (recompilaste
+lo mismo) y aunque el APK no se publique en ninguna tienda: es lo que permite
+instalar encima y distinguir builds.
+
+Bump + sincronización del proyecto nativo generado (no borra `android/`):
+
+```bash
+make mobile-bump                 # versionCode +1, mismo version
+make mobile-bump VERSION=1.1.0   # versionCode +1 + version nueva
+```
+
+Equivale a editar `app.json` y reflejar `versionCode`/`versionName` en
+`android/app/build.gradle`. Si volvés a correr `expo prebuild`, los valores se
+regeneran igual desde `app.json`.
+
+```bash
+npx --yes eas-cli@latest build -p android --profile preview   # EAS cloud
+make mobile-apk-local                                         # Gradle local
+```
 
 ## Preflight (obligatorio)
 
@@ -130,6 +158,8 @@ No necesita login ni `eas init`; `EXPO_PUBLIC_API_BASE_URL` se pasa como
 variable de entorno y queda compilada en el bundle.
 
 Requisitos: `~/Android/Sdk` y `/usr/lib/jvm/java-21-openjdk-amd64`.
+
+Versioná antes de compilar (ver "Versionado" arriba): `make mobile-bump [VERSION=x.y.z]`.
 
 ```bash
 make mobile-apk-local                      # URL por defecto: devtest.afperdomo.cloud
@@ -216,7 +246,7 @@ terminal del contenedor, tÃºnel SSH o External Port temporal. **Nunca** publiq
 - [ ] Backend desplegado y `https://â€¦/health` OK.
 - [ ] Admin creado (o setup disponible si es una DB nueva).
 - [ ] `eas.json` apunta al dominio correcto (HTTPS, sin `/` final).
-- [ ] `expo.version` y `android.versionCode` incrementados.
+- [ ] `expo.version` y `android.versionCode` incrementados (`make mobile-bump`).
 - [ ] `bash scripts/preflight-apk.sh` en verde.
 - [ ] APK instalado y login verificado en un Android real.
 - [ ] Si cambiÃ³ el backend: APK recompilado (no reutilizar el anterior).

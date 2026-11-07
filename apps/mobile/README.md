@@ -107,6 +107,13 @@ make mobile-apk-local   # Gradle local, sin cuenta Expo (iteración)
 make mobile-apk         # preflight + eas build (release)
 ```
 
+Cada APK nuevo se versiona (`version` semver + `versionCode` +1):
+
+```bash
+make mobile-bump                  # mismo version, versionCode +1
+make mobile-bump VERSION=1.1.0    # nueva version
+```
+
 APK resultante (ruta para pegar en el gestor de archivos):
 
 ```

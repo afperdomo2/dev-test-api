@@ -3,7 +3,7 @@
         migrate-up migrate-down migrate-status migrate-create \
         fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover \
         e2e e2e-ui e2e-report e2e-docker \
-        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint mobile-apk mobile-apk-local \
+        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint mobile-apk mobile-apk-local mobile-bump \
         docker-env docker-env-prod docker-dev docker-dev-up docker-dev-down docker-dev-reset \
         docker-prod docker-prod-down docker-prod-reset docker-prod-logs \
         docker-build docker-config docker-seed docker-smoke docker-backup docker-restore
@@ -233,6 +233,11 @@ mobile-apk-local:
 		JAVA_HOME=$${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk-amd64} \
 		EXPO_PUBLIC_API_BASE_URL=$(API_URL) ./gradlew assembleRelease
 	@echo "✅ APK: $(CURDIR)/$(APK_PATH)"
+
+# Sube version (semver) y versionCode (+1) en app.json, y lo refleja en el
+# proyecto nativo generado. Detalle: docs/mobile-apk.md → "Versionado".
+mobile-bump:
+	@bash scripts/bump-mobile-version.sh $(VERSION)
 
 # ── Docker ────────────────────────────────────────────────
 # Guía completa: docker/README.md

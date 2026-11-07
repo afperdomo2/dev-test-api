@@ -129,6 +129,7 @@ Guía completa: `docker/README.md` · invariantes para agentes: `.agents/context
 | `make e2e-docker` | Playwright contra prod-local |
 | `make mobile-apk` | Preflight + APK manual en EAS cloud |
 | `make mobile-apk-local` | APK release local con Gradle (`API_URL=…` opcional) |
+| `make mobile-bump` | Versiona la app mobile (semver + `versionCode` +1) |
 
 Format the web files you touch with Prettier and let `make staged-check` run
 `vue-tsc`/eslint/vitest for the staged set. Do **not** run `make fe-build` outside
@@ -172,6 +173,11 @@ suite is a close/CI check, not something to run after every edit.
   `app/build/generated/assets` + `app/build/intermediates/assets` antes de
   compilar, si no Gradle reusa el bundle con la URL vieja. EAS cloud
   (`make mobile-apk`) solo si lo pide explícitamente.
+  - **Versionado mobile** — todo APK nuevo se versiona: `make mobile-bump
+    [VERSION=x.y.z]` (MAJOR rompe el backend, MINOR feature visible, PATCH
+    fix/config) y `versionCode` +1 siempre. Un cambio mobile no se cierra
+    dejando dos APKs con el mismo `versionCode`. Ver `docs/mobile-apk.md` →
+    "Versionado".
 - **Log icons** — prefix Go `log.*` calls with emoji (❌ errors, ✅ success, 🚀 startup, 🛢️ database, 🌱 seed). Pick the most descriptive icon per context.
 - **Tests** — backend: `testing` + `testify` unit tests (mocked `Store`). `make test` (unit, no DB), `make test-cover`. Lefthook pre-commit runs `go test -short`.
 

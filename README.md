@@ -193,6 +193,7 @@ cp .env.example .env
 | `make mobile-lint` | Lint |
 | `make mobile-apk` | Preflight + APK manual en EAS cloud ([runbook](docs/mobile-apk.md)) |
 | `make mobile-apk-local` | APK release local con Gradle (sin EAS, sin cuenta Expo) |
+| `make mobile-bump` | Sube `version` (semver) y `versionCode` (+1) antes de compilar |
 
 #### APK local (Android, sin EAS)
 
@@ -211,8 +212,8 @@ EXPO_PUBLIC_API_BASE_URL=https://devtest.afperdomo.cloud ./gradlew assembleRelea
 ```
 
 `EXPO_PUBLIC_API_BASE_URL` queda **compilada** en el APK: si cambia el backend,
-recompilá. Si cambiás `version`/`versionCode`, regenerá `android/` con
-`npx expo prebuild -p android --clean --no-install` (ver [`docs/mobile-apk.md`](docs/mobile-apk.md)).
+recompilá. Versioná antes de compilar con `make mobile-bump [VERSION=x.y.z]`
+(semver + `versionCode` +1, ver [`docs/mobile-apk.md`](docs/mobile-apk.md) → "Versionado").
 
 **APK resultante** (ruta para pegar en el gestor de archivos):
 
