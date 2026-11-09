@@ -138,4 +138,37 @@ describe('QuestionCard', () => {
     await fireEvent.press(screen.getByLabelText('Lyon'))
     expect(onAnswer).not.toHaveBeenCalled()
   })
+
+  it('al pasar del estado de envío a resultado el botón "Siguiente" sigue habilitado', async () => {
+    const { rerender } = await render(
+      <QuestionCard
+        question={question}
+        mode="answer"
+        selectedOptions={[]}
+        lastResult={null}
+        onAnswer={jest.fn()}
+        onNext={jest.fn()}
+        submitting
+      />,
+    )
+
+    expect(screen.getByLabelText('Confirmar respuesta')).toBeDisabled()
+
+    await rerender(
+      <QuestionCard
+        question={question}
+        mode="result"
+        selectedOptions={['o1']}
+        lastResult={null}
+        onAnswer={jest.fn()}
+        onNext={jest.fn()}
+      />,
+    )
+
+    const next = screen.getByLabelText('Siguiente pregunta')
+    expect(next).toBeEnabled()
+    // Regresión Android (react-native#56777): si `disabled` pasa de `true` a
+    // `undefined`, el host deja de ser touch target y solo responde el texto.
+    expect(next.props.accessibilityState).toEqual(expect.objectContaining({ disabled: false }))
+  })
 })

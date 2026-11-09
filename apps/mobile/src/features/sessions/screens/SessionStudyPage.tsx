@@ -10,6 +10,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { randomUUID } from 'expo-crypto'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { NextQuestionItem, SessionAnswer, SessionSummary, Reward } from '@devtest/shared'
 
 import { QuestionCard } from '@/features/sessions/components/QuestionCard'
@@ -30,6 +31,7 @@ type Phase = 'loading' | 'question' | 'result' | 'finished' | 'error'
 export default function SessionStudyPage() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
 
   const [phase, setPhase] = useState<Phase>('loading')
   const [sessionStatus, setSessionStatus] = useState<string | null>(null)
@@ -243,8 +245,9 @@ export default function SessionStudyPage() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <Pressable
+          style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Volver"
@@ -330,8 +333,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
     paddingBottom: spacing.sm,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -spacing.sm,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   counter: {
     fontSize: typography.size.sm,

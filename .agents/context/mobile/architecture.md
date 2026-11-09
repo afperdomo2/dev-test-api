@@ -140,7 +140,8 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 ### Layout & Spacing
 - Use design tokens from `src/core/theme/tokens.ts` — never hardcode hex values.
 - 8dp spacing rhythm (spacing.xs=4, sm=8, md=16, lg=24, xl=32).
-- Expo Router tabs handle safe areas automatically — don't add SafeAreaView manually.
+- **Safe areas**: las `NativeTabs` ya insertan el contenido por abajo (Android envuelve en `SafeAreaView` con `edges: { bottom: true }`, iOS con provider por tab): no sumes `insets.bottom` a scrolls ni a footers. Los headers propios (`headerShown: false`) sí deben usar `useSafeAreaInsets().top`.
+- **`Pressable` disabled**: pasá siempre un booleano explícito (`disabled={false}`) cuando el botón está habilitado. Si `disabled` pasa de `true` a `undefined`, Android deja de tratar el host como touch target y solo responde el texto interno (RN 0.84–0.86, react-native#56777; el workaround es no omitir la prop).
 - Scroll content must not be hidden behind fixed bars.
 
 ### Progress & Feedback

@@ -130,6 +130,10 @@ export function QuestionCard({
         <Pressable
           style={({ pressed }) => [styles.submit, pressed && styles.submitPressed]}
           onPress={onNext}
+          // Explícito: si `disabled` pasa de `true` (mientras se envía) a
+          // `undefined`, Android deja el Pressable sin área táctil salvo el
+          // texto (bug de RN 0.84–0.86, react-native#56777).
+          disabled={false}
           accessibilityRole="button"
           accessibilityLabel="Siguiente pregunta"
         >
