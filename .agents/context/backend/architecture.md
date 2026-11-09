@@ -256,12 +256,19 @@ func (s *someService) gatherData(userID uuid.UUID) dailyData {
 
 > `NextQuestion()` es **secuencial**: sus lecturas van en serie. No lo "optimices" con concurrencia sin medir antes.
 
-**Repaso diario (D-52):** `FindNextDailyQuestion` resuelve en 3 escalones — (1) vencidas del SRS,
+**Repaso diario (D-52 / D-55):** `FindNextDailyQuestion` resuelve en 3 escalones — (1) vencidas del SRS,
 (2) calentamiento `true_false`, (3) práctica normal (cualquier tipo, sin dominadas). El escalón 3
-es obligatorio porque el banco puede no tener `true_false` (solo llega si un lote lo pide, por import o por seed). `CreateDaily` no crea sesión si
+es obligatorio porque el banco puede no tener `true_false` (solo llega si un lote lo pide, por import o por seed). Cupos: tras **3** `true_false`
+en la sesión se saltan también las vencidas de ese tipo (`CountSessionAnswersByType` + `skipTrueFalse`) y
+`CreateDaily` fija `QuestionLimit = 15`. `CreateDaily` no crea sesión si
 `CountDueReviews + CountPracticeCandidates == 0` (responde **409**) y reutiliza la sesión `daily`
 `in_progress` del día (corte medianoche UTC). `Finish` no otorga recompensa si la sesión no tiene
 respuestas. Detalle: `tasks/daily-review.md`.
+
+**Contrato de pregunta (D-56):** `code_completion` queda fuera de la selección de sesiones (ningún
+cliente la responde ni el backend la corrige) y `NextQuestionItem.Options`/`Topics` se emiten
+siempre como arrays (`[]`), nunca omitidos ni `null`. El mobile no debe asumir que un campo del
+contrato llega: los arrays se usan con `?? []`. Detalle: `tasks/daily-review.md`.
 
 **Tip del día (D-53):** `GET /tips/today` → `tips.Service.GetTipOfTheDay()` elige con `FindOfTheDay(day)` un tip
 determinista por fecha UTC (`ORDER BY md5(id || fecha)`), así es estable durante el día y rota al siguiente.

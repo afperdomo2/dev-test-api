@@ -33,6 +33,11 @@ export function QuestionCard({
   const isMultiple = question.type === 'multiple_choice'
   const isResult = mode === 'result'
 
+  // El contrato debería mandar siempre arrays, pero un backend viejo (o una
+  // pregunta rara) no debe tumbar la pantalla con `.map is not a function`.
+  const options = question.options ?? []
+  const topics = question.topics ?? []
+
   // La selección se reinicia sola: el padre monta este componente con
   // `key={question.id}`, así que al cambiar de pregunta hay un remount.
 
@@ -75,9 +80,9 @@ export function QuestionCard({
     <View style={styles.container}>
       <MarkdownText style={styles.content}>{question.content}</MarkdownText>
 
-      {question.topics.length > 0 && (
+      {topics.length > 0 && (
         <View style={styles.topics}>
-          {question.topics.map((t) => (
+          {topics.map((t) => (
             <Text key={t} style={styles.topic}>
               {t}
             </Text>
@@ -86,7 +91,7 @@ export function QuestionCard({
       )}
 
       <View style={styles.options}>
-        {question.options.map((opt, idx) => {
+        {options.map((opt, idx) => {
           const isSelected = activeSelection.has(opt.id)
           const optionIsCorrect = isCorrectOption(opt.id, isSelected)
           const showWrongHighlight = isResult && isSelected && !optionIsCorrect

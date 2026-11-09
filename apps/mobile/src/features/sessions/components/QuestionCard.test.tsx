@@ -53,6 +53,28 @@ describe('QuestionCard', () => {
     expect(screen.getByLabelText('Lyon')).toBeOnTheScreen()
   })
 
+  it('no rompe si el backend omite options/topics (contrato viejo)', async () => {
+    const legacyQuestion = {
+      ...question,
+      options: undefined,
+      topics: undefined,
+    } as unknown as NextQuestionItem
+
+    await render(
+      <QuestionCard
+        question={legacyQuestion}
+        mode="answer"
+        selectedOptions={[]}
+        lastResult={null}
+        onAnswer={jest.fn()}
+        onNext={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/capital de Francia/)).toBeOnTheScreen()
+    expect(screen.getByLabelText('Confirmar respuesta')).toBeOnTheScreen()
+  })
+
   it('envía la opción seleccionada al confirmar', async () => {
     const onAnswer = jest.fn()
     await render(

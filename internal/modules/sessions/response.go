@@ -109,7 +109,7 @@ type NextQuestionItem struct {
 	Type          string                           `json:"type"`
 	Content       string                           `json:"content"`
 	Difficulty    string                           `json:"difficulty"`
-	Options       []NextQuestionOption             `json:"options,omitempty"`
+	Options       []NextQuestionOption             `json:"options"`
 	CodeChallenge *questions.CodeChallengeResponse `json:"codeChallenge,omitempty"`
 	Topics        []string                         `json:"topics"`
 }

@@ -24,7 +24,10 @@ type Store interface {
 	FindNextQuestion(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty string, mode string, userID uuid.UUID) (*models.Question, error)
 	CountAvailableQuestions(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty string, mode string, userID uuid.UUID) (int64, error)
 	FindQuestionByID(id uuid.UUID) (*models.Question, error)
-	FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error)
+	FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.UUID, skipTrueFalse bool) (*models.Question, error)
+	// CountSessionAnswersByType cuenta las respuestas de una sesión cuyo tipo de
+	// pregunta coincide. Topa las preguntas de calentamiento por sesión.
+	CountSessionAnswersByType(sessionID uuid.UUID, questionType string) (int64, error)
 	CountDueReviews(userID uuid.UUID) (int64, error)
 	CountWarmupCandidates(userID uuid.UUID) (int64, error)
 	// CountPracticeCandidates cuenta el banco visible que puede usarse como
@@ -41,6 +44,10 @@ type Store interface {
 type gormStore struct {
 	db *gorm.DB
 }
+
+// excludedSessionQuestionType queda fuera de la selección de sesiones: ningún
+// cliente puede responderla y el backend no puede corregirla todavía (D-56).
+const excludedSessionQuestionType = "code_completion"
 
 func NewStore(db *gorm.DB) Store {
 	return &gormStore{db: db}
@@ -132,7 +139,8 @@ func (s *gormStore) FindNextQuestion(topicIDs []uuid.UUID, answeredIDs []uuid.UU
 	query := s.db.Model(&models.Question{}).
 		Joins("JOIN question_topics ON question_topics.question_id = questions.id").
 		Where("question_topics.topic_id IN ?", topicIDs).
-		Where("questions.deleted_at IS NULL")
+		Where("questions.deleted_at IS NULL").
+		Where("questions.type <> ?", excludedSessionQuestionType)
 
 	if difficulty != "" && difficulty != "random" {
 		query = query.Where("questions.difficulty = ?", difficulty)
@@ -159,7 +167,8 @@ func (s *gormStore) CountAvailableQuestions(topicIDs []uuid.UUID, answeredIDs []
 	query := s.db.Model(&models.Question{}).
 		Joins("JOIN question_topics ON question_topics.question_id = questions.id").
 		Where("question_topics.topic_id IN ?", topicIDs).
-		Where("questions.deleted_at IS NULL")
+		Where("questions.deleted_at IS NULL").
+		Where("questions.type <> ?", excludedSessionQuestionType)
 
 	if difficulty != "" && difficulty != "random" {
 		query = query.Where("questions.difficulty = ?", difficulty)
@@ -184,9 +193,10 @@ func (s *gormStore) FindQuestionByID(id uuid.UUID) (*models.Question, error) {
 	return &question, nil
 }
 
-func (s *gormStore) FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error) {
-	// Escalón 1: repaso espaciado (vencidas).
-	due, err := s.findNextDueReview(userID, answeredIDs)
+func (s *gormStore) FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.UUID, skipTrueFalse bool) (*models.Question, error) {
+	// Escalón 1: repaso espaciado (vencidas). Si ya se agotó el cupo de
+	// true_false de la sesión, también se saltan las vencidas de ese tipo.
+	due, err := s.findNextDueReview(userID, answeredIDs, skipTrueFalse)
 	if err == nil {
 		return due, nil
 	}
@@ -194,13 +204,15 @@ func (s *gormStore) FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.U
 		return nil, err
 	}
 
-	// Escalón 2: calentamiento (verdaderas/falsas).
-	warmup, err := s.findNextWarmup(userID, answeredIDs)
-	if err == nil {
-		return warmup, nil
-	}
-	if err != gorm.ErrRecordNotFound {
-		return nil, err
+	// Escalón 2: calentamiento (verdaderas/falsas), solo mientras quede cupo.
+	if !skipTrueFalse {
+		warmup, err := s.findNextWarmup(userID, answeredIDs)
+		if err == nil {
+			return warmup, nil
+		}
+		if err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
 	}
 
 	// Escalón 3: práctica normal. Sin este fallback una sesión diaria sin
@@ -208,14 +220,18 @@ func (s *gormStore) FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.U
 	return s.findNextPractice(userID, answeredIDs)
 }
 
-func (s *gormStore) findNextDueReview(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error) {
+func (s *gormStore) findNextDueReview(userID uuid.UUID, answeredIDs []uuid.UUID, skipTrueFalse bool) (*models.Question, error) {
 	query := s.db.Model(&models.UserQuestionProgress{}).
 		Joins("JOIN questions ON questions.id = user_question_progress.question_id AND questions.deleted_at IS NULL").
 		Where("user_question_progress.user_id = ?", userID).
 		Where("user_question_progress.next_review_at IS NOT NULL").
 		Where("user_question_progress.next_review_at <= now()").
 		Where("user_question_progress.is_mastered = false").
+		Where("questions.type <> ?", excludedSessionQuestionType).
 		Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true)
+	if skipTrueFalse {
+		query = query.Where("questions.type <> ?", "true_false")
+	}
 	if len(answeredIDs) > 0 {
 		query = query.Where("user_question_progress.question_id NOT IN ?", answeredIDs)
 	}
@@ -259,6 +275,7 @@ func (s *gormStore) practiceCandidatesQuery(userID uuid.UUID) *gorm.DB {
 	return s.db.Model(&models.Question{}).
 		Joins("LEFT JOIN user_question_progress ON user_question_progress.question_id = questions.id AND user_question_progress.user_id = ?", userID).
 		Where("questions.deleted_at IS NULL").
+		Where("questions.type <> ?", excludedSessionQuestionType).
 		Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true).
 		Where("(user_question_progress.question_id IS NULL OR user_question_progress.is_mastered = false)")
 }
@@ -284,7 +301,13 @@ func (s *gormStore) findNextPractice(userID uuid.UUID, answeredIDs []uuid.UUID) 
 func (s *gormStore) CountDueReviews(userID uuid.UUID) (int64, error) {
 	var count int64
 	err := s.db.Model(&models.UserQuestionProgress{}).
-		Where("user_id = ? AND next_review_at IS NOT NULL AND next_review_at <= now() AND is_mastered = false", userID).
+		Joins("JOIN questions ON questions.id = user_question_progress.question_id AND questions.deleted_at IS NULL").
+		Where("user_question_progress.user_id = ?", userID).
+		Where("user_question_progress.next_review_at IS NOT NULL").
+		Where("user_question_progress.next_review_at <= now()").
+		Where("user_question_progress.is_mastered = false").
+		Where("questions.type <> ?", excludedSessionQuestionType).
+		Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true).
 		Count(&count).Error
 	return count, err
 }
@@ -302,6 +325,16 @@ func (s *gormStore) CountWarmupCandidates(userID uuid.UUID) (int64, error) {
 func (s *gormStore) CountPracticeCandidates(userID uuid.UUID) (int64, error) {
 	var count int64
 	err := s.practiceCandidatesQuery(userID).Count(&count).Error
+	return count, err
+}
+
+func (s *gormStore) CountSessionAnswersByType(sessionID uuid.UUID, questionType string) (int64, error) {
+	var count int64
+	err := s.db.Model(&models.SessionAnswer{}).
+		Joins("JOIN questions ON questions.id = session_answers.question_id").
+		Where("session_answers.session_id = ?", sessionID).
+		Where("questions.type = ?", questionType).
+		Count(&count).Error
 	return count, err
 }
 

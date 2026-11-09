@@ -143,21 +143,22 @@ func ToAnswerDetailResponse(a models.SessionAnswer) SessionAnswerDetailResponse 
 }
 
 func toNextQuestionItem(q models.Question) NextQuestionItem {
+	// `options` y `topics` siempre se emiten como arrays (nunca se omiten ni
+	// salen `null`): el cliente hace `.map()` / `.length` sin comprobar.
 	item := NextQuestionItem{
 		ID:         q.ID,
 		Type:       q.Type,
 		Content:    q.Content,
 		Difficulty: q.Difficulty,
+		Options:    make([]NextQuestionOption, 0, len(q.Options)),
+		Topics:     make([]string, 0, len(q.Topics)),
 	}
 
-	if q.Options != nil {
-		item.Options = make([]NextQuestionOption, len(q.Options))
-		for i, o := range q.Options {
-			item.Options[i] = NextQuestionOption{
-				ID:      o.ID,
-				Content: o.Content,
-			}
-		}
+	for _, o := range q.Options {
+		item.Options = append(item.Options, NextQuestionOption{
+			ID:      o.ID,
+			Content: o.Content,
+		})
 	}
 
 	if q.CodeChallenge != nil {
@@ -170,11 +171,8 @@ func toNextQuestionItem(q models.Question) NextQuestionItem {
 		}
 	}
 
-	if q.Topics != nil {
-		item.Topics = make([]string, len(q.Topics))
-		for i, t := range q.Topics {
-			item.Topics[i] = t.Name
-		}
+	for _, t := range q.Topics {
+		item.Topics = append(item.Topics, t.Name)
 	}
 
 	return item
