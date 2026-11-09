@@ -1,6 +1,8 @@
 package sessions
 
 import (
+	"time"
+
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -25,6 +27,13 @@ type Store interface {
 	FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error)
 	CountDueReviews(userID uuid.UUID) (int64, error)
 	CountWarmupCandidates(userID uuid.UUID) (int64, error)
+	// CountPracticeCandidates cuenta el banco visible que puede usarse como
+	// práctica normal (cualquier tipo, no dominadas). Es el último escalón del
+	// repaso diario y el que decide si hay algo que repasar.
+	CountPracticeCandidates(userID uuid.UUID) (int64, error)
+	// FindTodayInProgressDaily recupera la sesión diaria de hoy que sigue en
+	// progreso, para reutilizarla en vez de crear una nueva en cada toque.
+	FindTodayInProgressDaily(userID uuid.UUID, since time.Time) (*models.Session, error)
 	FindSummary(id uuid.UUID) (*SessionSummaryData, error)
 	Delete(id uuid.UUID) error
 }
@@ -176,6 +185,7 @@ func (s *gormStore) FindQuestionByID(id uuid.UUID) (*models.Question, error) {
 }
 
 func (s *gormStore) FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error) {
+	// Escalón 1: repaso espaciado (vencidas).
 	due, err := s.findNextDueReview(userID, answeredIDs)
 	if err == nil {
 		return due, nil
@@ -183,7 +193,19 @@ func (s *gormStore) FindNextDailyQuestion(userID uuid.UUID, answeredIDs []uuid.U
 	if err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
-	return s.findNextWarmup(userID, answeredIDs)
+
+	// Escalón 2: calentamiento (verdaderas/falsas).
+	warmup, err := s.findNextWarmup(userID, answeredIDs)
+	if err == nil {
+		return warmup, nil
+	}
+	if err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+
+	// Escalón 3: práctica normal. Sin este fallback una sesión diaria sin
+	// vencidas ni verdaderas/falsas se queda vacía para siempre.
+	return s.findNextPractice(userID, answeredIDs)
 }
 
 func (s *gormStore) findNextDueReview(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error) {
@@ -231,6 +253,34 @@ func (s *gormStore) findNextWarmup(userID uuid.UUID, answeredIDs []uuid.UUID) (*
 	return &question, nil
 }
 
+// practiceCandidatesQuery es el banco visible que aún sirve como práctica
+// normal: cualquier tipo, excluyendo las preguntas ya dominadas.
+func (s *gormStore) practiceCandidatesQuery(userID uuid.UUID) *gorm.DB {
+	return s.db.Model(&models.Question{}).
+		Joins("LEFT JOIN user_question_progress ON user_question_progress.question_id = questions.id AND user_question_progress.user_id = ?", userID).
+		Where("questions.deleted_at IS NULL").
+		Where("(questions.source = ? OR questions.user_id = ? OR questions.is_public = ?)", "ai_generated", userID, true).
+		Where("(user_question_progress.question_id IS NULL OR user_question_progress.is_mastered = false)")
+}
+
+func (s *gormStore) findNextPractice(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error) {
+	query := s.practiceCandidatesQuery(userID)
+	if len(answeredIDs) > 0 {
+		query = query.Where("questions.id NOT IN ?", answeredIDs)
+	}
+
+	var question models.Question
+	err := query.Order("RANDOM()").
+		Preload("Options").
+		Preload("CodeChallenge").
+		Preload("Topics").
+		First(&question).Error
+	if err != nil {
+		return nil, err
+	}
+	return &question, nil
+}
+
 func (s *gormStore) CountDueReviews(userID uuid.UUID) (int64, error) {
 	var count int64
 	err := s.db.Model(&models.UserQuestionProgress{}).
@@ -247,6 +297,24 @@ func (s *gormStore) CountWarmupCandidates(userID uuid.UUID) (int64, error) {
 		Where("(source = ? OR user_id = ? OR is_public = ?)", "ai_generated", userID, true).
 		Count(&count).Error
 	return count, err
+}
+
+func (s *gormStore) CountPracticeCandidates(userID uuid.UUID) (int64, error) {
+	var count int64
+	err := s.practiceCandidatesQuery(userID).Count(&count).Error
+	return count, err
+}
+
+func (s *gormStore) FindTodayInProgressDaily(userID uuid.UUID, since time.Time) (*models.Session, error) {
+	var session models.Session
+	err := s.db.
+		Where("user_id = ? AND mode = ? AND status = ? AND created_at >= ?", userID, "daily", "in_progress", since).
+		Order("created_at DESC").
+		First(&session).Error
+	if err != nil {
+		return nil, err
+	}
+	return &session, nil
 }
 
 type SessionSummaryData struct {

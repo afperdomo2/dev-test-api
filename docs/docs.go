@@ -2084,7 +2084,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una sesión diaria inteligente con repasos vencidos, calentamiento true_false y tip del día",
+                "description": "Crea (o reutiliza la de hoy) una sesión diaria inteligente: repasos vencidos, calentamiento true_false, práctica normal como fallback y tip del día. Sin candidatos devuelve 409 y no crea sesión.",
                 "produces": [
                     "application/json"
                 ],
@@ -2101,6 +2101,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }

@@ -135,10 +135,11 @@ func (s *sessionService) Create(userID uuid.UUID, input CreateSessionRequest) (*
 }
 
 type dailySessionData struct {
-	dueCount    int64
-	warmupCount int64
-	tip         *tips.TipResponse
-	errs        []error
+	dueCount      int64
+	warmupCount   int64
+	practiceCount int64
+	tip           *tips.TipResponse
+	errs          []error
 }
 
 func (s *sessionService) gatherDailyData(userID uuid.UUID) dailySessionData {
@@ -157,7 +158,7 @@ func (s *sessionService) gatherDailyData(userID uuid.UUID) dailySessionData {
 		}
 	}
 
-	wg.Add(3)
+	wg.Add(4)
 	go collect(func() error {
 		n, err := s.store.CountDueReviews(userID)
 		mu.Lock()
@@ -169,6 +170,13 @@ func (s *sessionService) gatherDailyData(userID uuid.UUID) dailySessionData {
 		n, err := s.store.CountWarmupCandidates(userID)
 		mu.Lock()
 		res.warmupCount = n
+		mu.Unlock()
+		return err
+	})
+	go collect(func() error {
+		n, err := s.store.CountPracticeCandidates(userID)
+		mu.Lock()
+		res.practiceCount = n
 		mu.Unlock()
 		return err
 	})
@@ -195,6 +203,27 @@ func (s *sessionService) CreateDaily(userID uuid.UUID) (*DailySessionResponse, e
 	data := s.gatherDailyData(userID)
 	if len(data.errs) > 0 {
 		return nil, apierr.ErrInternal("Error al preparar la sesion diaria", "")
+	}
+
+	// Reutiliza la sesión diaria de hoy si sigue en progreso: así pulsar
+	// "Repasar hoy" varias veces no acumula sesiones abiertas.
+	if existing := s.findTodayDailySession(userID); existing != nil {
+		return &DailySessionResponse{
+			Session:     ToSessionResponse(*existing),
+			Tip:         s.loadSessionTip(existing),
+			DueCount:    data.dueCount,
+			WarmupCount: data.warmupCount,
+		}, nil
+	}
+
+	// Sin vencidas y sin banco visible no hay nada que repasar. No se crea una
+	// sesión fantasma que se quedaría "en progreso" para siempre (ver D-52).
+	if data.dueCount == 0 && data.practiceCount == 0 {
+		return nil, apierr.ErrConflict(
+			"No Questions For Daily Session",
+			"No hay preguntas para repasar hoy. Crea una sesión de estudio.",
+			"",
+		)
 	}
 
 	session := &models.Session{
@@ -226,6 +255,30 @@ func (s *sessionService) CreateDaily(userID uuid.UUID) (*DailySessionResponse, e
 	}, nil
 }
 
+// findTodayDailySession devuelve la sesión diaria de hoy en progreso, o nil si
+// no existe (o si la consulta falla: el peor caso es crear una nueva).
+func (s *sessionService) findTodayDailySession(userID uuid.UUID) *models.Session {
+	startOfDay := time.Now().UTC().Truncate(24 * time.Hour)
+	sess, err := s.store.FindTodayInProgressDaily(userID, startOfDay)
+	if err != nil {
+		return nil
+	}
+	return sess
+}
+
+// loadSessionTip recupera el tip asociado a una sesión reutilizada. Si no hay
+// tip guardado o no se puede leer, la sesión funciona igual sin tarjeta.
+func (s *sessionService) loadSessionTip(sess *models.Session) *tips.TipResponse {
+	if sess.TipID == nil || s.tipService == nil {
+		return nil
+	}
+	tip, err := s.tipService.GetByID(*sess.TipID)
+	if err != nil {
+		return nil
+	}
+	return tip
+}
+
 func (s *sessionService) Finish(sessionID, userID uuid.UUID) (*SessionResponse, error) {
 	sess, err := findOwnedSession(s.store, sessionID, userID)
 	if err != nil {
@@ -250,7 +303,9 @@ func (s *sessionService) Finish(sessionID, userID uuid.UUID) (*SessionResponse, 
 	}
 
 	resp := ToSessionResponse(*sess)
-	if s.gamificationService != nil {
+	// Finalizar sin responder no otorga recompensa: una sesión vacía no debe
+	// servir para granjear XP ni racha (ver D-52).
+	if s.gamificationService != nil && len(sess.Answers) > 0 {
 		reward, gErr := s.gamificationService.CompleteSession(sess.UserID)
 		if gErr != nil {
 			return nil, gErr

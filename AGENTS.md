@@ -297,6 +297,16 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 |------|---------|
 | `containers.md` | **SOURCE OF TRUTH** de Docker: 3 entornos, mapa de archivos, invariantes (non-root, DB no publicada, same-origin, TZ, `TRUSTED_PROXIES`), Compose Watch, Dokploy y troubleshooting |
 
+## Formato de planes
+Antes de implementar, todo plan debe incluir:
+- UI: un bosquejo (wireframe ASCII o Mermaid) de la pantalla antes/después,
+  indicando qué componente nuevo se agrega y dónde.
+- Backend: un diagrama de secuencia (Mermaid) del flujo
+  request → handler → servicio → DB, marcando qué cambia.
+- Datos: si hay migración, el esquema antes/después.
+- Archivos: tabla con archivo | qué cambia | por qué, sin párrafos largos.
+Termina con un resumen de 3 líneas y los riesgos.
+
 ## Documentation map
 
 Each fact has a **single source of truth**. Other files reference it, not duplicate it.

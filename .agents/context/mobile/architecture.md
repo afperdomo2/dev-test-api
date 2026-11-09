@@ -162,6 +162,11 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 - **422 por disponibilidad** (`Solo hay N preguntas disponibles…`): no es un dead-end; la pantalla ofrece reintentar **sin límite** además de cambiar la cantidad.
 - El nombre se autogenera (`Estudio · Tema1, Tema2 +N`) y deja de regenerarse cuando el usuario lo edita (`nameDirty`).
 
+### Pantalla de estudio y sesión diaria
+- `SessionStudyPage` distingue **4 resultados** de `GET /next`, no 2: pregunta → `question`; **404 con ≥1 respuesta** → `finished`; **404 con 0 respuestas** → `empty` (la sesión nació vacía, nunca "Sesión completada"); **500/red** → `error` con reintento. Cualquier error tratado como "completada" deja la sesión en progreso para siempre.
+- `empty` ofrece crear sesión de estudio o volver a Sesiones y **descarta** la sesión vacía (`DELETE`, best effort) para no dejar fantasmas en progreso.
+- `HomeScreen` interpreta el **409** de `POST /sessions/daily` ("no hay preguntas para repasar hoy") como estado neutro, no como error rojo. Detalle del backend: D-52 / `tasks/daily-review.md`.
+
 ### Pre-delivery checklist
 Before delivering any mobile UI, verify against `pro-rules.md`:
 - [ ] No emojis as icons

@@ -5,11 +5,13 @@ import type { NextQuestionItem, Tip } from '@devtest/shared'
 import SessionStudyPage from './SessionStudyPage'
 import { clearPendingTip, setPendingTip } from '@/features/sessions/dailyTipStore'
 import {
+  deleteSession,
   getNextQuestion,
   getSessionById,
   getSessionSummary,
   submitAnswer,
 } from '@/core/api/services/sessions.service'
+import { resetRouterMock, routerMock } from '@/__tests__/router'
 
 jest.mock('@/core/api/services/sessions.service', () => ({
   getSessionById: jest.fn(),
@@ -17,6 +19,7 @@ jest.mock('@/core/api/services/sessions.service', () => ({
   getNextQuestion: jest.fn(),
   submitAnswer: jest.fn(),
   finishSession: jest.fn(),
+  deleteSession: jest.fn(),
 }))
 
 const question: NextQuestionItem = {
@@ -38,6 +41,7 @@ describe('SessionStudyPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     clearPendingTip()
+    resetRouterMock()
     mockedParams.mockReturnValue({ id: 's1' })
     jest.mocked(getSessionById).mockResolvedValue({ id: 's1', status: 'in_progress' } as never)
     jest
@@ -164,12 +168,49 @@ describe('SessionStudyPage', () => {
     expect(second?.[1]?.clientAnswerId).not.toBe(first?.[1]?.clientAnswerId)
   })
 
-  it('sin más preguntas pasa al estado terminado', async () => {
+  it('404 con respuestas previas pasa al estado terminado', async () => {
+    jest
+      .mocked(getSessionSummary)
+      .mockResolvedValue({ answerCount: 1, questionLimit: null } as never)
     jest.mocked(getNextQuestion).mockRejectedValue({ status: 404 })
 
     await render(<SessionStudyPage />)
 
     expect(await screen.findByText(/Respondiste/)).toBeOnTheScreen()
+  })
+
+  it('404 sin respuestas muestra el estado vacío, no "Sesión completada"', async () => {
+    jest.mocked(getNextQuestion).mockRejectedValue({ status: 404 })
+
+    await render(<SessionStudyPage />)
+
+    expect(await screen.findByText('No hay preguntas para repasar')).toBeOnTheScreen()
+    expect(screen.queryByText(/Sesion completada/)).toBeNull()
+    expect(screen.queryByText(/Respondiste/)).toBeNull()
+  })
+
+  it('descartar la sesión vacía la elimina y navega a crear sesión', async () => {
+    jest.mocked(getNextQuestion).mockRejectedValue({ status: 404 })
+
+    await render(<SessionStudyPage />)
+    await screen.findByText('No hay preguntas para repasar')
+
+    await fireEvent.press(screen.getByLabelText('Crear sesión de estudio'))
+
+    await waitFor(() => expect(deleteSession).toHaveBeenCalledWith('s1'))
+    expect(routerMock.replace).toHaveBeenCalledWith('/(tabs)/sesiones/nueva')
+  })
+
+  it('un 500 al pedir la siguiente pregunta muestra error y ofrece reintentar', async () => {
+    jest
+      .mocked(getNextQuestion)
+      .mockRejectedValueOnce({ status: 500, detail: 'Explotó el servidor' })
+
+    await render(<SessionStudyPage />)
+
+    expect(await screen.findByText('Explotó el servidor')).toBeOnTheScreen()
+    expect(screen.getByText('Reintentar')).toBeOnTheScreen()
+    expect(screen.queryByText(/Sesion completada/)).toBeNull()
   })
 
   describe('tip del día', () => {

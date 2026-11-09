@@ -161,6 +161,23 @@ describe('HomeScreen', () => {
     expect(routerMock.push).not.toHaveBeenCalled()
   })
 
+  it('sin nada que repasar muestra un estado neutro (409) y no navega', async () => {
+    jest.mocked(createDailySession).mockRejectedValue({
+      title: 'No Questions For Daily Session',
+      status: 409,
+      detail: 'No hay preguntas para repasar hoy. Crea una sesión de estudio.',
+    })
+
+    await render(<HomeScreen />)
+    await screen.findByText('Hola, ana')
+
+    await fireEvent.press(screen.getByLabelText('Repasar hoy'))
+
+    expect(await screen.findByText(/Nada que repasar hoy/)).toBeOnTheScreen()
+    expect(screen.queryByText(/No hay preguntas para repasar hoy/)).toBeNull()
+    expect(routerMock.push).not.toHaveBeenCalled()
+  })
+
   it('la semana del "Tu día" lleva a la actividad', async () => {
     await render(<HomeScreen />)
     await screen.findByText('Hola, ana')

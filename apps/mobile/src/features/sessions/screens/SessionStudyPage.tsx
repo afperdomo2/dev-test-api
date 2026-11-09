@@ -11,7 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { randomUUID } from 'expo-crypto'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import type { NextQuestionItem, SessionAnswer, SessionSummary, Reward } from '@devtest/shared'
+import type { NextQuestionItem, SessionAnswer, SessionSummary } from '@devtest/shared'
 
 import { QuestionCard } from '@/features/sessions/components/QuestionCard'
 import { DailyTipCard } from '@/features/sessions/components/DailyTipCard'
@@ -22,11 +22,14 @@ import {
   getNextQuestion,
   submitAnswer,
   finishSession,
+  deleteSession,
 } from '@/core/api/services/sessions.service'
-import { getErrorDetail, isNetworkError } from '@/core/utils/errors'
+import { getErrorDetail, getErrorStatus, isNetworkError } from '@/core/utils/errors'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
-type Phase = 'loading' | 'question' | 'result' | 'finished' | 'error'
+// 'empty' = la sesión no tiene preguntas (nació vacía). No es 'finished':
+// no se respondió nada, así que no debe mostrarse como "Sesión completada".
+type Phase = 'loading' | 'question' | 'result' | 'finished' | 'empty' | 'error'
 
 export default function SessionStudyPage() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -74,6 +77,7 @@ export default function SessionStudyPage() {
       if (loadingRef.current) return
       loadingRef.current = true
       setPhase('loading')
+      setError(null)
       setSelectedOptions([])
       setLastResult(null)
       setSubmitError(null)
@@ -84,9 +88,21 @@ export default function SessionStudyPage() {
         clientAnswerIdRef.current = randomUUID()
         setQuestion(next)
         setPhase('question')
-      } catch {
-        await loadSessionData(sessionId)
-        setPhase('finished')
+      } catch (err) {
+        const { session, summary: sum } = await loadSessionData(sessionId)
+        if (!session) {
+          setError(getErrorDetail(err, 'No se pudo cargar la sesión'))
+          setPhase('error')
+          return
+        }
+        if (getErrorStatus(err) === 404) {
+          // 404 = no quedan preguntas. Solo es "completada" si ya respondiste
+          // algo; si no, la sesión está vacía y hay que ofrecer una salida.
+          setPhase((sum?.answerCount ?? 0) > 0 ? 'finished' : 'empty')
+          return
+        }
+        setError(getErrorDetail(err, 'No se pudo cargar la siguiente pregunta'))
+        setPhase('error')
       } finally {
         loadingRef.current = false
       }
@@ -99,7 +115,7 @@ export default function SessionStudyPage() {
     let cancelled = false
     ;(async () => {
       try {
-        const { session, summary: sum } = await loadSessionData(id)
+        const { session } = await loadSessionData(id)
         if (cancelled) return
 
         if (session?.status === 'completed') {
@@ -183,6 +199,23 @@ export default function SessionStudyPage() {
     }
   }, [id, sessionStatus, router])
 
+  // Una sesión sin preguntas no tiene valor: se descarta (best effort) al salir
+  // para no dejarla "en progreso" para siempre. Si el borrado falla, la salida
+  // no se bloquea; el usuario puede eliminarla desde Sesiones.
+  const handleLeaveEmpty = useCallback(
+    async (target: '/(tabs)/sesiones' | '/(tabs)/sesiones/nueva') => {
+      if (id) {
+        try {
+          await deleteSession(id)
+        } catch {
+          // Silencioso a propósito: es limpieza de una sesión sin respuestas.
+        }
+      }
+      router.replace(target)
+    },
+    [id, router],
+  )
+
   if (phase === 'loading' && !question) {
     return (
       <View style={styles.center}>
@@ -235,6 +268,38 @@ export default function SessionStudyPage() {
         <Pressable
           style={styles.buttonGhost}
           onPress={() => router.replace('/(tabs)/sesiones')}
+          accessibilityRole="button"
+        >
+          <Text style={styles.buttonGhostLabel}>Volver a sesiones</Text>
+        </Pressable>
+      </View>
+    )
+  }
+
+  if (phase === 'empty') {
+    return (
+      <View style={styles.center}>
+        <MaterialCommunityIcons
+          name="inbox-outline"
+          size={56}
+          color={colors.mutedForeground}
+        />
+        <Text style={styles.finishedTitle}>No hay preguntas para repasar</Text>
+        <Text style={[styles.finishedMeta, styles.emptyMeta]}>
+          No tienes repasos vencidos ni preguntas disponibles en este momento.
+        </Text>
+        <Pressable
+          style={styles.button}
+          onPress={() => void handleLeaveEmpty('/(tabs)/sesiones/nueva')}
+          accessibilityRole="button"
+          accessibilityLabel="Crear sesión de estudio"
+        >
+          <MaterialCommunityIcons name="plus-circle-outline" size={18} color={colors.onPrimary} />
+          <Text style={styles.buttonLabel}>Crear sesión de estudio</Text>
+        </Pressable>
+        <Pressable
+          style={styles.buttonGhost}
+          onPress={() => void handleLeaveEmpty('/(tabs)/sesiones')}
           accessibilityRole="button"
         >
           <Text style={styles.buttonGhostLabel}>Volver a sesiones</Text>
@@ -451,5 +516,8 @@ const styles = StyleSheet.create({
   finishedMeta: {
     fontSize: typography.size.md,
     color: colors.mutedForeground,
+  },
+  emptyMeta: {
+    textAlign: 'center',
   },
 })

@@ -251,9 +251,16 @@ func (s *someService) gatherData(userID uuid.UUID) dailyData {
 - El patrón requiere el connection pool configurado arriba para que las goroutines tomen conexiones distintas.
 
 **Where this already applies:**
-- `sessions/service.go` → `gatherDailyData()` (lo usa `CreateDaily()`) — `CountDueReviews`, `CountWarmupCandidates` y `tipService.GetTipOfTheDay` corren en paralelo; un `404` del tip se traduce en `nil` sin error.
+- `sessions/service.go` → `gatherDailyData()` (lo usa `CreateDaily()`) — `CountDueReviews`, `CountWarmupCandidates`, `CountPracticeCandidates` y `tipService.GetTipOfTheDay` corren en paralelo; un `404` del tip se traduce en `nil` sin error.
 
 > `NextQuestion()` es **secuencial**: sus lecturas van en serie. No lo "optimices" con concurrencia sin medir antes.
+
+**Repaso diario (D-52):** `FindNextDailyQuestion` resuelve en 3 escalones — (1) vencidas del SRS,
+(2) calentamiento `true_false`, (3) práctica normal (cualquier tipo, sin dominadas). El escalón 3
+es obligatorio porque la IA solo genera `single_choice` (D-14). `CreateDaily` no crea sesión si
+`CountDueReviews + CountPracticeCandidates == 0` (responde **409**) y reutiliza la sesión `daily`
+`in_progress` del día (corte medianoche UTC). `Finish` no otorga recompensa si la sesión no tiene
+respuestas. Detalle: `tasks/daily-review.md`.
 
 ### Fire-and-forget (for non-critical side effects)
 

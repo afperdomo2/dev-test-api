@@ -24,7 +24,7 @@ import { SectionHeader } from '@/core/components/SectionHeader'
 import { freezeStreak, getBadges, getOverview } from '@/core/api/services/gamification.service'
 import { getInsightSummary } from '@/core/api/services/insights.service'
 import { createDailySession } from '@/core/api/services/sessions.service'
-import { getErrorDetail } from '@/core/utils/errors'
+import { getErrorDetail, getErrorStatus } from '@/core/utils/errors'
 import { setPendingTip } from '@/features/sessions/dailyTipStore'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
@@ -42,6 +42,7 @@ export default function HomeScreen() {
 
   const [creatingDaily, setCreatingDaily] = useState(false)
   const [dailyError, setDailyError] = useState<string | null>(null)
+  const [dailyEmpty, setDailyEmpty] = useState(false)
   const [freezing, setFreezing] = useState(false)
 
   const loadOverview = useCallback(async () => {
@@ -87,11 +88,17 @@ export default function HomeScreen() {
   const handleDailySession = useCallback(async () => {
     setCreatingDaily(true)
     setDailyError(null)
+    setDailyEmpty(false)
     try {
       const res = await createDailySession()
       setPendingTip(res.session.id, res.tip)
       router.push(`/(tabs)/sesiones/${res.session.id}`)
     } catch (err) {
+      // 409 = no hay nada que repasar hoy; no es un error del usuario.
+      if (getErrorStatus(err) === 409) {
+        setDailyEmpty(true)
+        return
+      }
       setDailyError(getErrorDetail(err, 'No se pudo crear la sesion diaria'))
     } finally {
       setCreatingDaily(false)
@@ -197,6 +204,15 @@ export default function HomeScreen() {
           </>
         )}
       </Pressable>
+
+      {dailyEmpty ? (
+        <View style={styles.dailyEmpty}>
+          <MaterialCommunityIcons name="check-circle-outline" size={18} color={colors.primary} />
+          <Text style={styles.dailyEmptyText}>
+            Nada que repasar hoy. No tienes repasos vencidos ni preguntas nuevas.
+          </Text>
+        </View>
+      ) : null}
 
       {dailyError && <Text style={styles.error}>{dailyError}</Text>}
 
@@ -316,6 +332,17 @@ const styles = StyleSheet.create({
   error: {
     fontSize: typography.size.sm,
     color: colors.destructive,
+  },
+  dailyEmpty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  dailyEmptyText: {
+    flex: 1,
+    fontSize: typography.size.sm,
+    color: colors.mutedForeground,
   },
   secondaryCta: {
     flexDirection: 'row',
