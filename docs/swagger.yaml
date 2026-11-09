@@ -783,6 +783,14 @@ definitions:
         type: string
       answerText:
         type: string
+      correctOptions:
+        description: |-
+          CorrectOptions expone las opciones correctas SOLO en la respuesta de
+          /answer (después de responder). El endpoint de la siguiente pregunta no
+          las incluye a propósito: no se filtra la respuesta antes de tiempo.
+        items:
+          type: string
+        type: array
       createdAt:
         type: string
       explanation:

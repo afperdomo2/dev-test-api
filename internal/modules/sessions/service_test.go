@@ -188,6 +188,41 @@ func TestSessionEvaluateCorrectness(t *testing.T) {
 	})
 }
 
+func TestToAnswerResponseCorrectOptions(t *testing.T) {
+	optA, optB, optC := uuid.New(), uuid.New(), uuid.New()
+
+	t.Run("single_choice expone solo la correcta", func(t *testing.T) {
+		q := &models.Question{
+			Type:        "single_choice",
+			Options:     []models.QuestionOption{{ID: optA, IsCorrect: true}, {ID: optB}},
+			Explanation: "porque A",
+		}
+		got := ToAnswerResponse(models.SessionAnswer{Question: q, IsCorrect: true})
+		assert.Equal(t, []uuid.UUID{optA}, got.CorrectOptions)
+		assert.Equal(t, "porque A", got.Explanation)
+	})
+
+	t.Run("multiple_choice expone todas las correctas", func(t *testing.T) {
+		q := &models.Question{
+			Type:    "multiple_choice",
+			Options: []models.QuestionOption{{ID: optA, IsCorrect: true}, {ID: optB, IsCorrect: true}, {ID: optC}},
+		}
+		got := ToAnswerResponse(models.SessionAnswer{Question: q})
+		assert.ElementsMatch(t, []uuid.UUID{optA, optB}, got.CorrectOptions)
+	})
+
+	t.Run("sin pregunta no inventa opciones", func(t *testing.T) {
+		got := ToAnswerResponse(models.SessionAnswer{IsCorrect: false})
+		assert.Empty(t, got.CorrectOptions)
+	})
+
+	t.Run("code_completion no tiene opciones", func(t *testing.T) {
+		q := &models.Question{Type: "code_completion"}
+		got := ToAnswerResponse(models.SessionAnswer{Question: q})
+		assert.Empty(t, got.CorrectOptions)
+	})
+}
+
 func TestSessionList(t *testing.T) {
 	uid := uuid.New()
 	t.Run("success", func(t *testing.T) {
@@ -576,7 +611,13 @@ func TestSessionAnswerIdempotency(t *testing.T) {
 			return stored, nil
 		}
 		store.findQuestionByIDFn = func(id uuid.UUID) (*models.Question, error) {
-			return &models.Question{ID: id, Explanation: "porque sí"}, nil
+			correct := uuid.New()
+			return &models.Question{
+				ID:          id,
+				Type:        "single_choice",
+				Explanation: "porque sí",
+				Options:     []models.QuestionOption{{ID: correct, IsCorrect: true}},
+			}, nil
 		}
 		progressSvc := &countingProgressAdapter{}
 		svc := &sessionService{store: store, progressService: progressSvc}
@@ -587,6 +628,7 @@ func TestSessionAnswerIdempotency(t *testing.T) {
 		assert.Equal(t, stored.ID, got.ID)
 		assert.True(t, got.IsCorrect)
 		assert.Equal(t, "porque sí", got.Explanation)
+		assert.Len(t, got.CorrectOptions, 1)
 		assert.Zero(t, progressSvc.calls)
 	})
 

@@ -57,6 +57,20 @@ export function QuestionCard({
 
   const activeSelection = isResult ? new Set(selectedOptions) : localSelected
 
+  // `lastResult.correctOptions` es la fuente de verdad del backend. El
+  // fallback cubre backends viejos: si la respuesta fue correcta, las
+  // opciones elegidas son las correctas; si fue incorrecta no sabemos cuál
+  // era, así que solo marcamos las elegidas.
+  const correctIds =
+    isResult && lastResult?.correctOptions && lastResult.correctOptions.length > 0
+      ? new Set(lastResult.correctOptions)
+      : null
+  const isCorrectOption = (optionId: string, selected: boolean) => {
+    if (!isResult) return false
+    if (correctIds) return correctIds.has(optionId)
+    return selected && lastResult?.isCorrect === true
+  }
+
   return (
     <View style={styles.container}>
       <MarkdownText style={styles.content}>{question.content}</MarkdownText>
@@ -74,10 +88,18 @@ export function QuestionCard({
       <View style={styles.options}>
         {question.options.map((opt, idx) => {
           const isSelected = activeSelection.has(opt.id)
-          const isCorrect = opt.isCorrect === true
-          const showCorrectHighlight = isResult && isCorrect
-          const showWrongHighlight = isResult && isSelected && !isCorrect
+          const optionIsCorrect = isCorrectOption(opt.id, isSelected)
+          const showWrongHighlight = isResult && isSelected && !optionIsCorrect
           const letter = LETTERS[idx] ?? String(idx + 1)
+          // Sin banner visible: el estado de cada opción viaja en su etiqueta
+          // accesible para que un lector de pantalla no dependa del color.
+          const optionLabel = !isResult
+            ? opt.content
+            : optionIsCorrect
+              ? `${opt.content}, correcta`
+              : showWrongHighlight
+                ? `${opt.content}, incorrecta`
+                : opt.content
 
           return (
             <Pressable
@@ -87,19 +109,31 @@ export function QuestionCard({
               style={({ pressed }) => [
                 styles.option,
                 isSelected && !isResult && styles.optionSelected,
-                showCorrectHighlight && styles.optionCorrect,
+                isResult && optionIsCorrect && styles.optionCorrect,
                 showWrongHighlight && styles.optionWrong,
                 pressed && !isResult && styles.optionPressed,
               ]}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected, disabled: isResult }}
-              accessibilityLabel={opt.content}
+              accessibilityLabel={optionLabel}
             >
               {isResult ? (
                 <MaterialCommunityIcons
-                  name={isCorrect ? 'check-circle' : isSelected ? 'close-circle' : 'circle-outline'}
+                  name={
+                    optionIsCorrect
+                      ? 'check-circle'
+                      : showWrongHighlight
+                        ? 'close-circle'
+                        : 'minus'
+                  }
                   size={18}
-                  color={isCorrect ? colors.primary : isSelected ? colors.destructive : colors.mutedForeground}
+                  color={
+                    optionIsCorrect
+                      ? colors.primary
+                      : showWrongHighlight
+                        ? colors.destructive
+                        : colors.mutedForeground
+                  }
                 />
               ) : (
                 <View style={[styles.letterBadge, isSelected && styles.letterBadgeSelected]}>

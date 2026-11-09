@@ -134,11 +134,18 @@ export interface SubmitAnswerRequest {
 
 export interface SessionAnswer {
   id: string
-  sessionId: string
-  userId: string
+  /** No lo devuelve `/sessions/:id/answer`; se conserva por compatibilidad de tipos. */
+  sessionId?: string
+  /** No lo devuelve `/sessions/:id/answer`; se conserva por compatibilidad de tipos. */
+  userId?: string
   questionId: string
   answerText: string
   selectedOptions: Array<string>
+  /**
+   * IDs de las opciones correctas. Solo llega en la respuesta de
+   * `POST /sessions/:id/answer`; el endpoint `/next` las omite a propósito.
+   */
+  correctOptions?: Array<string>
   isCorrect: boolean
   aiFeedback: string
   explanation: string
@@ -189,7 +196,11 @@ export interface NextQuestionItem {
   type: string
   content: string
   difficulty: string
-  options: Array<{ id: string; content: string; isCorrect?: boolean }>
+  /**
+   * Opciones SIN `isCorrect`: el backend no revela la respuesta antes de
+   * enviarla. La corrección llega en `SessionAnswer.correctOptions`.
+   */
+  options: Array<{ id: string; content: string }>
   codeChallenge: CodeChallenge | null
   topics: Array<string>
 }

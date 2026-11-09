@@ -53,11 +53,16 @@ type DailySessionResponse struct {
 	WarmupCount int64           `json:"warmupCount"`
 }
 
+// SessionAnswerResponse incluye CorrectOptions (IDs de las opciones correctas)
+// SOLO en la respuesta de /answer, es decir, después de responder. El endpoint
+// de la siguiente pregunta no las expone a propósito: no se filtra la respuesta
+// antes de tiempo.
 type SessionAnswerResponse struct {
 	ID              uuid.UUID            `json:"id"`
 	QuestionID      uuid.UUID            `json:"questionId"`
 	AnswerText      string               `json:"answerText,omitempty"`
 	SelectedOptions []uuid.UUID          `json:"selectedOptions,omitempty"`
+	CorrectOptions  []uuid.UUID          `json:"correctOptions,omitempty"`
 	IsCorrect       bool                 `json:"isCorrect"`
 	AiFeedback      string               `json:"aiFeedback,omitempty"`
 	Explanation     string               `json:"explanation,omitempty"`

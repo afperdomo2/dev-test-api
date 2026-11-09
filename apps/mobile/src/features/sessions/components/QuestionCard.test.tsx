@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react-native'
-import type { NextQuestionItem } from '@devtest/shared'
+import { fireEvent, render, screen, within } from '@testing-library/react-native'
+import type { NextQuestionItem, SessionAnswer } from '@devtest/shared'
 
 import { QuestionCard } from './QuestionCard'
 
@@ -8,9 +8,10 @@ const question: NextQuestionItem = {
   type: 'single_choice',
   content: '¿Cuál es la capital de Francia?',
   difficulty: 'beginner',
+  // El backend nunca manda `isCorrect` en /next: el fixture debe reflejarlo.
   options: [
-    { id: 'o1', content: 'París', isCorrect: true },
-    { id: 'o2', content: 'Lyon', isCorrect: false },
+    { id: 'o1', content: 'París' },
+    { id: 'o2', content: 'Lyon' },
   ],
   codeChallenge: null,
   topics: ['Geografía'],
@@ -20,6 +21,17 @@ const multipleQuestion: NextQuestionItem = {
   ...question,
   id: 'q2',
   type: 'multiple_choice',
+}
+
+const resultBase: SessionAnswer = {
+  id: 'a1',
+  questionId: 'q1',
+  answerText: '',
+  selectedOptions: [],
+  isCorrect: true,
+  aiFeedback: '',
+  explanation: '',
+  responseTimeMs: 0,
 }
 
 describe('QuestionCard', () => {
@@ -137,6 +149,86 @@ describe('QuestionCard', () => {
 
     await fireEvent.press(screen.getByLabelText('Lyon'))
     expect(onAnswer).not.toHaveBeenCalled()
+  })
+
+  it('en resultado con acierto marca la opción correcta en verde', async () => {
+    await render(
+      <QuestionCard
+        question={question}
+        mode="result"
+        selectedOptions={['o1']}
+        lastResult={{
+          ...resultBase,
+          selectedOptions: ['o1'],
+          isCorrect: true,
+          correctOptions: ['o1'],
+        }}
+        onAnswer={jest.fn()}
+        onNext={jest.fn()}
+      />,
+    )
+
+    const correcta = screen.getByLabelText('París, correcta')
+    expect(within(correcta).getByText('check-circle')).toBeOnTheScreen()
+    expect(within(screen.getByLabelText('Lyon')).queryByText('close-circle')).toBeNull()
+  })
+
+  it('en resultado con fallo marca la correcta en verde y la elegida en rojo', async () => {
+    await render(
+      <QuestionCard
+        question={question}
+        mode="result"
+        selectedOptions={['o2']}
+        lastResult={{
+          ...resultBase,
+          selectedOptions: ['o2'],
+          isCorrect: false,
+          correctOptions: ['o1'],
+        }}
+        onAnswer={jest.fn()}
+        onNext={jest.fn()}
+      />,
+    )
+
+    expect(
+      within(screen.getByLabelText('París, correcta')).getByText('check-circle'),
+    ).toBeOnTheScreen()
+    expect(
+      within(screen.getByLabelText('Lyon, incorrecta')).getByText('close-circle'),
+    ).toBeOnTheScreen()
+  })
+
+  it('sin correctOptions usa isCorrect + selección (backend viejo)', async () => {
+    const { rerender } = await render(
+      <QuestionCard
+        question={question}
+        mode="result"
+        selectedOptions={['o1']}
+        lastResult={{ ...resultBase, selectedOptions: ['o1'], isCorrect: true }}
+        onAnswer={jest.fn()}
+        onNext={jest.fn()}
+      />,
+    )
+
+    expect(
+      within(screen.getByLabelText('París, correcta')).getByText('check-circle'),
+    ).toBeOnTheScreen()
+
+    await rerender(
+      <QuestionCard
+        question={question}
+        mode="result"
+        selectedOptions={['o2']}
+        lastResult={{ ...resultBase, selectedOptions: ['o2'], isCorrect: false }}
+        onAnswer={jest.fn()}
+        onNext={jest.fn()}
+      />,
+    )
+
+    expect(
+      within(screen.getByLabelText('Lyon, incorrecta')).getByText('close-circle'),
+    ).toBeOnTheScreen()
+    expect(within(screen.getByLabelText('París')).queryByText('check-circle')).toBeNull()
   })
 
   it('al pasar del estado de envío a resultado el botón "Siguiente" sigue habilitado', async () => {

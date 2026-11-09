@@ -4736,6 +4736,13 @@ const docTemplate = `{
                 "answerText": {
                     "type": "string"
                 },
+                "correctOptions": {
+                    "description": "CorrectOptions expone las opciones correctas SOLO en la respuesta de\n/answer (después de responder). El endpoint de la siguiente pregunta no\nlas incluye a propósito: no se filtra la respuesta antes de tiempo.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "createdAt": {
                     "type": "string"
                 },

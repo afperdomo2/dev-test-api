@@ -72,6 +72,12 @@ func ToAnswerResponse(a models.SessionAnswer) SessionAnswerResponse {
 
 	if a.Question != nil {
 		resp.Explanation = a.Question.Explanation
+
+		for _, o := range a.Question.Options {
+			if o.IsCorrect {
+				resp.CorrectOptions = append(resp.CorrectOptions, o.ID)
+			}
+		}
 	}
 
 	return resp

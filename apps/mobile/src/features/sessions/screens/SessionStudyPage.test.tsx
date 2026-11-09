@@ -27,8 +27,8 @@ const question: NextQuestionItem = {
   content: 'Pregunta de prueba',
   difficulty: 'beginner',
   options: [
-    { id: 'o1', content: 'Opción A', isCorrect: true },
-    { id: 'o2', content: 'Opción B', isCorrect: false },
+    { id: 'o1', content: 'Opción A' },
+    { id: 'o2', content: 'Opción B' },
   ],
   codeChallenge: null,
   topics: [],
@@ -56,9 +56,12 @@ describe('SessionStudyPage', () => {
   })
 
   it('responder envía la respuesta al backend', async () => {
-    jest
-      .mocked(submitAnswer)
-      .mockResolvedValue({ id: 'a1', isCorrect: true, explanation: '' } as never)
+    jest.mocked(submitAnswer).mockResolvedValue({
+      id: 'a1',
+      isCorrect: true,
+      correctOptions: ['o1'],
+      explanation: '',
+    } as never)
 
     await render(<SessionStudyPage />)
     await screen.findByText(/Pregunta de prueba/)
@@ -73,6 +76,9 @@ describe('SessionStudyPage', () => {
         clientAnswerId: expect.any(String),
       }),
     )
+
+    expect(await screen.findByLabelText('Opción A, correcta')).toBeOnTheScreen()
+    expect(screen.getByLabelText('Siguiente pregunta')).toBeOnTheScreen()
   })
 
   it('un error de red no avanza y el reintento reutiliza el clientAnswerId', async () => {
