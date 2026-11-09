@@ -394,7 +394,7 @@ const wrapper = await mountWithProviders(MyComponent, {
 ### Known stubs
 
 - `ResizeObserver`, `visualViewport`, `matchMedia` stubbed in `setup.ts` for Vuetify `VOverlay`/`VDialog`.
-- `v-highlight` directive: mock `highlight.js/lib/core` (`highlightElement`, `getLanguage`, `registerLanguage`).
+- `v-highlight` directive: mock `@devtest/shared` (`getHighlighter`, `normalizeCodeLanguage`) — el registro de lenguajes vive ahí.
 
 ### Coverage
 

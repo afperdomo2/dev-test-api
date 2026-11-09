@@ -33,7 +33,7 @@ Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Ini
 - **Iconos**: `MaterialCommunityIcons` de `@expo/vector-icons` — nunca emojis para iconos estructurales.
 - **`expo-notifications` se carga en diferido** (`loadNotifications()` en `src/core/push/notifications.ts`): un import estático rompe Expo Go en Android (N-12).
 - **Bottom sheet**: `@gorhom/bottom-sheet` para menús de acciones (requiere reanimated + gesture-handler del SDK).
-- **Markdown**: `react-native-markdown-display` para contenido de preguntas/explicaciones.
+- **Markdown**: `react-native-markdown-display` para contenido de preguntas/explicaciones. Los bloques de código se resaltan con `HighlightedCode` (highlight.js vía `@devtest/shared`; paleta en `codeTheme` de los tokens).
 - **Nombre por entorno**: `EXPO_PUBLIC_APP_NAME` (build-time, default `DevTest`). En local: `make mobile-apk-local APP_NAME="DevTest Pruebas"` (ejecuta prebuild). `app.config.ts` sobreescribe `expo.name`; `app.json` sigue siendo la fuente de `version`/`versionCode`.
 - **Iconos**: `assets/icon.png` + capas adaptive (foreground/monochrome) se generan desde `brand/` con `make icons`. Cambiar assets exige `expo prebuild` + bump + rebuild. Detalle: `docs/branding.md`.
 

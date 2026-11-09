@@ -56,6 +56,50 @@ export const typography = {
   } as const,
 }
 
+/**
+ * Colores de los tokens que devuelve `tokenizeCode` (`@devtest/shared`).
+ * La clave es la clase `hljs-*`; si ninguna coincide se usa
+ * `colors.foreground`. Contraste verificado sobre `colors.muted` (#10242E).
+ */
+export const codeTheme: Record<string, string> = {
+  'hljs-comment': '#8494A3',
+  'hljs-quote': '#8494A3',
+  'hljs-doctag': '#8494A3',
+  'hljs-meta': '#8494A3',
+  'hljs-keyword': '#C792EA',
+  'hljs-selector-tag': '#C792EA',
+  'hljs-string': '#98C379',
+  'hljs-regexp': '#98C379',
+  'hljs-addition': '#98C379',
+  'hljs-code': '#98C379',
+  'hljs-number': '#F78C6C',
+  'hljs-title': '#61AFEF',
+  'hljs-function': '#61AFEF',
+  'hljs-section': '#61AFEF',
+  'hljs-link': '#61AFEF',
+  'hljs-type': '#E5C07B',
+  'hljs-class': '#E5C07B',
+  'hljs-attr': '#E5C07B',
+  'hljs-attribute': '#E5C07B',
+  'hljs-bullet': '#E5C07B',
+  'hljs-selector-class': '#E5C07B',
+  'hljs-selector-id': '#E5C07B',
+  'hljs-built_in': '#56B6C2',
+  'hljs-literal': '#56B6C2',
+  'hljs-operator': '#56B6C2',
+  'hljs-formula': '#56B6C2',
+  'hljs-selector-attr': '#56B6C2',
+  'hljs-selector-pseudo': '#56B6C2',
+  'hljs-variable': '#E06C75',
+  'hljs-template-variable': '#E06C75',
+  'hljs-property': '#E06C75',
+  'hljs-name': '#E06C75',
+  'hljs-tag': '#E06C75',
+  'hljs-symbol': '#E06C75',
+  'hljs-deletion': '#E06C75',
+  'hljs-punctuation': colors.mutedForeground,
+}
+
 export const shadows = {
   sm: '0 1px 2px rgba(0, 0, 0, 0.05)',
   md: '0 4px 6px rgba(0, 0, 0, 0.1)',
