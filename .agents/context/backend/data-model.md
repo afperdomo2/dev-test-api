@@ -24,7 +24,7 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 | `user_streaks` | Racha (currentStreak, longestStreak, freezesAvailable, lastActivityAt, lastActivityDate, dailyXpToday, dailyXpDate) |
 | `user_topic_xps` | XP por usuario+tema (xp) |
 | `settings` | Clave/valor de configuración administrable (migración `00002_settings.sql`) |
-| `generation_jobs` | Lotes de contenido generado con IA (preguntas o tips; estado, presupuesto, dueño) (migración `00003_generation_jobs.sql` + `kind` en `00010_generation_jobs_kind.sql`) |
+| `generation_jobs` | Lotes de contenido generado con IA (preguntas o tips; estado, presupuesto, dueño) (migración `00003_generation_jobs.sql` + `kind` en `00010_generation_jobs_kind.sql` + `question_type` en `00011_generation_jobs_question_type.sql`) |
 | `generation_job_topics` | Join N:M GenerationJob ↔ Topic (migración `00003_generation_jobs.sql`) |
 
 ## Enums
@@ -40,6 +40,7 @@ Catálogo rápido de la estructura de la DB. **Fuente canónica**: `internal/mod
 - `generation_jobs.kind` (columna varchar + CHECK, no `CREATE TYPE`): question, tip
 - `generation_jobs.status` (columna varchar + CHECK, no `CREATE TYPE`): pending, running, completed, failed
 - `generation_jobs.difficulty` (columna varchar + CHECK, no `CREATE TYPE`): beginner, intermediate, advanced, random
+- `generation_jobs.question_type` (columna varchar + CHECK, no `CREATE TYPE`): mixed, single_choice, multiple_choice, true_false. `mixed` reparte el lote entre los tres tipos corregibles; `code_completion` queda fuera (D-54)
 
 ## `settings` (`00002_settings.sql`)
 
@@ -54,8 +55,8 @@ Configuración **tunable** administrable en runtime vía `GET/PUT /api/v1/settin
 
 Un registro = una llamada a la IA que produce hasta `ai.max_per_job` ítems (20 por defecto, máximo configurable 50) del tipo indicado por `kind` (`question` o `tip`, D-51). `quantity` es lo **reservado** al encolar (cobrable contra el tope); `generated` es lo realmente devuelto y persistido (`questions` o `tips`).
 
-- Columnas: `id` (uuid PK), `requested_by` (uuid FK `users`, sin acción en borrado), `kind` (default `question`), `difficulty` (default `intermediate`; se ignora en tips), `quantity`, `status` (default `pending`), `generated` (default 0), `error` (text, solo si `failed`), `created_at`, `updated_at`, `started_at`, `finished_at`.
-- CHECKs: `kind IN ('question','tip')`, `quantity > 0`, `generated >= 0`, `status IN ('pending','running','completed','failed')`, `difficulty IN ('beginner','intermediate','advanced','random')`.
+- Columnas: `id` (uuid PK), `requested_by` (uuid FK `users`, sin acción en borrado), `kind` (default `question`), `difficulty` (default `intermediate`; se ignora en tips), `question_type` (default `single_choice`; se ignora en tips y `mixed` reparte el lote entre los tres tipos corregibles), `quantity`, `status` (default `pending`), `generated` (default 0), `error` (text, solo si `failed`), `created_at`, `updated_at`, `started_at`, `finished_at`.
+- CHECKs: `kind IN ('question','tip')`, `quantity > 0`, `generated >= 0`, `status IN ('pending','running','completed','failed')`, `difficulty IN ('beginner','intermediate','advanced','random')`, `question_type IN ('mixed','single_choice','multiple_choice','true_false')`.
 - Índices: btree en `requested_by`, `created_at` y `status`, **idx_generation_jobs_pending** (btree en `created_at` `WHERE status = 'pending'`) para el claim FIFO y **idx_generation_jobs_kind_status** `(kind, status, created_at)` para listar/contar por tipo.
 - `generation_job_topics`: PK compuesta `(job_id, topic_id)`, ambas FK con `ON DELETE CASCADE` en el job, índice btree en `topic_id`.
 - Presupuesto diario **global y compartido** entre preguntas y tips (no por usuario): `SUM(quantity)` de jobs **no fallidos** con `created_at` en el día **UTC** en curso; la reserva y el insert ocurren en la misma transacción bajo `pg_advisory_xact_lock`, y el claim toma un `pending` con `FOR UPDATE SKIP LOCKED`.

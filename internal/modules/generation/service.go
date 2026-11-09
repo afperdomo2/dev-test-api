@@ -91,6 +91,11 @@ func (s *service) CreateJob(_ context.Context, requestedBy uuid.UUID, req Create
 		return nil, err
 	}
 
+	questionType, err := normalizeQuestionType(req.QuestionType)
+	if err != nil {
+		return nil, err
+	}
+
 	// Los tips no tienen dificultad; se guarda el default para respetar el
 	// CHECK de la tabla y se ignora al construir el prompt.
 	difficulty := req.Difficulty
@@ -114,11 +119,12 @@ func (s *service) CreateJob(_ context.Context, requestedBy uuid.UUID, req Create
 	}
 
 	job := &models.GenerationJob{
-		RequestedBy: requestedBy,
-		Kind:        kind,
-		Difficulty:  difficulty,
-		Quantity:    quantity,
-		Status:      models.GenerationJobStatusPending,
+		RequestedBy:  requestedBy,
+		Kind:         kind,
+		Difficulty:   difficulty,
+		QuestionType: questionType,
+		Quantity:     quantity,
+		Status:       models.GenerationJobStatusPending,
 	}
 
 	// El lock consultivo + el INSERT ocurren en la misma transacción, así que
@@ -150,8 +156,8 @@ func (s *service) CreateJob(_ context.Context, requestedBy uuid.UUID, req Create
 		log.Printf("📥 Trabajo de generación encolado: %d tips, temas [%s]",
 			quantity, strings.Join(names, ", "))
 	} else {
-		log.Printf("📥 Trabajo de generación encolado: %d preguntas, dificultad %s, temas [%s]",
-			quantity, job.Difficulty, strings.Join(names, ", "))
+		log.Printf("📥 Trabajo de generación encolado: %d preguntas (%s), dificultad %s, temas [%s]",
+			quantity, questionType, job.Difficulty, strings.Join(names, ", "))
 	}
 
 	out := toJobResponse(*job, names)
@@ -291,6 +297,7 @@ func (s *service) processQuestions(ctx context.Context, job models.GenerationJob
 	generated, err := s.generator.GenerateQuestions(ctx, ai.BatchRequest{
 		TopicNames:      names,
 		Difficulty:      job.Difficulty,
+		QuestionType:    job.QuestionType,
 		Count:           job.Quantity,
 		ExistingContent: existing,
 	})
@@ -406,6 +413,39 @@ var validKinds = map[string]bool{
 
 func kindList() []string {
 	return []string{models.GenerationKindQuestion, models.GenerationKindTip}
+}
+
+var validQuestionTypes = map[string]bool{
+	models.GenerationQuestionTypeMixed:          true,
+	models.GenerationQuestionTypeSingleChoice:   true,
+	models.GenerationQuestionTypeMultipleChoice: true,
+	models.GenerationQuestionTypeTrueFalse:      true,
+}
+
+func questionTypeList() []string {
+	return []string{
+		models.GenerationQuestionTypeMixed,
+		models.GenerationQuestionTypeSingleChoice,
+		models.GenerationQuestionTypeMultipleChoice,
+		models.GenerationQuestionTypeTrueFalse,
+	}
+}
+
+// normalizeQuestionType valida el tipo pedido. Sin valor se conserva el
+// comportamiento histórico (single_choice), igual que el default de la
+// columna; la UI manda "mixed" explícito cuando el admin elige la mezcla.
+func normalizeQuestionType(questionType string) (string, error) {
+	if questionType == "" {
+		return models.GenerationQuestionTypeSingleChoice, nil
+	}
+	if !validQuestionTypes[questionType] {
+		return "", apierr.ErrValidation(
+			fmt.Sprintf("questionType '%s' no es válido. Valores permitidos: %s",
+				questionType, strings.Join(questionTypeList(), ", ")),
+			"",
+		)
+	}
+	return questionType, nil
 }
 
 // normalizeKind aplica el default retrocompatible: sin kind = preguntas.

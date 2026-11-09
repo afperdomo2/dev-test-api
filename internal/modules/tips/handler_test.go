@@ -22,7 +22,7 @@ func init() { gin.SetMode(gin.TestMode) }
 type mockTipService struct {
 	listFn        func(params ListTipsParams) ([]TipResponse, int64, error)
 	getByIDFn     func(id uuid.UUID) (*TipResponse, error)
-	getTipOfDayFn func(userID uuid.UUID) (*TipResponse, error)
+	getTipOfDayFn func() (*TipResponse, error)
 	createFn      func(userID uuid.UUID, req CreateTipRequest) (*TipResponse, error)
 	updateFn      func(id uuid.UUID, req UpdateTipRequest) (*TipResponse, error)
 	deleteFn      func(id uuid.UUID) error
@@ -31,8 +31,8 @@ type mockTipService struct {
 
 func (m *mockTipService) List(p ListTipsParams) ([]TipResponse, int64, error) { return m.listFn(p) }
 func (m *mockTipService) GetByID(id uuid.UUID) (*TipResponse, error)          { return m.getByIDFn(id) }
-func (m *mockTipService) GetTipOfTheDay(userID uuid.UUID) (*TipResponse, error) {
-	return m.getTipOfDayFn(userID)
+func (m *mockTipService) GetTipOfTheDay() (*TipResponse, error) {
+	return m.getTipOfDayFn()
 }
 func (m *mockTipService) Create(u uuid.UUID, r CreateTipRequest) (*TipResponse, error) {
 	return m.createFn(u, r)
@@ -110,6 +110,35 @@ func TestTipsHandler_Get(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/tips/"+id.String(), nil)
 		c.Params = gin.Params{{Key: "id", Value: id.String()}}
 		h.Get(c)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+}
+
+func TestTipsHandler_GetOfTheDay(t *testing.T) {
+	t.Run("success 200", func(t *testing.T) {
+		svc := &mockTipService{
+			getTipOfDayFn: func() (*TipResponse, error) { return &TipResponse{}, nil },
+		}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/tips/today", nil)
+		c.Set("user_claims", tClaims(uuid.New()))
+		h.GetOfTheDay(c)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+	t.Run("no tips 404", func(t *testing.T) {
+		svc := &mockTipService{
+			getTipOfDayFn: func() (*TipResponse, error) {
+				return nil, apierr.ErrNotFound("Tip", "No hay tips disponibles")
+			},
+		}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/tips/today", nil)
+		c.Set("user_claims", tClaims(uuid.New()))
+		h.GetOfTheDay(c)
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 }

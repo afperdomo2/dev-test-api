@@ -26,6 +26,7 @@ function job(status: GenerationJob['status']): GenerationJob {
     topicIds: [],
     topics: [],
     difficulty: 'beginner',
+    questionType: 'single_choice',
     quantity: 5,
     status,
     generated: 0,

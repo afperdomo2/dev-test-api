@@ -171,6 +171,16 @@ definitions:
         description: 'Quantity es opcional: si se omite se usa el ajuste ai.default_quantity.'
         minimum: 1
         type: integer
+      questionType:
+        description: |-
+          QuestionType solo aplica a preguntas; en tips se ignora. "mixed" reparte
+          la cantidad entre selección única, múltiple y verdadero/falso.
+        enum:
+        - mixed
+        - single_choice
+        - multiple_choice
+        - true_false
+        type: string
       topicIds:
         items:
           type: string
@@ -678,8 +688,6 @@ definitions:
         type: integer
       session:
         $ref: '#/definitions/sessions.SessionResponse'
-      tip:
-        $ref: '#/definitions/tips.TipResponse'
       warmupCount:
         type: integer
     type: object
@@ -2915,6 +2923,30 @@ paths:
       security:
       - BearerAuth: []
       summary: Importar tips por CSV
+      tags:
+      - tips
+  /api/v1/tips/today:
+    get:
+      description: Devuelve el tip del día. Es estable durante el día UTC y rota al
+        siguiente. 404 si no hay tips.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tips.TipResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.APIError'
+      security:
+      - BearerAuth: []
+      summary: Tip del día
       tags:
       - tips
   /api/v1/topics:

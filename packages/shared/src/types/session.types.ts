@@ -1,6 +1,5 @@
 import type { CodeChallenge } from './question.types'
 import type { Reward } from './gamification.types'
-import type { Tip } from './tip.types'
 
 export type SessionStatus = 'in_progress' | 'completed' | 'cancelled'
 export type SessionMode = 'review' | 'daily'
@@ -112,7 +111,6 @@ export interface Session {
 
 export interface DailySessionResponse {
   session: Session
-  tip?: Tip
   dueCount: number
   warmupCount: number
 }

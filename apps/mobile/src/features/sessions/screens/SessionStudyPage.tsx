@@ -14,8 +14,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { NextQuestionItem, SessionAnswer, SessionSummary } from '@devtest/shared'
 
 import { QuestionCard } from '@/features/sessions/components/QuestionCard'
-import { DailyTipCard } from '@/features/sessions/components/DailyTipCard'
-import { clearPendingTip, getPendingTip } from '@/features/sessions/dailyTipStore'
 import {
   getSessionById,
   getSessionSummary,
@@ -50,13 +48,6 @@ export default function SessionStudyPage() {
   // UUID estable por pregunta: se reutiliza en los reintentos y se renueva al
   // cargar la siguiente (idempotencia, D-35).
   const clientAnswerIdRef = useRef<string | null>(null)
-
-  // El tip del día se guarda al crear la sesión (Home) y solo se muestra al
-  // empezar. Se limpia al salir de la pantalla.
-  const [tipDismissed, setTipDismissed] = useState(false)
-  const pendingTip = id ? getPendingTip(id) : null
-
-  useEffect(() => () => clearPendingTip(), [])
 
   const questionNumber = summary ? summary.answerCount + 1 : 1
   const questionLimit = summary?.questionLimit ?? null
@@ -335,12 +326,6 @@ export default function SessionStudyPage() {
       )}
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {pendingTip && !tipDismissed && phase === 'question' && questionNumber === 1 && (
-          <View style={styles.tipWrapper}>
-            <DailyTipCard tip={pendingTip} onDismiss={() => setTipDismissed(true)} />
-          </View>
-        )}
-
         {question && (
           <QuestionCard
             key={question.id}
@@ -436,9 +421,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.lg,
     flexGrow: 1,
-  },
-  tipWrapper: {
-    marginBottom: spacing.lg,
   },
   submitError: {
     marginTop: spacing.lg,

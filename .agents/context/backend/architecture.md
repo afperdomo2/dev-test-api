@@ -30,7 +30,7 @@
 | `gamification` | Gamificación: `GET /overview`, `PUT /daily-goal`, `POST /streak/freeze` |
 | `opencode` | Admin: `GET /opencode/usage` |
 | `settings` | Configuración tunable en runtime: `GET/PUT /settings` (admin) |
-| `generation` | Jobs de generación IA por lotes (admin) para **preguntas o tips** (`kind`): `POST/GET /generation`, `GET /generation/stats`, `GET /generation/{id}` + worker pool en `worker.go` |
+| `generation` | Jobs de generación IA por lotes (admin) para **preguntas o tips** (`kind`) con tipo de pregunta `question_type` (`mixed` \| `single_choice` \| `multiple_choice` \| `true_false`, D-54): `POST/GET /generation`, `GET /generation/stats`, `GET /generation/{id}` + worker pool en `worker.go` |
 
 Servicios compartidos: `internal/services/ai` (generación IA: cliente + batch), `internal/services/opencode` (client).
 
@@ -191,9 +191,10 @@ When a service method makes **two or more store calls that don't depend on each 
 
 ```go
 type dailyData struct {
-	dueCount int64
-	tip      *tips.TipResponse
-	errs     []error
+	dueCount      int64
+	warmupCount   int64
+	practiceCount int64
+	errs          []error
 }
 
 func (s *someService) gatherData(userID uuid.UUID) dailyData {
@@ -251,16 +252,21 @@ func (s *someService) gatherData(userID uuid.UUID) dailyData {
 - El patrón requiere el connection pool configurado arriba para que las goroutines tomen conexiones distintas.
 
 **Where this already applies:**
-- `sessions/service.go` → `gatherDailyData()` (lo usa `CreateDaily()`) — `CountDueReviews`, `CountWarmupCandidates`, `CountPracticeCandidates` y `tipService.GetTipOfTheDay` corren en paralelo; un `404` del tip se traduce en `nil` sin error.
+- `sessions/service.go` → `gatherDailyData()` (lo usa `CreateDaily()`) — `CountDueReviews`, `CountWarmupCandidates` y `CountPracticeCandidates` corren en paralelo.
 
 > `NextQuestion()` es **secuencial**: sus lecturas van en serie. No lo "optimices" con concurrencia sin medir antes.
 
 **Repaso diario (D-52):** `FindNextDailyQuestion` resuelve en 3 escalones — (1) vencidas del SRS,
 (2) calentamiento `true_false`, (3) práctica normal (cualquier tipo, sin dominadas). El escalón 3
-es obligatorio porque la IA solo genera `single_choice` (D-14). `CreateDaily` no crea sesión si
+es obligatorio porque el banco puede no tener `true_false` (solo llega si un lote lo pide, por import o por seed). `CreateDaily` no crea sesión si
 `CountDueReviews + CountPracticeCandidates == 0` (responde **409**) y reutiliza la sesión `daily`
 `in_progress` del día (corte medianoche UTC). `Finish` no otorga recompensa si la sesión no tiene
 respuestas. Detalle: `tasks/daily-review.md`.
+
+**Tip del día (D-53):** `GET /tips/today` → `tips.Service.GetTipOfTheDay()` elige con `FindOfTheDay(day)` un tip
+determinista por fecha UTC (`ORDER BY md5(id || fecha)`), así es estable durante el día y rota al siguiente.
+El tip **no** viaja en `POST /sessions/daily` (se quitó del DTO) ni se muestra en la pantalla de estudio;
+se pinta en Inicio. Detalle: `tasks/daily-tip-home.md`.
 
 ### Fire-and-forget (for non-critical side effects)
 
@@ -284,6 +290,7 @@ Patrón canónico para trabajo en segundo plano. **No** usa `errgroup`: son goro
 - Al arrancar, `recoverRunning` devuelve a `pending` los jobs que quedaron en `running` de un proceso anterior.
 - El claim (`ClaimNextPending`) silencia su propio log con `logger.Discard` (`logClaimQueries = false` en `generation/store.go`): corre cada 3 s por worker y en reposo es solo ruido. Los errores los loguea el worker (`❌ Worker …`). Ponlo a `true` para depurar el claim.
 - Un mismo pool procesa ambos tipos de contenido (`generation_jobs.kind` = `question` | `tip`). `ProcessJob` ramifica al generador y al store correspondiente; el presupuesto diario es compartido (D-51). No crear un pool ni un cron separado para tips.
+- En preguntas, `generation_jobs.question_type` decide el prompt (`internal/services/ai/prompts.go` → `buildBatchSystemPrompt`) y la validación por tipo (`validateGeneratedQuestion`): `single_choice` = 4 opciones/1 correcta, `multiple_choice` = 4 opciones/2-3 correctas, `true_false` = 2 opciones/1 correcta y `mixed` = mezcla de los tres. `code_completion` no se genera con IA (D-54).
 - El pool se detiene **antes** que el HTTP server en `Run()` (`stopPool` + espera), para no perder trabajo a mitad de una llamada a la IA.
 - Cuando se implemente el scheduler de notificaciones (`specs/SPEC-notifications.md`, tarea `NT-5`), reutilizar este patrón (o extraerlo a un worker genérico) en lugar de inventar otro.
 

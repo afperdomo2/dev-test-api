@@ -185,8 +185,8 @@ func (w *Worker) process(ctx context.Context, id int, job *models.GenerationJob)
 	if job.Kind == models.GenerationKindTip {
 		log.Printf("▶️ Worker %d: procesando trabajo %s (%d tips)", id, job.ID, job.Quantity)
 	} else {
-		log.Printf("▶️ Worker %d: procesando trabajo %s (%d preguntas, dificultad %s)",
-			id, job.ID, job.Quantity, job.Difficulty)
+		log.Printf("▶️ Worker %d: procesando trabajo %s (%d preguntas %s, dificultad %s)",
+			id, job.ID, job.Quantity, job.QuestionType, job.Difficulty)
 	}
 
 	if err := w.service.ProcessJob(ctx, *job); err != nil {

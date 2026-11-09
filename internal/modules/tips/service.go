@@ -3,6 +3,7 @@ package tips
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/pkg/apierr"
@@ -18,7 +19,7 @@ type topicStore interface {
 type Service interface {
 	List(params ListTipsParams) ([]TipResponse, int64, error)
 	GetByID(id uuid.UUID) (*TipResponse, error)
-	GetTipOfTheDay(userID uuid.UUID) (*TipResponse, error)
+	GetTipOfTheDay() (*TipResponse, error)
 	Create(userID uuid.UUID, input CreateTipRequest) (*TipResponse, error)
 	Update(id uuid.UUID, input UpdateTipRequest) (*TipResponse, error)
 	Delete(id uuid.UUID) error
@@ -60,8 +61,8 @@ func (s *tipService) GetByID(id uuid.UUID) (*TipResponse, error) {
 	return &resp, nil
 }
 
-func (s *tipService) GetTipOfTheDay(userID uuid.UUID) (*TipResponse, error) {
-	tip, err := s.store.FindRandom()
+func (s *tipService) GetTipOfTheDay() (*TipResponse, error) {
+	tip, err := s.store.FindOfTheDay(time.Now().UTC())
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, apierr.ErrNotFound("Tip", "No hay tips disponibles")

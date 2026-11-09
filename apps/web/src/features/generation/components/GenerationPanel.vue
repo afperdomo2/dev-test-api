@@ -18,6 +18,7 @@ import type {
   GenerationJob,
   GenerationJobStatus,
   GenerationKind,
+  GenerationQuestionType,
 } from '@/types/generation.types'
 
 interface Props {
@@ -76,7 +77,10 @@ const headers = computed(() => {
     align?: 'start' | 'center' | 'end'
   }> = [{ title: 'Temas', key: 'topics', sortable: false }]
   if (props.kind === 'question') {
-    base.push({ title: 'Dificultad', key: 'difficulty', sortable: false })
+    base.push(
+      { title: 'Dificultad', key: 'difficulty', sortable: false },
+      { title: 'Tipo', key: 'questionType', sortable: false },
+    )
   }
   base.push(
     { title: 'Pedido / generado', key: 'quantity', sortable: false, align: 'center' },
@@ -104,9 +108,20 @@ function difficultyLabel(value: string) {
   return labels[value] ?? value
 }
 
+function questionTypeLabel(value: string) {
+  const labels: Record<string, string> = {
+    mixed: 'Mixta',
+    single_choice: 'Única',
+    multiple_choice: 'Múltiple',
+    true_false: 'V/F',
+  }
+  return labels[value] ?? value
+}
+
 async function onSubmit(payload: {
   topicIds: Array<string>
   difficulty: GenerationDifficulty
+  questionType: GenerationQuestionType
   quantity: number
 }) {
   const body: CreateGenerationJobRequest = {
@@ -116,6 +131,7 @@ async function onSubmit(payload: {
   }
   if (props.kind === 'question') {
     body.difficulty = payload.difficulty
+    body.questionType = payload.questionType
   }
 
   try {
@@ -184,6 +200,10 @@ async function onSubmit(payload: {
 
           <template #[`item.difficulty`]="{ item }">
             <span class="text-body-2">{{ difficultyLabel(item.difficulty) }}</span>
+          </template>
+
+          <template #[`item.questionType`]="{ item }">
+            <span class="text-body-2">{{ questionTypeLabel(item.questionType) }}</span>
           </template>
 
           <template #[`item.quantity`]="{ item }">

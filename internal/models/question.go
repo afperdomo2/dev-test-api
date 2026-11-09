@@ -7,6 +7,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// Tipos de pregunta que existen en el banco (enum question_type).
+const (
+	QuestionTypeSingleChoice   = "single_choice"
+	QuestionTypeMultipleChoice = "multiple_choice"
+	QuestionTypeCodeCompletion = "code_completion"
+	QuestionTypeTrueFalse      = "true_false"
+)
+
 type Question struct {
 	ID          uuid.UUID      `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID      uuid.UUID      `gorm:"type:uuid;not null;index" json:"userId"`

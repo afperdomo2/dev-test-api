@@ -5,7 +5,6 @@ import (
 
 	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
-	"github.com/felipe/dev-test-api/internal/modules/tips"
 	"github.com/google/uuid"
 )
 
@@ -49,10 +48,9 @@ type SessionDetailResponse struct {
 }
 
 type DailySessionResponse struct {
-	Session     SessionResponse   `json:"session"`
-	Tip         *tips.TipResponse `json:"tip,omitempty"`
-	DueCount    int64             `json:"dueCount"`
-	WarmupCount int64             `json:"warmupCount"`
+	Session     SessionResponse `json:"session"`
+	DueCount    int64           `json:"dueCount"`
+	WarmupCount int64           `json:"warmupCount"`
 }
 
 type SessionAnswerResponse struct {

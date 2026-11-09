@@ -15,19 +15,22 @@ import type {
   DailyActivityItem,
   InsightSummary,
   OverviewResponse,
+  Tip,
 } from '@devtest/shared'
 
 import { useAuthStore } from '@/core/auth/auth.store'
 import { BadgeStrip } from '@/core/components/BadgeStrip'
+import { DailyTipCard } from '@/core/components/DailyTipCard'
 import { LevelLine } from '@/core/components/LevelLine'
 import { SectionHeader } from '@/core/components/SectionHeader'
 import { freezeStreak, getBadges, getOverview } from '@/core/api/services/gamification.service'
 import { getInsightSummary } from '@/core/api/services/insights.service'
 import { createDailySession } from '@/core/api/services/sessions.service'
+import { getTipOfTheDay } from '@/core/api/services/tips.service'
 import { getErrorDetail, getErrorStatus } from '@/core/utils/errors'
-import { setPendingTip } from '@/features/sessions/dailyTipStore'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
+import { isTipDismissedToday, setTipDismissedOn, todayUTC } from '../dailyTipDismissal'
 import { TodayCard } from '../components/TodayCard'
 
 export default function HomeScreen() {
@@ -44,6 +47,7 @@ export default function HomeScreen() {
   const [dailyError, setDailyError] = useState<string | null>(null)
   const [dailyEmpty, setDailyEmpty] = useState(false)
   const [freezing, setFreezing] = useState(false)
+  const [todayTip, setTodayTip] = useState<Tip | null>(null)
 
   const loadOverview = useCallback(async () => {
     setLoading(true)
@@ -85,13 +89,37 @@ export default function HomeScreen() {
     }
   }, [])
 
+  // Tip del día: contexto de lectura, nunca bloquea la Home. Si el usuario ya
+  // lo cerró hoy (persistido) no se pide ni se muestra.
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        if (await isTipDismissedToday()) return
+        const tip = await getTipOfTheDay()
+        if (!cancelled) setTodayTip(tip)
+      } catch {
+        // Sin tip (404) o fallo de red: la Home sigue igual.
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleDismissTip = useCallback(() => {
+    setTodayTip(null)
+    void setTipDismissedOn(todayUTC()).catch(() => {})
+  }, [])
+
   const handleDailySession = useCallback(async () => {
     setCreatingDaily(true)
     setDailyError(null)
     setDailyEmpty(false)
     try {
       const res = await createDailySession()
-      setPendingTip(res.session.id, res.tip)
       router.push(`/(tabs)/sesiones/${res.session.id}`)
     } catch (err) {
       // 409 = no hay nada que repasar hoy; no es un error del usuario.
@@ -229,6 +257,12 @@ export default function HomeScreen() {
         </View>
         <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedForeground} />
       </Pressable>
+
+      {todayTip ? (
+        <View style={styles.section}>
+          <DailyTipCard tip={todayTip} onDismiss={handleDismissTip} />
+        </View>
+      ) : null}
 
       {overview ? (
         <View style={styles.section}>

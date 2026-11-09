@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -192,10 +193,132 @@ func TestBuildBatchUserPromptOmitsHistoryWhenEmpty(t *testing.T) {
 }
 
 func TestBatchSystemPromptDemandsArrayAndSpanish(t *testing.T) {
-	assert.Contains(t, batchSystemPrompt, "ARRAY JSON")
-	assert.Contains(t, batchSystemPrompt, "ESPAÑOL")
-	assert.Contains(t, batchSystemPrompt, "single_choice")
-	assert.Contains(t, batchSystemPrompt, "EXACTAMENTE")
+	prompt := buildBatchSystemPrompt(models.GenerationQuestionTypeSingleChoice)
+
+	assert.Contains(t, prompt, "ARRAY JSON")
+	assert.Contains(t, prompt, "ESPAÑOL")
+	assert.Contains(t, prompt, "single_choice")
+	assert.Contains(t, prompt, "EXACTAMENTE")
+}
+
+func TestBuildBatchSystemPromptUsesRequestedType(t *testing.T) {
+	tests := []struct {
+		name         string
+		questionType string
+		want         string
+	}{
+		{"selección única", models.GenerationQuestionTypeSingleChoice, "solo debes generar preguntas de tipo \"single_choice\""},
+		{"selección múltiple", models.GenerationQuestionTypeMultipleChoice, "solo debes generar preguntas de tipo \"multiple_choice\""},
+		{"verdadero/falso", models.GenerationQuestionTypeTrueFalse, "solo debes generar preguntas de tipo \"true_false\""},
+		{"mixta", models.GenerationQuestionTypeMixed, "MEZCLAR los 3 tipos"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// La comparación de la primera línea ignora mayúsculas del prefijo.
+			prompt := strings.ToLower(buildBatchSystemPrompt(tc.questionType))
+			assert.Contains(t, prompt, strings.ToLower(tc.want))
+		})
+	}
+}
+
+func TestBuildBatchSystemPromptDefaultsToSingleChoice(t *testing.T) {
+	assert.Contains(t, buildBatchSystemPrompt(""), "single_choice")
+	assert.Contains(t, buildBatchSystemPrompt("inventado"), "single_choice")
+}
+
+func TestBuildBatchUserPromptMentionsQuestionType(t *testing.T) {
+	tests := []struct {
+		name         string
+		questionType string
+		want         string
+	}{
+		{"múltiple", models.GenerationQuestionTypeMultipleChoice, "tipo multiple_choice"},
+		{"verdadero/falso", models.GenerationQuestionTypeTrueFalse, "tipo true_false"},
+		{"mixta", models.GenerationQuestionTypeMixed, "mezclando los 3 tipos"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			prompt := buildBatchUserPrompt(BatchRequest{
+				TopicNames:   []string{"Go"},
+				Difficulty:   "beginner",
+				QuestionType: tc.questionType,
+				Count:        6,
+			})
+			assert.Contains(t, prompt, tc.want)
+		})
+	}
+}
+
+func TestValidateGeneratedQuestionAcceptsSupportedTypes(t *testing.T) {
+	tests := []struct {
+		name string
+		q    GeneratedQuestion
+	}{
+		{
+			"single_choice",
+			GeneratedQuestion{Type: models.QuestionTypeSingleChoice, Content: "x", Options: []GeneratedOption{
+				{Content: "a", IsCorrect: true}, {Content: "b"}, {Content: "c"}, {Content: "d"},
+			}},
+		},
+		{
+			"multiple_choice con 2 correctas",
+			GeneratedQuestion{Type: models.QuestionTypeMultipleChoice, Content: "x", Options: []GeneratedOption{
+				{Content: "a", IsCorrect: true}, {Content: "b", IsCorrect: true}, {Content: "c"}, {Content: "d"},
+			}},
+		},
+		{
+			"true_false",
+			GeneratedQuestion{Type: models.QuestionTypeTrueFalse, Content: "x", Options: []GeneratedOption{
+				{Content: "Verdadero", IsCorrect: true}, {Content: "Falso"},
+			}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, validateGeneratedQuestion(&tc.q))
+		})
+	}
+}
+
+func TestValidateGeneratedQuestionRejectsWrongOptionsPerType(t *testing.T) {
+	tests := []struct {
+		name string
+		q    GeneratedQuestion
+	}{
+		{
+			"true_false con 4 opciones",
+			GeneratedQuestion{Type: models.QuestionTypeTrueFalse, Content: "x", Options: []GeneratedOption{
+				{Content: "a", IsCorrect: true}, {Content: "b"}, {Content: "c"}, {Content: "d"},
+			}},
+		},
+		{
+			"true_false con 2 correctas",
+			GeneratedQuestion{Type: models.QuestionTypeTrueFalse, Content: "x", Options: []GeneratedOption{
+				{Content: "Verdadero", IsCorrect: true}, {Content: "Falso", IsCorrect: true},
+			}},
+		},
+		{
+			"multiple_choice con 1 correcta",
+			GeneratedQuestion{Type: models.QuestionTypeMultipleChoice, Content: "x", Options: []GeneratedOption{
+				{Content: "a", IsCorrect: true}, {Content: "b"}, {Content: "c"}, {Content: "d"},
+			}},
+		},
+		{
+			"multiple_choice con todas correctas",
+			GeneratedQuestion{Type: models.QuestionTypeMultipleChoice, Content: "x", Options: []GeneratedOption{
+				{Content: "a", IsCorrect: true}, {Content: "b", IsCorrect: true},
+			}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Error(t, validateGeneratedQuestion(&tc.q))
+		})
+	}
 }
 
 func TestValidateGeneratedQuestionRejectsBadInput(t *testing.T) {

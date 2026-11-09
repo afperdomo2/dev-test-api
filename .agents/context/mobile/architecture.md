@@ -166,6 +166,7 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 - `SessionStudyPage` distingue **4 resultados** de `GET /next`, no 2: pregunta → `question`; **404 con ≥1 respuesta** → `finished`; **404 con 0 respuestas** → `empty` (la sesión nació vacía, nunca "Sesión completada"); **500/red** → `error` con reintento. Cualquier error tratado como "completada" deja la sesión en progreso para siempre.
 - `empty` ofrece crear sesión de estudio o volver a Sesiones y **descarta** la sesión vacía (`DELETE`, best effort) para no dejar fantasmas en progreso.
 - `HomeScreen` interpreta el **409** de `POST /sessions/daily` ("no hay preguntas para repasar hoy") como estado neutro, no como error rojo. Detalle del backend: D-52 / `tasks/daily-review.md`.
+- **Tip del día**: vive en Inicio (`DailyTipCard` en `core/components`), no en la sesión (D-53). `getTipOfTheDay()` pega a `GET /tips/today`; la tarjeta se carga aparte y su fallo (404/red) no afecta a la Home. El cierre se persiste **por día UTC** en `SecureStore` (`features/home/dailyTipDismissal.ts`): oculta el tip hasta mañana. Un componente usado por dos dominios vive en `core/components`, no en `features/*`.
 
 ### Pre-delivery checklist
 Before delivering any mobile UI, verify against `pro-rules.md`:

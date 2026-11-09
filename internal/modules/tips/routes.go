@@ -6,6 +6,8 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler) {
 	t := rg.Group("/tips")
 	{
 		t.GET("", h.List)
+		// Debe ir antes de "/:id" para que "today" no se parsee como UUID.
+		t.GET("/today", h.GetOfTheDay)
 		t.GET("/:id", h.Get)
 	}
 }

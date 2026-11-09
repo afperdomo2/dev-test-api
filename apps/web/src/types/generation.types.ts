@@ -3,6 +3,7 @@ export type {
   GenerationJobStatus,
   GenerationDifficulty,
   GenerationKind,
+  GenerationQuestionType,
   GenerationStats,
   CreateGenerationJobRequest,
   Setting,

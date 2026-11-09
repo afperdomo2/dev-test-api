@@ -2721,6 +2721,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/tips/today": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve el tip del día. Es estable durante el día UTC y rota al siguiente. 404 si no hay tips.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tips"
+                ],
+                "summary": "Tip del día",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/tips.TipResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/tips/{id}": {
             "get": {
                 "security": [
@@ -3789,6 +3826,16 @@ const docTemplate = `{
                     "type": "integer",
                     "minimum": 1
                 },
+                "questionType": {
+                    "description": "QuestionType solo aplica a preguntas; en tips se ignora. \"mixed\" reparte\nla cantidad entre selección única, múltiple y verdadero/falso.",
+                    "type": "string",
+                    "enum": [
+                        "mixed",
+                        "single_choice",
+                        "multiple_choice",
+                        "true_false"
+                    ]
+                },
                 "topicIds": {
                     "type": "array",
                     "minItems": 1,
@@ -4542,9 +4589,6 @@ const docTemplate = `{
                 },
                 "session": {
                     "$ref": "#/definitions/sessions.SessionResponse"
-                },
-                "tip": {
-                    "$ref": "#/definitions/tips.TipResponse"
                 },
                 "warmupCount": {
                     "type": "integer"

@@ -7,8 +7,9 @@ import { useAuthStore } from '@/core/auth/auth.store'
 import { freezeStreak, getBadges, getOverview } from '@/core/api/services/gamification.service'
 import { getInsightSummary } from '@/core/api/services/insights.service'
 import { createDailySession } from '@/core/api/services/sessions.service'
-import { clearPendingTip, getPendingTip } from '@/features/sessions/dailyTipStore'
+import { getTipOfTheDay } from '@/core/api/services/tips.service'
 import { resetRouterMock, routerMock } from '@/__tests__/router'
+import { isTipDismissedToday, setTipDismissedOn, todayUTC } from '../dailyTipDismissal'
 
 jest.mock('@/core/api/services/gamification.service', () => ({
   getOverview: jest.fn(),
@@ -22,6 +23,16 @@ jest.mock('@/core/api/services/insights.service', () => ({
 
 jest.mock('@/core/api/services/sessions.service', () => ({
   createDailySession: jest.fn(),
+}))
+
+jest.mock('@/core/api/services/tips.service', () => ({
+  getTipOfTheDay: jest.fn(),
+}))
+
+jest.mock('../dailyTipDismissal', () => ({
+  todayUTC: jest.fn(() => '2026-11-09'),
+  isTipDismissedToday: jest.fn(async () => false),
+  setTipDismissedOn: jest.fn(async () => undefined),
 }))
 
 const overview = {
@@ -76,11 +87,21 @@ const week = {
   ],
 }
 
+const tip: Tip = {
+  id: 'tip1',
+  userId: 'u1',
+  topicId: 't1',
+  topic: 'Go',
+  content: 'Usa defer',
+  source: 'manual',
+  createdAt: '2026-10-19T00:00:00Z',
+  updatedAt: '2026-10-19T00:00:00Z',
+}
+
 describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     resetRouterMock()
-    clearPendingTip()
     useAuthStore.setState({
       user: { id: 'u1', email: 'ana@test.com', isAdmin: false } as never,
       token: 't',
@@ -88,6 +109,9 @@ describe('HomeScreen', () => {
     jest.mocked(getOverview).mockResolvedValue(overview)
     jest.mocked(getBadges).mockResolvedValue(badges)
     jest.mocked(getInsightSummary).mockResolvedValue(week as never)
+    // Por defecto no hay tip: los tests que lo necesiten lo configuran.
+    jest.mocked(getTipOfTheDay).mockRejectedValue({ status: 404 })
+    jest.mocked(isTipDismissedToday).mockResolvedValue(false)
   })
 
   it('resume el día: nivel, repaso, racha, meta y logros', async () => {
@@ -124,25 +148,44 @@ describe('HomeScreen', () => {
     expect(routerMock.push).toHaveBeenCalledWith('/(tabs)/sesiones/s1')
   })
 
-  it('guarda el tip del día para la sesión creada', async () => {
-    const tip: Tip = {
-      id: 'tip1',
-      userId: 'u1',
-      topicId: 't1',
-      topic: 'Go',
-      content: 'Usa defer',
-      source: 'manual',
-      createdAt: '2026-10-19T00:00:00Z',
-      updatedAt: '2026-10-19T00:00:00Z',
-    }
-    jest.mocked(createDailySession).mockResolvedValue({ session: { id: 's1' }, tip } as never)
+  it('muestra el tip del día en Inicio', async () => {
+    jest.mocked(getTipOfTheDay).mockResolvedValue(tip)
+
+    await render(<HomeScreen />)
+
+    expect(await screen.findByText('Tip del día')).toBeOnTheScreen()
+    expect(screen.getByText('Go')).toBeOnTheScreen()
+    expect(screen.getByText('Usa defer')).toBeOnTheScreen()
+  })
+
+  it('cerrar el tip lo oculta y lo recuerda para hoy', async () => {
+    jest.mocked(getTipOfTheDay).mockResolvedValue(tip)
+
+    await render(<HomeScreen />)
+    await screen.findByText('Tip del día')
+
+    await fireEvent.press(screen.getByLabelText('Cerrar tip del día'))
+
+    expect(screen.queryByText('Tip del día')).toBeNull()
+    expect(setTipDismissedOn).toHaveBeenCalledWith(todayUTC())
+  })
+
+  it('si ya se cerró hoy no pide ni muestra el tip', async () => {
+    jest.mocked(isTipDismissedToday).mockResolvedValue(true)
 
     await render(<HomeScreen />)
     await screen.findByText('Hola, ana')
 
-    await fireEvent.press(screen.getByLabelText('Repasar hoy'))
+    expect(getTipOfTheDay).not.toHaveBeenCalled()
+    expect(screen.queryByText('Tip del día')).toBeNull()
+  })
 
-    await waitFor(() => expect(getPendingTip('s1')).toEqual(tip))
+  it('sin tip disponible la Home funciona igual', async () => {
+    await render(<HomeScreen />)
+    await screen.findByText('Hola, ana')
+
+    expect(screen.queryByText('Tip del día')).toBeNull()
+    expect(screen.getByLabelText('Repasar hoy')).toBeOnTheScreen()
   })
 
   it('si falla la sesión diaria muestra el detalle', async () => {

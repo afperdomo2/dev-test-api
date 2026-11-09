@@ -5,14 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"sync"
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
-	"github.com/felipe/dev-test-api/internal/modules/tips"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -34,11 +32,10 @@ type sessionService struct {
 	store               Store
 	progressService     progress.Service
 	gamificationService gamification.Service
-	tipService          tips.Service
 }
 
-func NewService(store Store, progressService progress.Service, gamificationService gamification.Service, tipService tips.Service) Service {
-	return &sessionService{store: store, progressService: progressService, gamificationService: gamificationService, tipService: tipService}
+func NewService(store Store, progressService progress.Service, gamificationService gamification.Service) Service {
+	return &sessionService{store: store, progressService: progressService, gamificationService: gamificationService}
 }
 
 // findOwnedSession carga la sesión y comprueba que pertenece al usuario.
@@ -138,7 +135,6 @@ type dailySessionData struct {
 	dueCount      int64
 	warmupCount   int64
 	practiceCount int64
-	tip           *tips.TipResponse
 	errs          []error
 }
 
@@ -158,7 +154,7 @@ func (s *sessionService) gatherDailyData(userID uuid.UUID) dailySessionData {
 		}
 	}
 
-	wg.Add(4)
+	wg.Add(3)
 	go collect(func() error {
 		n, err := s.store.CountDueReviews(userID)
 		mu.Lock()
@@ -180,20 +176,6 @@ func (s *sessionService) gatherDailyData(userID uuid.UUID) dailySessionData {
 		mu.Unlock()
 		return err
 	})
-	go collect(func() error {
-		tip, err := s.tipService.GetTipOfTheDay(userID)
-		if err != nil {
-			var apiErr *apierr.APIError
-			if errors.As(err, &apiErr) && apiErr.Status == http.StatusNotFound {
-				return nil
-			}
-			return err
-		}
-		mu.Lock()
-		res.tip = tip
-		mu.Unlock()
-		return nil
-	})
 	wg.Wait()
 
 	return res
@@ -210,7 +192,6 @@ func (s *sessionService) CreateDaily(userID uuid.UUID) (*DailySessionResponse, e
 	if existing := s.findTodayDailySession(userID); existing != nil {
 		return &DailySessionResponse{
 			Session:     ToSessionResponse(*existing),
-			Tip:         s.loadSessionTip(existing),
 			DueCount:    data.dueCount,
 			WarmupCount: data.warmupCount,
 		}, nil
@@ -233,9 +214,6 @@ func (s *sessionService) CreateDaily(userID uuid.UUID) (*DailySessionResponse, e
 		Mode:       "daily",
 		Difficulty: "intermediate",
 	}
-	if data.tip != nil {
-		session.TipID = &data.tip.ID
-	}
 
 	if err := s.store.Create(session); err != nil {
 		return nil, apierr.ErrInternal("Error al crear la sesion diaria", "")
@@ -249,7 +227,6 @@ func (s *sessionService) CreateDaily(userID uuid.UUID) (*DailySessionResponse, e
 	sessResp := ToSessionResponse(*session)
 	return &DailySessionResponse{
 		Session:     sessResp,
-		Tip:         data.tip,
 		DueCount:    data.dueCount,
 		WarmupCount: data.warmupCount,
 	}, nil
@@ -264,19 +241,6 @@ func (s *sessionService) findTodayDailySession(userID uuid.UUID) *models.Session
 		return nil
 	}
 	return sess
-}
-
-// loadSessionTip recupera el tip asociado a una sesión reutilizada. Si no hay
-// tip guardado o no se puede leer, la sesión funciona igual sin tarjeta.
-func (s *sessionService) loadSessionTip(sess *models.Session) *tips.TipResponse {
-	if sess.TipID == nil || s.tipService == nil {
-		return nil
-	}
-	tip, err := s.tipService.GetByID(*sess.TipID)
-	if err != nil {
-		return nil
-	}
-	return tip
 }
 
 func (s *sessionService) Finish(sessionID, userID uuid.UUID) (*SessionResponse, error) {

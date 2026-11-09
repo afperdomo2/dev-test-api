@@ -407,6 +407,66 @@ func TestCreateJobKindDefaultsToQuestionAndAcceptsTip(t *testing.T) {
 	})
 }
 
+func TestCreateJobNormalizesQuestionType(t *testing.T) {
+	topicID := uuid.New()
+
+	t.Run("sin questionType se conserva single_choice", func(t *testing.T) {
+		store := &fakeStore{existingTopicIDs: []uuid.UUID{topicID}}
+		svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, okGen(1))
+
+		_, err := svc.CreateJob(context.Background(), uuid.New(), CreateJobRequest{
+			TopicIDs: []uuid.UUID{topicID},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, models.GenerationQuestionTypeSingleChoice, store.enqueuedJob.QuestionType)
+	})
+
+	t.Run("questionType válido se persiste", func(t *testing.T) {
+		store := &fakeStore{existingTopicIDs: []uuid.UUID{topicID}}
+		svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, okGen(1))
+
+		_, err := svc.CreateJob(context.Background(), uuid.New(), CreateJobRequest{
+			TopicIDs:     []uuid.UUID{topicID},
+			QuestionType: models.GenerationQuestionTypeTrueFalse,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, models.GenerationQuestionTypeTrueFalse, store.enqueuedJob.QuestionType)
+	})
+
+	t.Run("questionType inválido se rechaza", func(t *testing.T) {
+		store := &fakeStore{existingTopicIDs: []uuid.UUID{topicID}}
+		svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, okGen(1))
+
+		_, err := svc.CreateJob(context.Background(), uuid.New(), CreateJobRequest{
+			TopicIDs:     []uuid.UUID{topicID},
+			QuestionType: "code_completion",
+		})
+		requireAPIError(t, err, apierr.ErrValidation)
+	})
+}
+
+func TestProcessJobPassesQuestionTypeToGenerator(t *testing.T) {
+	topicID := uuid.New()
+	store := &fakeStore{
+		topics:    []models.Topic{{ID: topicID, Name: "Go"}},
+		saveCount: 2,
+	}
+	gen := okGen(2)
+	svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, gen)
+
+	jobID := uuid.New()
+	job := models.GenerationJob{
+		ID:           jobID,
+		Quantity:     2,
+		Difficulty:   "beginner",
+		QuestionType: models.GenerationQuestionTypeMultipleChoice,
+		JobTopics:    []models.GenerationJobTopic{{JobID: jobID, TopicID: topicID}},
+	}
+
+	require.NoError(t, svc.ProcessJob(context.Background(), job))
+	assert.Equal(t, models.GenerationQuestionTypeMultipleChoice, gen.gotReq.QuestionType)
+}
+
 func TestStatsRejectsUnknownKind(t *testing.T) {
 	svc := newTestService(&fakeStore{}, fakeSettings{}, okGen(1))
 

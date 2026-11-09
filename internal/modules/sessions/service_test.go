@@ -2,7 +2,6 @@ package sessions
 
 import (
 	"errors"
-	"io"
 	"testing"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
-	"github.com/felipe/dev-test-api/internal/modules/tips"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -117,38 +115,6 @@ func newSessionStore() *mockSessionStore {
 		},
 		deleteFn: func(uuid.UUID) error { return nil },
 	}
-}
-
-/* adapter that satisfies tips.Service without heavy logic */
-type fakeTipsAdapter struct {
-	getTipOfTheDayFn func(userID uuid.UUID) (*tips.TipResponse, error)
-	getByIDFn        func(id uuid.UUID) (*tips.TipResponse, error)
-}
-
-func (f *fakeTipsAdapter) List(params tips.ListTipsParams) ([]tips.TipResponse, int64, error) {
-	return nil, 0, nil
-}
-func (f *fakeTipsAdapter) GetByID(id uuid.UUID) (*tips.TipResponse, error) {
-	if f.getByIDFn != nil {
-		return f.getByIDFn(id)
-	}
-	return nil, apierr.ErrNotFound("Tip", "")
-}
-func (f *fakeTipsAdapter) GetTipOfTheDay(userID uuid.UUID) (*tips.TipResponse, error) {
-	if f.getTipOfTheDayFn != nil {
-		return f.getTipOfTheDayFn(userID)
-	}
-	return &tips.TipResponse{}, nil
-}
-func (f *fakeTipsAdapter) Create(userID uuid.UUID, input tips.CreateTipRequest) (*tips.TipResponse, error) {
-	return nil, nil
-}
-func (f *fakeTipsAdapter) Update(id uuid.UUID, input tips.UpdateTipRequest) (*tips.TipResponse, error) {
-	return nil, nil
-}
-func (f *fakeTipsAdapter) Delete(id uuid.UUID) error { return nil }
-func (f *fakeTipsAdapter) Import(userID uuid.UUID, r io.Reader) (*tips.ImportResult, error) {
-	return nil, nil
 }
 
 /* adapter that satisfies progress.Service without heavy logic */
@@ -444,44 +410,27 @@ func TestSessionSummary(t *testing.T) {
 
 func TestSessionCreateDaily(t *testing.T) {
 	uid := uuid.New()
-	tip := &tips.TipResponse{ID: uuid.New(), Content: "tip"}
 
-	t.Run("success with tip", func(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
 		store := newSessionStore()
 		store.countDueReviewsFn = func(uuid.UUID) (int64, error) { return 3, nil }
 		store.countWarmupCandidatesFn = func(uuid.UUID) (int64, error) { return 5, nil }
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
 			return &models.Session{ID: uuid.New(), Mode: "daily", Name: "Repaso diario"}, nil
 		}
-		tipsSvc := &fakeTipsAdapter{getTipOfTheDayFn: func(uuid.UUID) (*tips.TipResponse, error) { return tip, nil }}
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: tipsSvc}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		got, err := svc.CreateDaily(uid)
 		require.NoError(t, err)
 		assert.NotNil(t, got)
 		assert.Equal(t, int64(3), got.DueCount)
 		assert.Equal(t, int64(5), got.WarmupCount)
-		assert.NotNil(t, got.Tip)
 		assert.Equal(t, "daily", got.Session.Mode)
-	})
-
-	t.Run("no tips → tip nil, no error", func(t *testing.T) {
-		store := newSessionStore()
-		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
-			return &models.Session{ID: uuid.New(), Mode: "daily"}, nil
-		}
-		tipsSvc := &fakeTipsAdapter{
-			getTipOfTheDayFn: func(uuid.UUID) (*tips.TipResponse, error) { return nil, apierr.ErrNotFound("Tip", "") },
-		}
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: tipsSvc}
-		got, err := svc.CreateDaily(uid)
-		require.NoError(t, err)
-		assert.Nil(t, got.Tip)
 	})
 
 	t.Run("store error → internal error", func(t *testing.T) {
 		store := newSessionStore()
 		store.countDueReviewsFn = func(uuid.UUID) (int64, error) { return 0, errors.New("fail") }
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: &fakeTipsAdapter{}}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		_, err := svc.CreateDaily(uid)
 		require.Error(t, err)
 	})
@@ -494,7 +443,7 @@ func TestSessionCreateDaily(t *testing.T) {
 			created++
 			return nil
 		}
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: &fakeTipsAdapter{}}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		_, err := svc.CreateDaily(uid)
 		require.Error(t, err)
 		var apiErr *apierr.APIError
@@ -505,13 +454,12 @@ func TestSessionCreateDaily(t *testing.T) {
 
 	t.Run("reutiliza la sesión diaria de hoy en progreso", func(t *testing.T) {
 		existingID := uuid.New()
-		tipID := uuid.New()
 		store := newSessionStore()
 		store.findTodayInProgressDailyFn = func(gotUserID uuid.UUID, since time.Time) (*models.Session, error) {
 			assert.Equal(t, uid, gotUserID)
 			assert.False(t, since.After(time.Now()), "el corte debe ser el inicio del día")
 			return &models.Session{
-				ID: existingID, UserID: uid, Mode: "daily", Status: "in_progress", TipID: &tipID,
+				ID: existingID, UserID: uid, Mode: "daily", Status: "in_progress",
 			}, nil
 		}
 		created := 0
@@ -519,15 +467,10 @@ func TestSessionCreateDaily(t *testing.T) {
 			created++
 			return nil
 		}
-		tipsSvc := &fakeTipsAdapter{getByIDFn: func(id uuid.UUID) (*tips.TipResponse, error) {
-			assert.Equal(t, tipID, id)
-			return &tips.TipResponse{ID: tipID, Content: "tip guardado"}, nil
-		}}
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: tipsSvc}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		got, err := svc.CreateDaily(uid)
 		require.NoError(t, err)
 		assert.Equal(t, existingID, got.Session.ID)
-		assert.NotNil(t, got.Tip)
 		assert.Zero(t, created, "debe reutilizar la sesión de hoy, no crear otra")
 	})
 }
@@ -544,7 +487,7 @@ func TestSessionNextQuestionDaily(t *testing.T) {
 		}
 		store.findAnsweredQuestionIDsFn = func(uuid.UUID) ([]uuid.UUID, error) { return nil, nil }
 		store.findNextDailyQuestionFn = func(uuid.UUID, []uuid.UUID) (*models.Question, error) { return q, nil }
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: &fakeTipsAdapter{}}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		got, err := svc.NextQuestion(id, uid)
 		require.NoError(t, err)
 		assert.Equal(t, q.ID, got.Question.ID)
@@ -559,7 +502,7 @@ func TestSessionNextQuestionDaily(t *testing.T) {
 		store.findNextDailyQuestionFn = func(uuid.UUID, []uuid.UUID) (*models.Question, error) {
 			return nil, gorm.ErrRecordNotFound
 		}
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: &fakeTipsAdapter{}}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		_, err := svc.NextQuestion(id, uid)
 		require.Error(t, err)
 		var apiErr *apierr.APIError

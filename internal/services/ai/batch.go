@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/felipe/dev-test-api/internal/models"
 )
 
 const (
@@ -34,8 +36,11 @@ type GeneratedOption struct {
 // BatchRequest describe una generación en lote. Count nunca supera el máximo
 // por trabajo (ai.max_per_job) y se resuelve en una sola llamada a la IA.
 type BatchRequest struct {
-	TopicNames      []string
-	Difficulty      string
+	TopicNames []string
+	Difficulty string
+	// QuestionType es el tipo pedido: mixed, single_choice, multiple_choice o
+	// true_false. Vacío se trata como single_choice (retrocompatible).
+	QuestionType    string
 	Count           int
 	ExistingContent []string
 }
@@ -56,10 +61,10 @@ func (g *Generator) GenerateQuestions(ctx context.Context, req BatchRequest) ([]
 	}
 
 	userPrompt := buildBatchUserPrompt(req)
-	log.Printf("🤖 Generando %d preguntas en lote sobre: %s (dificultad: %s)",
-		req.Count, strings.Join(req.TopicNames, ", "), req.Difficulty)
+	log.Printf("🤖 Generando %d preguntas (%s) en lote sobre: %s (dificultad: %s)",
+		req.Count, questionTypeLabel(req.QuestionType), strings.Join(req.TopicNames, ", "), req.Difficulty)
 
-	responseText, err := g.client.Chat(ctx, batchSystemPrompt, userPrompt, g.runtimeSettings())
+	responseText, err := g.client.Chat(ctx, buildBatchSystemPrompt(req.QuestionType), userPrompt, g.runtimeSettings())
 	if err != nil {
 		return nil, err
 	}
@@ -118,9 +123,9 @@ func buildBatchUserPrompt(req BatchRequest) string {
 		promptDifficulty = "variada (elige aleatoriamente entre beginner, intermediate y advanced)"
 	}
 
-	sb.WriteString(fmt.Sprintf("Genera EXACTAMENTE %d preguntas single_choice de dificultad \"%s\" sobre: %s.\n",
-		req.Count, promptDifficulty, strings.Join(req.TopicNames, ", ")))
-	sb.WriteString("Recuerda: solo tipo single_choice, 4 opciones, exactamente 1 correcta, TODO en español. Si alguna opción contiene código, usa el formato con triple backtick y lenguaje.\n")
+	sb.WriteString(fmt.Sprintf("Genera EXACTAMENTE %d preguntas %s de dificultad \"%s\" sobre: %s.\n",
+		req.Count, questionTypePhrase(req.QuestionType), promptDifficulty, strings.Join(req.TopicNames, ", ")))
+	sb.WriteString("Recuerda: " + questionTypeReminder(req.QuestionType) + " TODO en español. Si alguna opción contiene código, usa el formato con triple backtick y lenguaje.\n")
 	sb.WriteString("Cada pregunta debe tratar un concepto DISTINTO: no repitas ni reformules el mismo concepto.\n")
 
 	if len(req.ExistingContent) > 0 {
@@ -135,4 +140,46 @@ func buildBatchUserPrompt(req BatchRequest) string {
 	}
 
 	return sb.String()
+}
+
+// questionTypeLabel es la etiqueta legible que va al log del worker.
+func questionTypeLabel(questionType string) string {
+	switch questionType {
+	case models.GenerationQuestionTypeMixed:
+		return "mixta"
+	case models.QuestionTypeMultipleChoice:
+		return "selección múltiple"
+	case models.QuestionTypeTrueFalse:
+		return "verdadero/falso"
+	default:
+		return "selección única"
+	}
+}
+
+// questionTypePhrase describe el tipo en la primera línea del prompt.
+func questionTypePhrase(questionType string) string {
+	switch questionType {
+	case models.GenerationQuestionTypeMixed:
+		return "mezclando los 3 tipos (single_choice, multiple_choice y true_false)"
+	case models.QuestionTypeMultipleChoice:
+		return "de tipo multiple_choice"
+	case models.QuestionTypeTrueFalse:
+		return "de tipo true_false"
+	default:
+		return "de tipo single_choice"
+	}
+}
+
+// questionTypeReminder repite las reglas de opciones del tipo pedido.
+func questionTypeReminder(questionType string) string {
+	switch questionType {
+	case models.GenerationQuestionTypeMixed:
+		return "mezcla los 3 tipos (single_choice con 4 opciones y 1 correcta, multiple_choice con 4 opciones y 2 o 3 correctas, true_false con 2 opciones Verdadero/Falso y 1 correcta)."
+	case models.QuestionTypeMultipleChoice:
+		return "solo tipo multiple_choice, 4 opciones, entre 2 y 3 correctas."
+	case models.QuestionTypeTrueFalse:
+		return "solo tipo true_false, exactamente 2 opciones (Verdadero/Falso), exactamente 1 correcta."
+	default:
+		return "solo tipo single_choice, 4 opciones, exactamente 1 correcta."
+	}
 }

@@ -1,6 +1,9 @@
 package tips
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -9,7 +12,7 @@ import (
 type Store interface {
 	FindPage(params ListTipsParams) ([]models.Tip, int64, error)
 	FindByID(id uuid.UUID) (*models.Tip, error)
-	FindRandom() (*models.Tip, error)
+	FindOfTheDay(day time.Time) (*models.Tip, error)
 	Create(tip *models.Tip) error
 	Update(tip *models.Tip) error
 	Delete(id uuid.UUID) error
@@ -51,9 +54,16 @@ func (s *gormStore) FindByID(id uuid.UUID) (*models.Tip, error) {
 	return &tip, nil
 }
 
-func (s *gormStore) FindRandom() (*models.Tip, error) {
+// FindOfTheDay elige el tip del día de forma determinista: el mismo durante
+// todo el día (UTC) y rota al siguiente. `md5(id || fecha)` reparte el catálogo
+// sin necesitar una tabla de rotación ni columnas nuevas.
+func (s *gormStore) FindOfTheDay(day time.Time) (*models.Tip, error) {
+	seed := day.UTC().Format("2006-01-02")
 	var tip models.Tip
-	err := s.db.Preload("Topic").Order("RANDOM()").First(&tip).Error
+	err := s.db.
+		Order(fmt.Sprintf("md5(id::text || '%s')", seed)).
+		Preload("Topic").
+		First(&tip).Error
 	if err != nil {
 		return nil, err
 	}
