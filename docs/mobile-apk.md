@@ -218,8 +218,9 @@ Store. Instalación: `adb install -r <ruta>.apk` o copiando el APK al teléfono.
 Notas:
 
 - `android/` es prebuild generado (gitignored): no lee `app.json` ni
-  `app.config.ts`. Si cambiás `expo.version`/`versionCode` **o el nombre**
-  (`EXPO_PUBLIC_APP_NAME`), corré
+  `app.config.ts`. Si cambiás `expo.version`/`versionCode`, el nombre
+  (`EXPO_PUBLIC_APP_NAME`) **o los iconos** (`assets/`, regenerados con
+  `make icons`; ver `docs/branding.md`), corré
   `npx expo prebuild --platform android --no-install` (el target
   `mobile-apk-local APP_NAME=...` ya lo hace). Si usás `--clean`, respaldá y
   restaurá `android/app/debug.keystore` (misma firma = se instala encima).

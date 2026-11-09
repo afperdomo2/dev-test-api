@@ -35,6 +35,7 @@ Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Ini
 - **Bottom sheet**: `@gorhom/bottom-sheet` para menús de acciones (requiere reanimated + gesture-handler del SDK).
 - **Markdown**: `react-native-markdown-display` para contenido de preguntas/explicaciones.
 - **Nombre por entorno**: `EXPO_PUBLIC_APP_NAME` (build-time, default `DevTest`). En local: `make mobile-apk-local APP_NAME="DevTest Pruebas"` (ejecuta prebuild). `app.config.ts` sobreescribe `expo.name`; `app.json` sigue siendo la fuente de `version`/`versionCode`.
+- **Iconos**: `assets/icon.png` + capas adaptive (foreground/monochrome) se generan desde `brand/` con `make icons`. Cambiar assets exige `expo prebuild` + bump + rebuild. Detalle: `docs/branding.md`.
 
 ## Versionado
 

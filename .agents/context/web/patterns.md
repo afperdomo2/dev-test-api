@@ -277,6 +277,17 @@ function handleRefresh() {
 - Icons: `@mdi/font` (Material Design Icons, imported in `plugins/vuetify.ts`)
 - SASS overrides: `apps/web/src/styles/settings.scss`
 
+## Label + `v-progress-linear` rows
+
+Rows that pair a label with a horizontal bar (stats, dashboards, topic lists) must align the bars in a single column:
+
+- Label column with a **fixed `flex-basis`** (`flex: 0 1 220px; min-width: 120px`) — identical in every row, so all bars start at the same X. `shrink` + `min-width` keep the bar usable on mobile.
+- Label text with `text-truncate` (ellipsis) **plus `:title`** for the full value. Prefer a single line; don't stack metadata (e.g. the topic's category) under the name — it doubles the row height and eats the width the bar needs.
+- Counter **outside** the bar, in a fixed-width right column (`min-width: 32px; text-align: right`): a short bar can't hold a centered number.
+- Bar with explicit `class="flex-grow-1"`.
+
+Never use `text-no-wrap` + `max-width` for the label: the text isn't clipped, it overflows and paints over the bar, and the variable width makes the same percentage look like different bar lengths.
+
 ## Delete confirmation rule
 
 Any destructive action (delete, bulk remove) MUST show a confirmation dialog before executing. The dialog must:

@@ -3,6 +3,7 @@
         migrate-up migrate-down migrate-status migrate-create \
         fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover \
         e2e e2e-ui e2e-report e2e-docker \
+        icons \
         mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint mobile-apk mobile-apk-local mobile-bump \
         docker-env docker-env-prod docker-dev docker-dev-up docker-dev-down docker-dev-reset \
         docker-prod docker-prod-down docker-prod-reset docker-prod-logs \
@@ -186,6 +187,12 @@ e2e-ui:
 e2e-report:
 	@echo "📊 Opening Playwright report..."
 	@pnpm --filter dev-test-frontend test:e2e:report
+
+# ── Branding (iconos web + mobile) ─────────────────────
+
+# Fuente de verdad: brand/icon.svg + brand/mark.svg. Detalle: docs/branding.md.
+icons:
+	@bash scripts/generate-icons.sh
 
 # ── Mobile (apps/mobile/) ──────────────────────────────
 

@@ -37,6 +37,7 @@ Page → useQuery(queries.*Options()) → service → apiClient → backend
 - Contracto API (envelope `{ data }`, errores RFC 9457, camelCase): `.agents/context/backend/responses.md`.
 - Design system UI: Vuetify (componentes + `VITE_*` env). Ver `.agents/context/web/architecture.md`.
 - Identidad de build: `VITE_APP_NAME` (default `DevTest`) y `VITE_APP_COLOR` (presets en `src/config/app.ts`); se compilan en el bundle y exigen rebuild.
+- **Iconos/PWA**: favicons y manifest en `apps/web/public/` (`favicon.svg|ico`, `apple-touch-icon.png`, `icon-192|512.png`, `maskable-512.png`, `site.webmanifest`). Son generados: no se editan a mano, se regeneran con `make icons` desde `brand/`. Detalle: `docs/branding.md`.
 
 ## Details
 

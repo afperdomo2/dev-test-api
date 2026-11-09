@@ -57,7 +57,8 @@ dev-test-api/
 │   ├── modules/
 │   └── server/
 ├── pkg/                       # Paquetes públicos
-├── docs/                      # Swagger auto-generado
+├── brand/                     # Fuente de iconos web + mobile (make icons)
+├── docs/                      # Swagger auto-generado + guías (branching, APK, branding)
 ├── apps/
 │   ├── web/                   # SPA Vue 3 + Vite (ver apps/web/README.md)
 │   └── mobile/                # Expo React Native (ver apps/mobile/README.md)
@@ -204,6 +205,12 @@ recompilá. Versioná antes de compilar con `make mobile-bump [VERSION=x.y.z]`
 ```
 apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 ```
+
+### Branding (iconos web + mobile)
+
+| Comando | Descripción |
+|---------|-------------|
+| `make icons` | Regenera favicon/PWA y assets de la app desde `brand/*.svg` ([detalle](docs/branding.md)) |
 
 ### Docker
 
@@ -397,7 +404,7 @@ setup queda deshabilitado (403) y el servidor solo muestra un aviso al arrancar.
 ## 📝 Notas
 
 - El esquema de DB se gestiona con **migraciones versionadas goose** (`internal/database/migrations/*.sql`, baseline `00001_init.sql`). Se aplican al arrancar el servidor (embedded) o con `make migrate-*`. Cualquier cambio de esquema es una migración nueva, nunca `AutoMigrate`.
-- `docs/` y `tmp/` son auto-generados y no se editan manualmente.
+- `docs/swagger.yaml`, `docs/swagger.json` y `docs/docs.go` son auto-generados y no se editan manualmente; el resto de `docs/` son guías versionadas. `tmp/` también es auto-generado.
 - Air se instaló como project tool (`go get -tool`), no requiere instalación global.
 - `internal/` es privado al módulo Go — no puede ser importado desde fuera del proyecto.
 

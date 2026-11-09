@@ -60,6 +60,7 @@ feedback rápido; no ejecuta suites completas por cambios menores.
 | `make build` | Build Go binary to `./tmp/main` |
 | `make run` | `go run main.go` on `:8080` |
 | `make swagger` | Regenerate `docs/` from Swagger annotations |
+| `make icons` | Regenera favicon/PWA y assets mobile desde `brand/*.svg` ([detalle](docs/branding.md)) |
 | `make check` | `make fmt` then `make vet` |
 | `make staged-check` | lefthook pre-commit sobre `{staged_files}` (verificación rápida) |
 | `make test` | Unit tests (`go test -short -count=1`) |
@@ -144,7 +145,8 @@ suite is a close/CI check, not something to run after every edit.
 - **Seguridad (convenciones)** — autorización por objeto en el **service** → **404** (nunca 403 para ocultar existencia); payload grande → **413** con `ErrPayloadTooLarge`; orden de middlewares y timeouts en `.agents/context/backend/architecture.md`; contrato de errores en `.agents/context/backend/responses.md`.
 - **`internal/` is Go-private** — the compiler blocks external imports.
 - **DB schema is goose-migrated** — `internal/database/migrations/*.sql` is the source of truth (base `00001_init.sql`); migrations run on server start (embedded) and via `make migrate-*`. **Any schema/DDL change = new migration file**, never AutoMigrate. `goose` is a Go tool (`go tool goose`).
-- **`tmp/` is auto-generated and gitignored; `docs/` is auto-generated but IS versioned** — never edit either manually (`make swagger` regenera `docs/swagger.yaml|json|docs.go`).
+- **`tmp/` is auto-generated and gitignored; `docs/swagger.yaml|json` and `docs/docs.go` are auto-generated and versioned** — never edit them manually (`make swagger` regenerates). El resto de `docs/` son guías versionadas y se editan a mano.
+- **Iconos (web + mobile)** — fuente única en `brand/icon.svg` + `brand/mark.svg`; `make icons` regenera `apps/web/public/` y `apps/mobile/assets/`. No editar los archivos generados ni copiar iconos a mano. Detalle: `docs/branding.md`.
 - **Air** and **Lefthook** are Go project tools in `go.mod` — invoke via `go tool air`, `go tool lefthook`, or their `make` targets.
 - **Git hooks** (lefthook, `lefthook.yml`) — todos los jobs se filtran por `glob`, así que un cambio de docs/markdown no dispara nada:
   - **pre-commit** (rápido, sobre los archivos staged): `gofmt` + `go vet` + `go test -short` **solo en los paquetes Go afectados**; `shared-typecheck`; web (`prettier --write`, `eslint`, `vue-tsc`, `vitest related`); mobile (`tsc`, `eslint`, `jest --findRelatedTests`).
@@ -313,6 +315,7 @@ Each fact has a **single source of truth**. Other files reference it, not duplic
 | Design system (mobile) | `.agents/context/mobile/design-system.md` | `apps/mobile/src/core/theme/tokens.ts`, `.agents/context/mobile/architecture.md`, `apps/mobile/README.md`, this file |
 | Docker / entornos / Dokploy | `.agents/context/devops/containers.md` + `docker/README.md` | this file, `README.md` |
 | Build del APK (URL compilada, Gradle local / EAS) | `docs/mobile-apk.md` | this file, `README.md`, `apps/mobile/AGENTS.md` |
+| Branding / iconos web + mobile | `docs/branding.md` | this file, `README.md`, `apps/web/AGENTS.md`, `apps/mobile/AGENTS.md` |
 | Per-project quick context | `apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md` | `opencode.json` (`instructions`), this file |
 
 **When updating architecture**: touch the source of truth, then update every file that references it. Never duplicate the same fact in two places.

@@ -465,6 +465,21 @@
 
 ---
 
+## Branding — icono web + mobile
+
+- [x] **BR-1** — Web: favicon completo + PWA
+  - Acceptance: favicon SVG/ICO, apple-touch 180, iconos 192/512 + maskable, manifest enlazado con `theme-color`; nginx sirve `.webmanifest` como `application/manifest+json`
+  - Verify: `make icons` determinista · `make fe-dev` + `curl -I` · Prettier · `make docker-config` + `make docker-prod` + `make docker-smoke`
+  - Files: `brand/{icon,mark}.svg`, `scripts/generate-icons.sh`, `Makefile`, `apps/web/public/*`, `apps/web/index.html`, `docker/web/nginx.conf`, `docs/branding.md`
+  - Hecho: máster teal `#0F766E` + monograma D `#F0FDFA`; `make icons` genera favicon.svg/ico (16/24/32/48), apple-touch 180, 192/512 + maskable y el set mobile · **dos corridas con sha256 idéntico** · Vite y nginx devuelven `site.webmanifest` como `application/manifest+json` (nginx 1.29 no trae el MIME; se agregó `location = /site.webmanifest`) · `docker-smoke` ✅ y CSP intacta · Prettier ✅
+- [~] **BR-2** — Mobile: icono + adaptive
+  - Acceptance: `icon.png` opaco 1024, foreground/monochrome con zona segura, `adaptiveIcon.backgroundColor` de marca (sin `backgroundImage`)
+  - Verify: `make mobile-bump` + `make mobile-apk-local APP_NAME="DevTest"` + revisar launcher y adaptive icon en el dispositivo
+  - Files: `apps/mobile/assets/*`, `apps/mobile/app.json`
+  - Hecho: assets regenerados (`icon.png` 1024 opaco, foreground 1024 al 77% de zona segura, monochrome 432) y `app.json` con `backgroundColor: "#0F766E"`; `expo config` parsea OK · queda compilar/instalar el APK y verificar el launcher (el `versionCode` sube en ese paso)
+
+---
+
 ## Verificación final
 
 - [x] **VF-1** — Backend: `make fmt` + `make vet` + `make test` (+ `make build`)
