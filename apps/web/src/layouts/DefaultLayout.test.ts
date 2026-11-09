@@ -56,6 +56,7 @@ function mountLayout(isAdmin = false) {
 describe('DefaultLayout', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    document.title = ''
     vi.mocked(getUnreadCount).mockResolvedValue({ count: 0 })
   })
 
@@ -64,14 +65,66 @@ describe('DefaultLayout', () => {
     expect(wrapper.text()).toContain(APP_NAME)
   })
 
+  it('muestra el avatar del usuario en la app bar', () => {
+    const { wrapper } = mountLayout(true)
+
+    const identity = wrapper.find('.identity-activator')
+    expect(identity.exists()).toBe(true)
+    expect(identity.find('.v-avatar').exists()).toBe(true)
+    expect(identity.text()).not.toContain('test@example.com')
+  })
+
+  it('expone email y rol en el aria-label y el title del botón de cuenta', () => {
+    const { wrapper } = mountLayout(true)
+
+    const identity = wrapper.find('.identity-activator')
+    expect(identity.attributes('aria-label')).toBe('Cuenta de test@example.com (Administrador)')
+    expect(identity.attributes('title')).toBe('Cuenta de test@example.com (Administrador)')
+  })
+
+  it('identifica al usuario en el sidebar', () => {
+    const { wrapper } = mountLayout(true)
+
+    expect(wrapper.find('.v-navigation-drawer').text()).toContain('test@example.com')
+  })
+
+  it('incluye rol y email en el título de la pestaña', () => {
+    mountLayout(true)
+
+    expect(document.title).toBe(`Admin · test@example.com — ${APP_NAME}`)
+  })
+
+  it('vuelve al nombre de la app al cerrar sesión', async () => {
+    const { wrapper } = mountLayout(true)
+    const vm = wrapper.vm as unknown as { logout: () => void }
+
+    vm.logout()
+    await wrapper.vm.$nextTick()
+
+    expect(document.title).toBe(APP_NAME)
+  })
+
   it('muestra la campana de notificaciones', () => {
     const { wrapper } = mountLayout()
     expect(wrapper.find('[aria-label="Notificaciones"]').exists()).toBe(true)
   })
 
-  it('expone Mi perfil en el sidebar', () => {
+  it('el bloque de identidad del sidebar lleva a Mi perfil', () => {
+    const { wrapper } = mountLayout(true)
+
+    const drawer = wrapper.find('.v-navigation-drawer')
+    const profileLink = drawer.find('a[href="/profile"]')
+    expect(profileLink.exists()).toBe(true)
+    expect(profileLink.attributes('aria-label')).toContain('test@example.com')
+    expect(profileLink.text()).toContain('test@example.com')
+    expect(profileLink.text()).toContain('Administrador')
+  })
+
+  it('no duplica el acceso a Mi perfil en el sidebar', () => {
     const { wrapper } = mountLayout()
-    expect(wrapper.text()).toContain('Mi perfil')
+
+    const drawer = wrapper.find('.v-navigation-drawer')
+    expect(drawer.findAll('a[href="/profile"]')).toHaveLength(1)
   })
 
   it('muestra el badge con el número de no leídas', async () => {

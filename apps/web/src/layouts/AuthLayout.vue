@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { useAppStore } from '@/stores/app.store'
 import { APP_COLOR, APP_NAME } from '@/config/app'
+import { useDocumentTitle } from '@/composables/useDocumentTitle'
 
 const appStore = useAppStore()
+
+useDocumentTitle(() => APP_NAME)
 </script>
 
 <template>

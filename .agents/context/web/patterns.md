@@ -269,6 +269,17 @@ function handleRefresh() {
 }
 ```
 
+## Identidad del usuario logueado
+
+El usuario debe poder identificarse en cualquier página **sin abrir menús ni entrar a "Mi perfil"** (necesario cuando hay muchas pestañas abiertas de cuentas distintas).
+
+- **App bar** (`DefaultLayout.vue`): botón de cuenta con **solo el avatar** (inicial). Abre el menú con "Mi perfil" y "Cerrar sesión". El email y el rol no se muestran en la barra ni se repiten en el menú: viven en el sidebar, en el título de la pestaña y en el `aria-label`/`title` del botón.
+- **Sidebar** (`#append`): el mismo `UserIdentity` (`variant="sidebar"`) es el **link a "Mi perfil"**: un `v-list-item :to="/profile"` con chevron, hover, estado activo y `aria-label` (`Mi perfil de <email> (<rol>)`). No hay un item "Mi perfil" separado; "Cerrar sesión" queda como acción aparte. El drawer es `permanent`, así que se ve siempre en desktop.
+- **Título de pestaña**: `useDocumentTitle()` + `buildDocumentTitle()` → `Rol · email — APP_NAME` (p. ej. `Admin · admin@empresa.com — DevTest`). El rol va **primero** porque el navegador trunca el título por la derecha. Sin usuario → `APP_NAME`. `AuthLayout` fija `APP_NAME` para que al cerrar sesión no quede el usuario anterior.
+- **Etiquetas de rol**: `roleLabel()` / `shortRoleLabel()` en `utils/identity.ts`. No hardcodear `'Administrador'` / `'Usuario'` en componentes.
+- **Rol = icono + color + texto** (nunca solo color): en el sidebar el chip va `tonal` con `mdi-shield-account` + `error` (admin) o `mdi-account` + `info` (usuario). En la app bar el avatar va blanco con la inicial en `primary` para contrastar con cualquier `VITE_APP_COLOR`.
+- **El avatar** está siempre visible en la app bar; el email y el rol se ven en el sidebar (desktop) y en el título de la pestaña.
+
 ## Styling
 
 - Vuetify theming: `plugins/vuetify.ts` (light/dark themes with color palette)
