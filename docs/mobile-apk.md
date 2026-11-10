@@ -61,6 +61,11 @@ volver a firmar actualizaciones.
 Cambiar `app.example.com` por el dominio real **antes** de compilar. El
 preflight falla si sigue el placeholder.
 
+> El dominio **no se commitea**: `eas.json` queda con el placeholder. Solo se
+> edita para un build EAS cloud (y se revierte después). En el build local la
+> URL se pasa como variable de entorno (`make mobile-apk-local API_URL=…`), que
+> es el camino por defecto y no toca `eas.json`.
+
 `apps/mobile/app.config.ts` sobreescribe `expo.name` con
 `EXPO_PUBLIC_APP_NAME` (default `DevTest`). `app.json` sigue siendo la fuente de
 `version` y `versionCode`.
