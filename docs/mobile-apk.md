@@ -217,6 +217,9 @@ xdg-open "$(realpath apps/mobile/android/app/build/outputs/apk/release)"
 realpath apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 ```
 
+Atajo: `make mobile-apk-copy` copia el APK a Descargas con nombre versionado
+(ver "Copiar el APK a Descargas").
+
 Firmado con **debug keystore**: sirve para instalar a mano, **no** para Play
 Store. Instalación: `adb install -r <ruta>.apk` o copiando el APK al teléfono.
 
@@ -230,6 +233,27 @@ Notas:
   `mobile-apk-local APP_NAME=...` ya lo hace). Si usás `--clean`, respaldá y
   restaurá `android/app/debug.keystore` (misma firma = se instala encima).
 - Si el APK sigue con la URL vieja: `./gradlew clean` y repetir el paso 2.
+
+## Copiar el APK a Descargas
+
+Gradle deja el APK en una ruta profunda. Para tenerlo a mano sin buscarlo:
+
+```bash
+make mobile-apk-copy
+# ✅ APK copiado: /home/<usuario>/Descargas/DevTest-1.1.4-11.apk
+```
+
+- Destino por defecto: el directorio de descargas del sistema
+  (`xdg-user-dir DOWNLOAD`), con fallback `~/Downloads`, `~/Descargas` y `~`.
+- El nombre incluye app, `version` y `versionCode`
+  (`DevTest-1.1.4-11.apk`): dos builds distintos nunca se pisan.
+- **Copia**, no mueve: el original sigue en
+  `apps/mobile/android/app/build/outputs/apk/release/app-release.apk` para
+  `adb install -r`.
+- Destino alternativo: `make mobile-apk-copy APK_DEST_DIR=/ruta`. Equivale a
+  `bash scripts/copy-mobile-apk.sh <apk> <destino>`.
+- El script avisa si el bundle horneado conserva el placeholder
+  `app.example.com` o una URL de desarrollo.
 
 ## Pruebas locales (sin APK)
 

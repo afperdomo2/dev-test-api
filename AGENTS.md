@@ -49,6 +49,16 @@ feedback rápido; no ejecuta suites completas por cambios menores.
   `make docker-prod` + `make docker-smoke` si cambia runtime/nginx/env. No
   levantar los 3 stacks para un cambio de docs.
 
+## Rule: el APK lo compila el humano
+
+El agente **nunca** ejecuta `make mobile-apk-local` ni `make mobile-apk` (Gradle
+y EAS son builds largos): entrega el comando exacto y espera el resultado. No lo
+lanza en segundo plano ni lo reintenta por su cuenta.
+
+Después del build, `make mobile-apk-copy` deja una copia con nombre versionado
+en el directorio de Descargas (`DevTest-1.1.4-11.apk`), sin mover el original.
+Detalle: `docs/mobile-apk.md` → "Copiar el APK a Descargas".
+
 ## Commands
 
 ### Backend (root)
@@ -129,7 +139,8 @@ Guía completa: `docker/README.md` · invariantes para agentes: `.agents/context
 | `make docker-backup` / `docker-restore FILE=…` | Backup / restore de la DB de prod-local |
 | `make e2e-docker` | Playwright contra prod-local |
 | `make mobile-apk` | Preflight + APK manual en EAS cloud |
-| `make mobile-apk-local` | APK release local con Gradle (`API_URL=…` opcional) |
+| `make mobile-apk-local` | APK release local con Gradle (`API_URL=…` opcional) — **lo ejecuta el humano** |
+| `make mobile-apk-copy` | Copia el APK a Descargas con nombre versionado (`APK_DEST_DIR=…` opcional) |
 | `make mobile-bump` | Versiona la app mobile (semver + `versionCode` +1) |
 
 Format the web files you touch with Prettier and let `make staged-check` run
@@ -169,12 +180,14 @@ suite is a close/CI check, not something to run after every edit.
 - **Bash defensive patterns** — any `.sh` script must follow strict mode (`set -Eeuo pipefail`). See skill `bash-defensive-patterns` in the Skills section below.
 - **Contenedores** — 3 entornos: dev (`docker/compose.dev.yaml`, Compose Watch), prod-local (`docker/compose.prod.yaml`, same-origin `:8088`) y Dokploy (`docker/compose.dokploy.yaml`, DB en el stack). Detalles e invariantes en `.agents/context/devops/containers.md`. Nunca publicar la DB en prod/Dokploy, nunca `down -v` fuera de dev, y `TRUSTED_PROXIES` siempre con el CIDR del proxy.
 - **APK mobile** — el humano **prefiere build local con Gradle**, no EAS cloud.
-  Comando: `make mobile-apk-local API_URL=https://…` (o el detalle en
+  Comando: `make mobile-apk-local API_URL=https://…` (**lo corre el humano**,
+  ver *Rule: el APK lo compila el humano*; el detalle en
   `docs/mobile-apk.md` → "Build local con Gradle"). `EXPO_PUBLIC_API_BASE_URL`
   se compila en el bundle: si cambia el backend, recompilar. Obligatorio borrar
   `app/build/generated/assets` + `app/build/intermediates/assets` antes de
   compilar, si no Gradle reusa el bundle con la URL vieja. EAS cloud
-  (`make mobile-apk`) solo si lo pide explícitamente.
+  (`make mobile-apk`) solo si lo pide explícitamente. Después del build,
+  `make mobile-apk-copy` deja una copia en Descargas con nombre versionado.
   - **Versionado mobile** — todo APK nuevo se versiona: `make mobile-bump
     [VERSION=x.y.z]` (MAJOR rompe el backend, MINOR feature visible, PATCH
     fix/config) y `versionCode` +1 siempre. Un cambio mobile no se cierra

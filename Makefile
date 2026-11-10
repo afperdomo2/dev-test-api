@@ -4,7 +4,7 @@
         fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover \
         e2e e2e-ui e2e-report e2e-docker \
         icons \
-        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint mobile-apk mobile-apk-local mobile-bump \
+        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint mobile-apk mobile-apk-local mobile-apk-copy mobile-bump \
         docker-env docker-env-prod docker-dev docker-dev-up docker-dev-down docker-dev-reset \
         docker-prod docker-prod-down docker-prod-reset docker-prod-logs \
         docker-build docker-config docker-seed docker-smoke docker-backup docker-restore
@@ -233,6 +233,8 @@ mobile-apk:
 API_URL ?= https://devtest.afperdomo.cloud
 APP_NAME ?=
 APK_PATH ?= apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+# Destino de `make mobile-apk-copy`. Vacío = directorio de Descargas del sistema.
+APK_DEST_DIR ?=
 
 mobile-apk-local:
 	@echo "🏗️  Compilando APK local (Gradle) → $(API_URL)..."
@@ -251,6 +253,13 @@ mobile-apk-local:
 		EXPO_PUBLIC_APP_NAME="$(APP_NAME)" \
 		EXPO_PUBLIC_API_BASE_URL=$(API_URL) ./gradlew assembleRelease
 	@echo "✅ APK: $(CURDIR)/$(APK_PATH)"
+	@echo "💡 Copiar a Descargas con nombre versionado: make mobile-apk-copy"
+
+# Copia el APK compilado a una carpeta accesible (Descargas por defecto).
+# No mueve el original: `adb install -r` sigue funcionando sobre la ruta de build.
+# Destino alternativo: make mobile-apk-copy APK_DEST_DIR=/ruta
+mobile-apk-copy:
+	@bash scripts/copy-mobile-apk.sh "$(CURDIR)/$(APK_PATH)" "$(APK_DEST_DIR)"
 
 # Sube version (semver) y versionCode (+1) en app.json, y lo refleja en el
 # proyecto nativo generado. Detalle: docs/mobile-apk.md → "Versionado".

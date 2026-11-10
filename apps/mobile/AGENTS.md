@@ -10,7 +10,8 @@ Stack: **React Native + Expo SDK 57** + **Expo Router** (file-based) + **NativeT
 | `pnpm --filter mobile typecheck` | `tsc --noEmit` (corre tras cada cambio) |
 | `pnpm --filter mobile test:run` | Unit tests (`jest-expo`, co-located `*.test.ts`) |
 | `pnpm --filter mobile android` / `ios` | Abrir en dispositivo |
-| `make mobile-apk-local` | APK Android local con Gradle (`API_URL=…`, `APP_NAME=…` opcional); ruta y detalle en `docs/mobile-apk.md` |
+| `make mobile-apk-local` | APK Android local con Gradle (`API_URL=…`, `APP_NAME=…` opcional) — **lo ejecuta el humano, nunca el agente**; ruta y detalle en `docs/mobile-apk.md` |
+| `make mobile-apk-copy` | Copia el APK a Descargas con nombre versionado (`APK_DEST_DIR=…` opcional) |
 | `make mobile-bump [VERSION=x.y.z]` | Sube `version` (semver) y `versionCode` (+1) y sincroniza el proyecto nativo |
 
 ## Structure
@@ -36,6 +37,7 @@ Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Ini
 - **Markdown**: `react-native-markdown-display` para contenido de preguntas/explicaciones. Los bloques de código se resaltan con `HighlightedCode` (highlight.js vía `@devtest/shared`; paleta en `codeTheme` de los tokens).
 - **Nombre por entorno**: `EXPO_PUBLIC_APP_NAME` (build-time, default `DevTest`). En local: `make mobile-apk-local APP_NAME="DevTest Pruebas"` (ejecuta prebuild). `app.config.ts` sobreescribe `expo.name`; `app.json` sigue siendo la fuente de `version`/`versionCode`.
 - **Iconos**: `assets/icon.png` + capas adaptive (foreground/monochrome) se generan desde `brand/` con `make icons`. Cambiar assets exige `expo prebuild` + bump + rebuild. Detalle: `docs/branding.md`.
+- **El APK lo compila el humano**: el agente entrega `make mobile-apk-local API_URL=…` y espera; nunca ejecuta el build (regla en el `AGENTS.md` raíz). Para tener el APK a mano: `make mobile-apk-copy`.
 
 ## Versionado
 
