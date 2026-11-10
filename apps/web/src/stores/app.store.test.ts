@@ -3,6 +3,7 @@ import { useAppStore } from './app.store'
 
 describe('app.store', () => {
   beforeEach(() => {
+    localStorage.clear()
     setActivePinia(createPinia())
   })
 
@@ -13,12 +14,36 @@ describe('app.store', () => {
     expect(store.snackbar).toEqual({ show: false, message: '', color: 'success' })
   })
 
-  it('toggleTheme switches', () => {
+  it('restores the persisted theme', () => {
+    localStorage.setItem('app_theme', 'dark')
+    const store = useAppStore()
+    expect(store.theme).toBe('dark')
+  })
+
+  it('ignores an invalid persisted theme', () => {
+    localStorage.setItem('app_theme', 'purple')
+    const store = useAppStore()
+    expect(store.theme).toBe('light')
+  })
+
+  it('toggleTheme switches and persists', () => {
     const store = useAppStore()
     store.toggleTheme()
     expect(store.theme).toBe('dark')
+    expect(localStorage.getItem('app_theme')).toBe('dark')
     store.toggleTheme()
     expect(store.theme).toBe('light')
+    expect(localStorage.getItem('app_theme')).toBe('light')
+  })
+
+  it('keeps the theme after a store recreation (F5)', () => {
+    const first = useAppStore()
+    first.toggleTheme()
+
+    setActivePinia(createPinia())
+    const second = useAppStore()
+
+    expect(second.theme).toBe('dark')
   })
 
   it('toggleSidebar flips', () => {

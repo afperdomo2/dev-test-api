@@ -282,8 +282,8 @@ El usuario debe poder identificarse en cualquier página **sin abrir menús ni e
 
 ## Styling
 
-- Vuetify theming: `plugins/vuetify.ts` (light/dark themes with color palette)
-- Theme toggle: `stores/app.store.ts` → `toggleTheme()`
+- Vuetify theming: `plugins/vuetify.ts` (`defaultTheme` se inicializa desde el tema persistido; paletas light/dark)
+- Theme toggle: `stores/app.store.ts` → `toggleTheme()`. El tema elegido se guarda **por dispositivo** en `localStorage` (`app_theme`) con `getTheme()`/`setTheme()` de `utils/storage.ts`, así sobrevive a un F5 o a reiniciar el dev server. Valores inválidos caen a `light`.
 - Font: Roboto via `unplugin-fonts` (configured in `vite.config.ts`)
 - Icons: `@mdi/font` (Material Design Icons, imported in `plugins/vuetify.ts`)
 - SASS overrides: `apps/web/src/styles/settings.scss`

@@ -55,6 +55,54 @@ describe('SessionStudyPage', () => {
     expect(screen.getByLabelText('Opción A')).toBeOnTheScreen()
   })
 
+  it('Confirmar está deshabilitado sin selección', async () => {
+    await render(<SessionStudyPage />)
+    await screen.findByText(/Pregunta de prueba/)
+
+    const confirmar = screen.getByLabelText('Confirmar respuesta')
+    expect(confirmar).toBeDisabled()
+
+    await fireEvent.press(confirmar)
+    expect(submitAnswer).not.toHaveBeenCalled()
+  })
+
+  it('en single_choice la nueva selección reemplaza a la anterior', async () => {
+    jest.mocked(submitAnswer).mockResolvedValue({ id: 'a1', isCorrect: true } as never)
+
+    await render(<SessionStudyPage />)
+    await screen.findByText(/Pregunta de prueba/)
+
+    await fireEvent.press(screen.getByLabelText('Opción A'))
+    await fireEvent.press(screen.getByLabelText('Opción B'))
+    await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
+
+    await waitFor(() =>
+      expect(submitAnswer).toHaveBeenCalledWith(
+        's1',
+        expect.objectContaining({ selectedOptions: ['o2'] }),
+      ),
+    )
+  })
+
+  it('en multiple_choice acumula las selecciones', async () => {
+    jest.mocked(getNextQuestion).mockResolvedValue({ ...question, type: 'multiple_choice' })
+    jest.mocked(submitAnswer).mockResolvedValue({ id: 'a1', isCorrect: true } as never)
+
+    await render(<SessionStudyPage />)
+    await screen.findByText(/Pregunta de prueba/)
+
+    await fireEvent.press(screen.getByLabelText('Opción A'))
+    await fireEvent.press(screen.getByLabelText('Opción B'))
+    await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
+
+    await waitFor(() =>
+      expect(submitAnswer).toHaveBeenCalledWith(
+        's1',
+        expect.objectContaining({ selectedOptions: ['o1', 'o2'] }),
+      ),
+    )
+  })
+
   it('responder envía la respuesta al backend', async () => {
     jest.mocked(submitAnswer).mockResolvedValue({
       id: 'a1',
@@ -79,6 +127,20 @@ describe('SessionStudyPage', () => {
 
     expect(await screen.findByLabelText('Opción A, correcta')).toBeOnTheScreen()
     expect(screen.getByLabelText('Siguiente pregunta')).toBeOnTheScreen()
+  })
+
+  it('tras responder hay un único "Siguiente" (barra fija, sin duplicar)', async () => {
+    jest
+      .mocked(submitAnswer)
+      .mockResolvedValue({ id: 'a1', isCorrect: true, correctOptions: ['o1'] } as never)
+
+    await render(<SessionStudyPage />)
+    await screen.findByText(/Pregunta de prueba/)
+
+    await fireEvent.press(screen.getByLabelText('Opción A'))
+    await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
+
+    expect(await screen.findAllByLabelText('Siguiente pregunta')).toHaveLength(1)
   })
 
   it('un error de red no avanza y el reintento reutiliza el clientAnswerId', async () => {

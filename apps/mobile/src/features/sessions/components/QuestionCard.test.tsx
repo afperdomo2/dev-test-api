@@ -17,12 +17,6 @@ const question: NextQuestionItem = {
   topics: ['Geografía'],
 }
 
-const multipleQuestion: NextQuestionItem = {
-  ...question,
-  id: 'q2',
-  type: 'multiple_choice',
-}
-
 const resultBase: SessionAnswer = {
   id: 'a1',
   questionId: 'q1',
@@ -40,10 +34,9 @@ describe('QuestionCard', () => {
       <QuestionCard
         question={question}
         mode="answer"
-        selectedOptions={[]}
+        selected={[]}
         lastResult={null}
-        onAnswer={jest.fn()}
-        onNext={jest.fn()}
+        onToggleOption={jest.fn()}
       />,
     )
 
@@ -64,113 +57,84 @@ describe('QuestionCard', () => {
       <QuestionCard
         question={legacyQuestion}
         mode="answer"
-        selectedOptions={[]}
+        selected={[]}
         lastResult={null}
-        onAnswer={jest.fn()}
-        onNext={jest.fn()}
+        onToggleOption={jest.fn()}
       />,
     )
 
     expect(screen.getByText(/capital de Francia/)).toBeOnTheScreen()
-    expect(screen.getByLabelText('Confirmar respuesta')).toBeOnTheScreen()
   })
 
-  it('envía la opción seleccionada al confirmar', async () => {
-    const onAnswer = jest.fn()
+  it('avisa de la opción pulsada (la selección la decide la pantalla)', async () => {
+    const onToggleOption = jest.fn()
     await render(
       <QuestionCard
         question={question}
         mode="answer"
-        selectedOptions={[]}
+        selected={[]}
         lastResult={null}
-        onAnswer={onAnswer}
-        onNext={jest.fn()}
+        onToggleOption={onToggleOption}
       />,
     )
 
     await fireEvent.press(screen.getByLabelText('París'))
-    await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
 
-    expect(onAnswer).toHaveBeenCalledWith(['o1'])
+    expect(onToggleOption).toHaveBeenCalledWith('o1')
   })
 
-  it('en single_choice la nueva selección reemplaza a la anterior', async () => {
-    const onAnswer = jest.fn()
+  it('marca como seleccionadas las opciones que recibe', async () => {
     await render(
       <QuestionCard
         question={question}
         mode="answer"
-        selectedOptions={[]}
+        selected={['o2']}
         lastResult={null}
-        onAnswer={onAnswer}
-        onNext={jest.fn()}
+        onToggleOption={jest.fn()}
       />,
     )
 
-    await fireEvent.press(screen.getByLabelText('París'))
-    await fireEvent.press(screen.getByLabelText('Lyon'))
-    await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
-
-    expect(onAnswer).toHaveBeenCalledWith(['o2'])
-  })
-
-  it('en multiple_choice acumula las selecciones', async () => {
-    const onAnswer = jest.fn()
-    await render(
-      <QuestionCard
-        question={multipleQuestion}
-        mode="answer"
-        selectedOptions={[]}
-        lastResult={null}
-        onAnswer={onAnswer}
-        onNext={jest.fn()}
-      />,
+    expect(screen.getByLabelText('París').props.accessibilityState).toEqual(
+      expect.objectContaining({ selected: false }),
     )
-
-    await fireEvent.press(screen.getByLabelText('París'))
-    await fireEvent.press(screen.getByLabelText('Lyon'))
-    await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
-
-    expect(onAnswer).toHaveBeenCalledWith(['o1', 'o2'])
+    expect(screen.getByLabelText('Lyon').props.accessibilityState).toEqual(
+      expect.objectContaining({ selected: true }),
+    )
   })
 
-  it('no envía nada si no hay selección', async () => {
-    const onAnswer = jest.fn()
+  it('con disabled no permite togglear (mientras se envía)', async () => {
+    const onToggleOption = jest.fn()
     await render(
       <QuestionCard
         question={question}
         mode="answer"
-        selectedOptions={[]}
+        selected={[]}
         lastResult={null}
-        onAnswer={onAnswer}
-        onNext={jest.fn()}
+        onToggleOption={onToggleOption}
+        disabled
       />,
     )
 
-    await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
+    await fireEvent.press(screen.getByLabelText('París'))
 
-    expect(onAnswer).not.toHaveBeenCalled()
+    expect(onToggleOption).not.toHaveBeenCalled()
   })
 
-  it('en modo resultado muestra "Siguiente" y no permite responder', async () => {
-    const onAnswer = jest.fn()
-    const onNext = jest.fn()
+  it('en modo resultado no permite togglear', async () => {
+    const onToggleOption = jest.fn()
     await render(
       <QuestionCard
         question={question}
         mode="result"
-        selectedOptions={['o1']}
-        lastResult={null}
-        onAnswer={onAnswer}
-        onNext={onNext}
+        selected={['o1']}
+        lastResult={resultBase}
+        onToggleOption={onToggleOption}
       />,
     )
 
-    await fireEvent.press(screen.getByLabelText('Siguiente pregunta'))
-    expect(onNext).toHaveBeenCalledTimes(1)
-
     await fireEvent.press(screen.getByLabelText('Lyon'))
-    expect(onAnswer).not.toHaveBeenCalled()
+
+    expect(onToggleOption).not.toHaveBeenCalled()
   })
 
   it('en resultado con acierto marca la opción correcta en verde', async () => {
@@ -178,15 +142,14 @@ describe('QuestionCard', () => {
       <QuestionCard
         question={question}
         mode="result"
-        selectedOptions={['o1']}
+        selected={['o1']}
         lastResult={{
           ...resultBase,
           selectedOptions: ['o1'],
           isCorrect: true,
           correctOptions: ['o1'],
         }}
-        onAnswer={jest.fn()}
-        onNext={jest.fn()}
+        onToggleOption={jest.fn()}
       />,
     )
 
@@ -200,15 +163,14 @@ describe('QuestionCard', () => {
       <QuestionCard
         question={question}
         mode="result"
-        selectedOptions={['o2']}
+        selected={['o2']}
         lastResult={{
           ...resultBase,
           selectedOptions: ['o2'],
           isCorrect: false,
           correctOptions: ['o1'],
         }}
-        onAnswer={jest.fn()}
-        onNext={jest.fn()}
+        onToggleOption={jest.fn()}
       />,
     )
 
@@ -225,10 +187,9 @@ describe('QuestionCard', () => {
       <QuestionCard
         question={question}
         mode="result"
-        selectedOptions={['o1']}
+        selected={['o1']}
         lastResult={{ ...resultBase, selectedOptions: ['o1'], isCorrect: true }}
-        onAnswer={jest.fn()}
-        onNext={jest.fn()}
+        onToggleOption={jest.fn()}
       />,
     )
 
@@ -240,10 +201,9 @@ describe('QuestionCard', () => {
       <QuestionCard
         question={question}
         mode="result"
-        selectedOptions={['o2']}
+        selected={['o2']}
         lastResult={{ ...resultBase, selectedOptions: ['o2'], isCorrect: false }}
-        onAnswer={jest.fn()}
-        onNext={jest.fn()}
+        onToggleOption={jest.fn()}
       />,
     )
 
@@ -251,38 +211,5 @@ describe('QuestionCard', () => {
       within(screen.getByLabelText('Lyon, incorrecta')).getByText('close-circle'),
     ).toBeOnTheScreen()
     expect(within(screen.getByLabelText('París')).queryByText('check-circle')).toBeNull()
-  })
-
-  it('al pasar del estado de envío a resultado el botón "Siguiente" sigue habilitado', async () => {
-    const { rerender } = await render(
-      <QuestionCard
-        question={question}
-        mode="answer"
-        selectedOptions={[]}
-        lastResult={null}
-        onAnswer={jest.fn()}
-        onNext={jest.fn()}
-        submitting
-      />,
-    )
-
-    expect(screen.getByLabelText('Confirmar respuesta')).toBeDisabled()
-
-    await rerender(
-      <QuestionCard
-        question={question}
-        mode="result"
-        selectedOptions={['o1']}
-        lastResult={null}
-        onAnswer={jest.fn()}
-        onNext={jest.fn()}
-      />,
-    )
-
-    const next = screen.getByLabelText('Siguiente pregunta')
-    expect(next).toBeEnabled()
-    // Regresión Android (react-native#56777): si `disabled` pasa de `true` a
-    // `undefined`, el host deja de ser touch target y solo responde el texto.
-    expect(next.props.accessibilityState).toEqual(expect.objectContaining({ disabled: false }))
   })
 })

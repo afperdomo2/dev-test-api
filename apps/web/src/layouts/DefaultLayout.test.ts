@@ -7,11 +7,15 @@ import { useAuthStore } from '@/stores/auth.store'
 import { getUnreadCount } from '@/api/services/notifications.service'
 import { APP_NAME } from '@/config/app'
 
-vi.mock('@/utils/storage', () => ({
-  getToken: vi.fn(() => null),
-  setToken: vi.fn(),
-  removeToken: vi.fn(),
-}))
+vi.mock('@/utils/storage', async () => {
+  const actual = await vi.importActual('@/utils/storage')
+  return {
+    ...(actual as object),
+    getToken: vi.fn(() => null),
+    setToken: vi.fn(),
+    removeToken: vi.fn(),
+  }
+})
 
 vi.mock('@/api/services/notifications.service', () => ({
   getUnreadCount: vi.fn(() => Promise.resolve({ count: 0 })),
@@ -56,6 +60,7 @@ function mountLayout(isAdmin = false) {
 describe('DefaultLayout', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     document.title = ''
     vi.mocked(getUnreadCount).mockResolvedValue({ count: 0 })
   })

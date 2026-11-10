@@ -12,7 +12,7 @@
 | `apps/web/src/router/` | Vue Router: routes.ts + index.ts with guards | Yes — add routes here |
 | `apps/web/src/composables/` | Reusable composables (useDebounce, usePagination, useFormErrors) | Yes |
 | `apps/web/src/types/` | Thin re-exports from `@devtest/shared` | Yes — add new re-exports when shared adds types |
-| `apps/web/src/utils/` | `storage.ts` (localStorage) + `format.ts` y `validators.ts` (ver filas siguientes) | Yes |
+| `apps/web/src/utils/` | `storage.ts` (localStorage: token + tema) + `format.ts` y `validators.ts` (ver filas siguientes) | Yes |
 | `apps/web/src/utils/format.ts` | Re-export from `@devtest/shared` | Keep in sync with shared |
 | `apps/web/src/utils/validators.ts` | Vuetify rule factories (import predicates from `@devtest/shared`) | Yes |
 | `apps/web/src/components/` | Shared components (`ErrorState`, `ListPageHeader`, `PaginatedFooter`, `CodeContent`, `DifficultySelect`, `TopicSelect`, `TopicAutocomplete`, `UserSummaryCard`) | Yes — add reusable UI here |

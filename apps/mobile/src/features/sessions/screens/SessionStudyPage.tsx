@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { NextQuestionItem, SessionAnswer, SessionSummary } from '@devtest/shared'
 
 import { QuestionCard } from '@/features/sessions/components/QuestionCard'
+import { useScrollToTopOnChange } from '@/features/sessions/useScrollToTopOnChange'
 import {
   getSessionById,
   getSessionSummary,
@@ -43,8 +44,12 @@ export default function SessionStudyPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitErrorIsNetwork, setSubmitErrorIsNetwork] = useState(false)
+  // Qué acción muestra la barra fija. Se mantiene durante el `loading` para que
+  // el botón no cambie de etiqueta mientras espera la red.
+  const [barAction, setBarAction] = useState<'confirm' | 'next'>('confirm')
   const loadingRef = useRef(false)
   const submittingRef = useRef(false)
+  const scrollRef = useRef<ScrollView>(null)
   // UUID estable por pregunta: se reutiliza en los reintentos y se renueva al
   // cargar la siguiente (idempotencia, D-35).
   const clientAnswerIdRef = useRef<string | null>(null)
@@ -52,6 +57,10 @@ export default function SessionStudyPage() {
   const questionNumber = summary ? summary.answerCount + 1 : 1
   const questionLimit = summary?.questionLimit ?? null
   const progress = questionLimit ? questionNumber / questionLimit : 0
+
+  // La siguiente pregunta debe empezar arriba, no donde quedó el scroll de la
+  // anterior (acción al final de una pregunta/ explicación larga).
+  useScrollToTopOnChange(scrollRef, question?.id)
 
   const loadSessionData = useCallback(async (sessionId: string) => {
     const [sess, sum] = await Promise.all([
@@ -78,6 +87,7 @@ export default function SessionStudyPage() {
         const next = await getNextQuestion(sessionId)
         clientAnswerIdRef.current = randomUUID()
         setQuestion(next)
+        setBarAction('confirm')
         setPhase('question')
       } catch (err) {
         const { session, summary: sum } = await loadSessionData(sessionId)
@@ -146,10 +156,12 @@ export default function SessionStudyPage() {
         setSummary((prev) =>
           prev ? { ...prev, answerCount: prev.answerCount + 1 } : prev,
         )
+        setBarAction('next')
         setPhase('result')
       } catch (err) {
         // No se avanza: el usuario ve el error y puede reintentar sin duplicar.
         const network = isNetworkError(err)
+        setBarAction('confirm')
         setPhase('question')
         setSubmitErrorIsNetwork(network)
         setSubmitError(
@@ -172,6 +184,21 @@ export default function SessionStudyPage() {
     }
     void loadNext(id)
   }, [id, questionNumber, questionLimit, loadNext])
+
+  const handleToggleOption = useCallback(
+    (optionId: string) => {
+      if (!question || phase === 'result' || phase === 'loading') return
+      setSelectedOptions((prev) => {
+        if (question.type === 'multiple_choice') {
+          return prev.includes(optionId)
+            ? prev.filter((id) => id !== optionId)
+            : [...prev, optionId]
+        }
+        return [optionId]
+      })
+    },
+    [question, phase],
+  )
 
   const handleFinish = useCallback(async () => {
     if (!id) return
@@ -325,17 +352,20 @@ export default function SessionStudyPage() {
         </View>
       )}
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+      >
         {question && (
           <QuestionCard
             key={question.id}
             question={question}
             mode={phase === 'result' ? 'result' : 'answer'}
-            selectedOptions={selectedOptions}
+            selected={selectedOptions}
             lastResult={lastResult}
-            onAnswer={handleAnswer}
-            onNext={handleNext}
-            submitting={phase === 'loading'}
+            onToggleOption={handleToggleOption}
+            disabled={phase === 'loading'}
           />
         )}
 
@@ -361,6 +391,40 @@ export default function SessionStudyPage() {
           </View>
         ) : null}
       </ScrollView>
+
+      <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+        {barAction === 'next' ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              phase === 'loading' && styles.actionButtonDisabled,
+              pressed && styles.actionButtonPressed,
+            ]}
+            onPress={handleNext}
+            disabled={phase === 'loading'}
+            accessibilityRole="button"
+            accessibilityLabel="Siguiente pregunta"
+          >
+            <Text style={styles.actionLabel}>Siguiente</Text>
+            <MaterialCommunityIcons name="arrow-right" size={18} color={colors.onPrimary} />
+          </Pressable>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              (selectedOptions.length === 0 || phase === 'loading') && styles.actionButtonDisabled,
+              pressed && styles.actionButtonPressed,
+            ]}
+            onPress={() => void handleAnswer(selectedOptions)}
+            disabled={selectedOptions.length === 0 || phase === 'loading'}
+            accessibilityRole="button"
+            accessibilityLabel="Confirmar respuesta"
+          >
+            <MaterialCommunityIcons name="check" size={18} color={colors.onPrimary} />
+            <Text style={styles.actionLabel}>Confirmar</Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   )
 }
@@ -420,7 +484,37 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
+    // Deja aire para la barra fija de acción (no tapa la explicación).
+    paddingBottom: spacing['3xl'],
     flexGrow: 1,
+  },
+  actionBar: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+    minHeight: 48,
+  },
+  actionButtonPressed: {
+    opacity: 0.85,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
+  actionLabel: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.onPrimary,
   },
   submitError: {
     marginTop: spacing.lg,
