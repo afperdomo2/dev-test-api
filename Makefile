@@ -321,11 +321,7 @@ docker-build:
 	$(PROD_COMPOSE) $(PROD_ENV) build --pull
 
 docker-config:
-	@echo "🔎 Validando los 3 compose..."
-	$(DEV_COMPOSE) --env-file docker/env/.env.dev.example config -q
-	$(PROD_COMPOSE) --env-file docker/env/.env.prod.example config -q
-	$(DOKPLOY_COMPOSE) --env-file docker/env/.env.dokploy.example config -q
-	@echo "✅ Compose válidos"
+	@bash scripts/docker-config.sh
 
 docker-seed:
 	@bash scripts/docker-seed.sh

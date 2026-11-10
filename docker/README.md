@@ -29,12 +29,21 @@ make docker-env        # crea docker/.env desde .env.dev.example
 make docker-env-prod   # crea docker/.env.prod desde .env.prod.example
 ```
 
-Editá `docker/.env.prod` y reemplazá los `CHANGE_ME`. Generá secretos reales:
+Ambos comandos **generan secretos aleatorios** (`openssl rand -hex`) en
+`DB_PASSWORD`, `JWT_SECRET` y `SETUP_TOKEN`, y los imprimen en pantalla. No hay
+que editar nada para arrancar, y no hay valores de ejemplo que copiar.
+
+Si preferís hacerlo a mano (`cp docker/env/.env.prod.example docker/.env.prod`):
 
 ```bash
 openssl rand -hex 32   # JWT_SECRET
 openssl rand -hex 16   # DB_PASSWORD / SETUP_TOKEN
 ```
+
+> En los `.example`, las variables que dependen de la máquina van **vacías**.
+> Un valor escrito solo se acepta si es el default del compose; si es un
+> override deliberado, la línea lleva el comentario `# override`.
+> `make docker-config` verifica esa sincronía.
 
 `docker/.env` y `docker/.env.prod` están gitignorados. Nunca commitearlos.
 
@@ -53,7 +62,7 @@ Es un comando **en primer plano**: muestra logs y sale con Ctrl+C.
 |---|---|---|
 | web (Vite) | http://localhost:3030 | HMR; `/api` proxya a `api:8080` |
 | API | http://localhost:8082 | Swagger en `/swagger/index.html` |
-| PostgreSQL | localhost:5435 | `devtest` / `dev-only-password-change-me` / `dev_test_api` |
+| PostgreSQL | localhost:5435 | `devtest` / valor de `DB_PASSWORD` en `docker/.env` / `dev_test_api` |
 
 ### Hot reload
 
@@ -116,9 +125,10 @@ make docker-smoke          # valida contrato HTTP y cabeceras
 
 Flujo recomendado la primera vez:
 
-1. `make docker-env-prod` y editar `docker/.env.prod`.
+1. `make docker-env-prod` — genera `docker/.env.prod` con secretos aleatorios e
+   imprime `DB_PASSWORD` y `SETUP_TOKEN`.
 2. `make docker-prod`.
-3. Abrir http://localhost:8088, crear el admin con el `SETUP_TOKEN`.
+3. Abrir http://localhost:8088, crear el admin con el `SETUP_TOKEN` generado.
 4. Vaciar `SETUP_TOKEN` en `docker/.env.prod` y `make docker-prod` de nuevo.
 5. `make docker-smoke`.
 
@@ -136,11 +146,14 @@ El dump usa `--clean --if-exists`: el restore **reemplaza** los objetos de la DB
 
 ```bash
 make docker-prod-reset   # DB limpia (la suite hace setup del primer admin)
+make docker-env-prod     # recrea docker/.env.prod con un SETUP_TOKEN nuevo
 make docker-prod
-make e2e-docker
+E2E_SETUP_TOKEN="$(sed -n 's/^SETUP_TOKEN=//p' docker/.env.prod)" make e2e-docker
 ```
 
 Playwright usa `PLAYWRIGHT_BASE_URL` y **no** arranca Vite cuando está definida.
+`SETUP_TOKEN` se genera aleatorio: hay que pasárselo a la suite como
+`E2E_SETUP_TOKEN` (ver `apps/web/e2e/fixtures.ts`).
 
 ---
 
@@ -161,8 +174,10 @@ Un solo stack con `db` + `api` + `web`:
 2. En Dokploy: **Project → Create Service → Docker Compose**.
 3. **Compose Path**: `docker/compose.dokploy.yaml`
    (el contexto de build `..` resuelve a la raíz del repo).
-4. **Environment**: pegá las variables de `docker/env/.env.dokploy.example` con
-   secretos reales. `APP_ORIGIN` es obligatorio (`https://…`, sin `/` final).
+4. **Environment**: pegá las variables de `docker/env/.env.dokploy.example` y
+   completá las cuatro que están **vacías** (`APP_ORIGIN`, `DB_PASSWORD`,
+   `JWT_SECRET`, `SETUP_TOKEN`) con valores propios de ese servicio. El deploy
+   falla si quedan vacías: es intencional, no hay secretos de ejemplo.
 5. **Domains**: agregá el dominio al servicio **`web`**, puerto **`8080`**.
    Dejá que Dokploy inyecte las labels de Traefik (no las escribas a mano).
 6. **Deploy**. El primer arranque exige `SETUP_TOKEN` (DB vacía); si falta, el
@@ -247,6 +262,17 @@ volumen `db-data` y sus contenedores; no hay colisión. Comparten
 
 Reglas:
 
+- **Los `.example` solo documentan defaults**: un valor escrito debe ser
+  idéntico al default del compose (`${VAR:-x}`). Las variables sin default
+  (`${VAR:?}`, `SETUP_TOKEN`, `AI_API_KEY`, `EXPO_ACCESS_TOKEN`, `AI_MODEL`,
+  `AI_API_URL`, `APP_ORIGIN`) van **vacías**: las completa el humano o
+  `scripts/docker-env.sh` con `openssl rand`.
+- **Override explícito**: si necesitás un valor distinto del default (p. ej.
+  `CORS_ALLOWED_ORIGINS` en dev), la línea lleva el comentario `# override` al
+  final. Es la única forma de que `make docker-config` lo acepte.
+- **Nunca placeholders tipo `CHANGE_ME`**: un valor con pinta de default que
+  pasa las validaciones es peor que uno vacío; el sistema arranca con un
+  secreto público.
 - **Secretos**: `DB_PASSWORD`, `JWT_SECRET`, `SETUP_TOKEN`, `AI_API_KEY`,
   `EXPO_ACCESS_TOKEN`. Nunca en `ARG`/`ENV` de una imagen.
 - **Públicos**: `VITE_*` y `EXPO_PUBLIC_*` se compilan en el bundle. Solo URLs y
@@ -258,8 +284,10 @@ Reglas:
 - Las variables de hardening (`MAX_BODY_BYTES`, `AUTH_RATE_LIMIT_*`,
   `OPENCODE_*`, `EXPO_PUSH_URL`) están reenviadas por los tres compose con los
   defaults del backend. Si las omitís, el contenedor usa esos defaults.
-- `docker compose config` valida los tres YAML con los `.example`, sin secretos
-  reales: `make docker-config`.
+- `make docker-config` (= `scripts/docker-config.sh`) valida los tres YAML con
+  dummies (nunca secretos reales) **y** verifica que cada `.example` esté
+  sincronizado con su compose: variables documentadas, requeridas vacías,
+  defaults exactos y cero `CHANGE_ME`. Corre también en CI.
 
 ---
 

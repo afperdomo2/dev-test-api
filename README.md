@@ -37,8 +37,9 @@ make docker-prod        # build + up + healthchecks
 make docker-smoke       # verifica API, SPA y cabeceras
 ```
 
-La primera vez: editá `docker/.env.prod`, levantá prod-local, creá el admin con
-el `SETUP_TOKEN`, vacialo y redeployá. La DB no se publica; backup/restore con
+La primera vez: `make docker-env-prod` genera `docker/.env.prod` con secretos
+aleatorios y los imprime; levantá prod-local, creá el admin con ese `SETUP_TOKEN`,
+vacialo y redeployá. La DB no se publica; backup/restore con
 `make docker-backup` / `make docker-restore FILE=…`.
 
 Mobile no corre en Docker: Metro en el host y APK manual — **Gradle local**
@@ -124,8 +125,10 @@ El resto podés omitirlo salvo que quieras cambiar el default. La lista completa
 con comentarios, está en [`.env.example`](.env.example).
 
 Los compose de Docker fijan defaults propios por entorno (CORS, HSTS,
-`TRUSTED_PROXIES`, `JWT_EXPIRY_HOURS`, `GIN_MODE`, `SWAGGER_ENABLED`); ver
-[`docker/env/`](docker/env/) y [`docker/README.md`](docker/README.md).
+`TRUSTED_PROXIES`, `JWT_EXPIRY_HOURS`, `GIN_MODE`, `SWAGGER_ENABLED`) y sus
+`.example` siguen la misma regla: solo defaults, las obligatorias vacías
+(`make docker-env`/`docker-env-prod` las generan). Ver [`docker/env/`](docker/env/)
+y [`docker/README.md`](docker/README.md).
 
 Para web y mobile: [`apps/web/.env.example`](apps/web/.env.example) y
 [`apps/mobile/.env.example`](apps/mobile/.env.example).

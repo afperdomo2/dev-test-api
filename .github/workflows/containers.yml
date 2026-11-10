@@ -88,10 +88,4 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Validate dev / prod-local / dokploy
-        run: |
-          docker compose -f docker/compose.dev.yaml \
-            --env-file docker/env/.env.dev.example config -q
-          docker compose -f docker/compose.prod.yaml \
-            --env-file docker/env/.env.prod.example config -q
-          docker compose -f docker/compose.dokploy.yaml \
-            --env-file docker/env/.env.dokploy.example config -q
+        run: bash scripts/docker-config.sh

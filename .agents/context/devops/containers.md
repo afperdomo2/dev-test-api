@@ -35,7 +35,7 @@ docker/
 └── README.md
 apps/web/deploy/nginx-security.conf   # CSP/headers de la SPA
 docs/mobile-apk.md                    # runbook del APK
-scripts/{docker-env,docker-seed,docker-smoke,docker-backup,docker-restore,e2e-docker,preflight-apk}.sh
+scripts/{docker-env,docker-config,docker-seed,docker-smoke,docker-backup,docker-restore,e2e-docker,preflight-apk}.sh
 ```
 
 ## Comandos
@@ -91,11 +91,23 @@ scripts/{docker-env,docker-seed,docker-smoke,docker-backup,docker-restore,e2e-do
     No fijar `name:` ni `container_name`, y no compartir `JWT_SECRET` entre
     instancias (un token de pruebas valdría en producción). Cambian al menos
     `APP_ORIGIN`, `DB_NAME`, `DB_PASSWORD`, `JWT_SECRET` y `SETUP_TOKEN`.
+14. **Los `.example` solo documentan defaults**. Regla de `docker/env/*.example`:
+    - un valor escrito debe ser **idéntico** al default del compose
+      (`${VAR:-x}`); si es un override deliberado, la línea lleva `# override`;
+    - las variables sin default (`${VAR:?}`, `SETUP_TOKEN`, `AI_API_URL`,
+      `AI_MODEL`, `AI_API_KEY`, `EXPO_ACCESS_TOKEN`, `APP_ORIGIN`) van **vacías**:
+      las completa el humano o `scripts/docker-env.sh` con `openssl rand`;
+    - **prohibido `CHANGE_ME`**: un placeholder que pasa las validaciones
+      (`SETUP_TOKEN` ≥ 16, `DB_PASSWORD`/`JWT_SECRET` no vacías) hace que el
+      stack arranque con un secreto público y anula el fail-closed de D-38.
+    `make docker-config` (= `scripts/docker-config.sh`, también en CI) valida los
+    tres compose **y** esa sincronía; no dupliques esa lógica en el Makefile ni
+    en el workflow.
 
 ## Verificación al tocar Docker
 
 ```bash
-make docker-config                 # los 3 compose parsean
+make docker-config                 # los 3 compose parsean + .example sincronizados
 make docker-build                  # imágenes prod-local
 make docker-prod                   # up + healthchecks
 make docker-smoke                  # contrato HTTP + headers

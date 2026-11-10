@@ -133,7 +133,7 @@ Guía completa: `docker/README.md` · invariantes para agentes: `.agents/context
 | `make docker-prod` | Build + up + healthchecks de prod-local (`:8088`) |
 | `make docker-prod-down` / `docker-prod-reset` | Baja prod-local (reset borra datos) |
 | `make docker-build` | Construye las 2 imágenes de producción (`--pull`) |
-| `make docker-config` | Valida los 3 compose con sus env de ejemplo |
+| `make docker-config` | Valida los 3 compose **y** la sincronía `.example` ↔ compose (`scripts/docker-config.sh`) |
 | `make docker-seed` | Siembra las 50 preguntas en la DB de dev |
 | `make docker-smoke` | Verifica nginx, API, SPA y cabeceras |
 | `make docker-backup` / `docker-restore FILE=…` | Backup / restore de la DB de prod-local |
@@ -179,6 +179,7 @@ suite is a close/CI check, not something to run after every edit.
 - **Vuetify MCP** — available via `opencode.json`. Query component APIs with `vuetify_get_component_api_by_version` or `vuetify_get_feature_guide`.
 - **Bash defensive patterns** — any `.sh` script must follow strict mode (`set -Eeuo pipefail`). See skill `bash-defensive-patterns` in the Skills section below.
 - **Contenedores** — 3 entornos: dev (`docker/compose.dev.yaml`, Compose Watch), prod-local (`docker/compose.prod.yaml`, same-origin `:8088`) y Dokploy (`docker/compose.dokploy.yaml`, DB en el stack). Detalles e invariantes en `.agents/context/devops/containers.md`. Nunca publicar la DB en prod/Dokploy, nunca `down -v` fuera de dev, y `TRUSTED_PROXIES` siempre con el CIDR del proxy.
+- **`.example` de entorno** — solo valores que sean el default (del código o del compose); las obligatorias van vacías (`make docker-env`/`docker-env-prod` las generan con `openssl`), un override lleva `# override` y **nunca** se usa `CHANGE_ME`. `make docker-config` valida compose + sincronía (D-57, `.agents/context/devops/containers.md` → invariante 14).
 - **APK mobile** — el humano **prefiere build local con Gradle**, no EAS cloud.
   Comando: `make mobile-apk-local API_URL=https://…` (**lo corre el humano**,
   ver *Rule: el APK lo compila el humano*; el detalle en
