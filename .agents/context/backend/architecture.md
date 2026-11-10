@@ -270,6 +270,12 @@ cliente la responde ni el backend la corrige) y `NextQuestionItem.Options`/`Topi
 siempre como arrays (`[]`), nunca omitidos ni `null`. El mobile no debe asumir que un campo del
 contrato llega: los arrays se usan con `?? []`. Detalle: `tasks/daily-review.md`.
 
+**Orden de opciones (N-14):** `single_choice`/`multiple_choice` se barajan al presentar con
+`optionsForPresentation` (`sessions/options.go`): clave hash estable de `sessionID + questionID + optionID`.
+No usar `math/rand` ni depender del orden en que Postgres devuelva las filas (los preloads no llevan
+`ORDER BY`). La misma semilla se usa en `toNextQuestionItem` y en `ToAnswerDetailResponse` para que el
+repaso muestre el orden que vio el usuario. `true_false` se mantiene Verdadero/Falso. Motivo y evidencia: N-14.
+
 **Tip del día (D-53):** `GET /tips/today` → `tips.Service.GetTipOfTheDay()` elige con `FindOfTheDay(day)` un tip
 determinista por fecha UTC (`ORDER BY md5(id || fecha)`), así es estable durante el día y rota al siguiente.
 El tip **no** viaja en `POST /sessions/daily` (se quitó del DTO) ni se muestra en la pantalla de estudio;

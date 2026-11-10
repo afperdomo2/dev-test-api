@@ -357,7 +357,7 @@ func (s *sessionService) NextQuestion(sessionID, userID uuid.UUID) (*NextQuestio
 		}
 
 		resp := NextQuestionResponse{
-			Question: toNextQuestionItem(*question),
+			Question: toNextQuestionItem(*question, sess.ID),
 		}
 		return &resp, nil
 	}
@@ -376,7 +376,7 @@ func (s *sessionService) NextQuestion(sessionID, userID uuid.UUID) (*NextQuestio
 	}
 
 	resp := NextQuestionResponse{
-		Question: toNextQuestionItem(*question),
+		Question: toNextQuestionItem(*question, sess.ID),
 	}
 	return &resp, nil
 }

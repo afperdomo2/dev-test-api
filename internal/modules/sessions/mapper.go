@@ -128,8 +128,11 @@ func ToAnswerDetailResponse(a models.SessionAnswer) SessionAnswerDetailResponse 
 		}
 
 		if q.Options != nil {
-			resp.Question.Options = make([]QuestionSnapshotOption, len(q.Options))
-			for i, o := range q.Options {
+			// Mismo orden que vio el usuario en /next: la semilla es la misma
+			// (sesión, pregunta), así el repaso no reordena las opciones.
+			options := optionsForPresentation(q.Type, q.Options, a.SessionID, a.QuestionID)
+			resp.Question.Options = make([]QuestionSnapshotOption, len(options))
+			for i, o := range options {
 				resp.Question.Options[i] = QuestionSnapshotOption{
 					ID:        o.ID,
 					Content:   o.Content,
@@ -142,7 +145,7 @@ func ToAnswerDetailResponse(a models.SessionAnswer) SessionAnswerDetailResponse 
 	return resp
 }
 
-func toNextQuestionItem(q models.Question) NextQuestionItem {
+func toNextQuestionItem(q models.Question, sessionID uuid.UUID) NextQuestionItem {
 	// `options` y `topics` siempre se emiten como arrays (nunca se omiten ni
 	// salen `null`): el cliente hace `.map()` / `.length` sin comprobar.
 	item := NextQuestionItem{
@@ -154,7 +157,7 @@ func toNextQuestionItem(q models.Question) NextQuestionItem {
 		Topics:     make([]string, 0, len(q.Topics)),
 	}
 
-	for _, o := range q.Options {
+	for _, o := range optionsForPresentation(q.Type, q.Options, sessionID, q.ID) {
 		item.Options = append(item.Options, NextQuestionOption{
 			ID:      o.ID,
 			Content: o.Content,
