@@ -2,31 +2,50 @@
 import { computed, ref, watch } from 'vue'
 import TopicAutocomplete from '@/components/TopicAutocomplete.vue'
 import DifficultySelect from '@/components/DifficultySelect.vue'
-import type { GenerationDifficulty, GenerationStats } from '@/types/generation.types'
+import { IMPORT_PROMPT_KINDS, type PromptQuestionKind } from '@/constants/questionImport'
+import type {
+  GenerationDifficulty,
+  GenerationKind,
+  GenerationQuestionType,
+  GenerationStats,
+} from '@/types/generation.types'
 
 interface Props {
+  kind?: GenerationKind
   stats?: GenerationStats | null
   loading?: boolean
   disabled?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  kind: 'question',
   stats: null,
   loading: false,
   disabled: false,
 })
 
 const emit = defineEmits<{
-  submit: [payload: { topicIds: Array<string>; difficulty: GenerationDifficulty; quantity: number }]
+  submit: [
+    payload: {
+      topicIds: Array<string>
+      difficulty: GenerationDifficulty
+      questionType: GenerationQuestionType
+      quantity: number
+    },
+  ]
 }>()
 
 const topicIds = ref<Array<string>>([])
 const difficulty = ref<GenerationDifficulty>('random')
-const quantity = ref<number>(5)
+const questionType = ref<PromptQuestionKind>('mixed')
+const quantity = ref<number>(20)
 const touched = ref(false)
 
-const perJobCap = computed(() => props.stats?.perJobCap ?? 10)
-const defaultQuantity = computed(() => props.stats?.defaultQuantity ?? 5)
+const isTips = computed(() => props.kind === 'tip')
+const noun = computed(() => (isTips.value ? 'tips' : 'preguntas'))
+
+const perJobCap = computed(() => props.stats?.perJobCap ?? 20)
+const defaultQuantity = computed(() => props.stats?.defaultQuantity ?? 20)
 const reservedToday = computed(() => props.stats?.reservedToday ?? 0)
 const dailyCap = computed(() => props.stats?.dailyCap ?? 200)
 const remainingToday = computed(() => Math.max(0, dailyCap.value - reservedToday.value))
@@ -35,9 +54,16 @@ const remainingToday = computed(() => Math.max(0, dailyCap.value - reservedToday
 const maxSelectable = computed(() => Math.min(perJobCap.value, remainingToday.value))
 const budgetExhausted = computed(() => remainingToday.value === 0)
 
-watch(defaultQuantity, (value) => {
-  if (!touched.value) quantity.value = Math.min(value, maxSelectable.value || value)
-})
+// La cantidad inicial sigue al default del servidor y se recorta si queda poco
+// presupuesto hoy. No pisa lo que el usuario ya escribió.
+watch(
+  [defaultQuantity, maxSelectable],
+  ([value, cap]) => {
+    if (touched.value) return
+    quantity.value = Math.max(1, Math.min(value, cap || value))
+  },
+  { immediate: true },
+)
 
 watch([difficulty, quantity, topicIds], () => {
   touched.value = true
@@ -57,7 +83,23 @@ const quantityHint = computed(() => {
   if (maxSelectable.value < perJobCap.value) {
     return `Máx. ${maxSelectable.value} (quedan ${remainingToday.value} de ${dailyCap.value} hoy)`
   }
-  return `Máx. ${perJobCap.value} por trabajo`
+  return `Máx. ${perJobCap.value} ${noun.value} por trabajo`
+})
+
+/** Resumen legible de lo que se va a generar, para que no haya sorpresas. */
+const questionTypeHint = computed(() => {
+  const n = quantity.value > 0 ? quantity.value : 0
+  const prefix = n > 0 ? `Se generarán ${n} preguntas` : 'Se generarán preguntas'
+  switch (questionType.value) {
+    case 'single_choice':
+      return `${prefix} de selección única: 4 opciones y 1 correcta.`
+    case 'multiple_choice':
+      return `${prefix} de selección múltiple: 4 opciones y 2 o 3 correctas.`
+    case 'true_false':
+      return `${prefix} de verdadero/falso: 2 opciones y 1 correcta.`
+    default:
+      return `${prefix} mezclando selección única, selección múltiple y verdadero/falso.`
+  }
 })
 
 function submit() {
@@ -65,6 +107,7 @@ function submit() {
   emit('submit', {
     topicIds: topicIds.value,
     difficulty: difficulty.value,
+    questionType: questionType.value,
     quantity: quantity.value,
   })
 }
@@ -72,6 +115,7 @@ function submit() {
 function reset() {
   topicIds.value = []
   difficulty.value = 'random'
+  questionType.value = 'mixed'
   quantity.value = defaultQuantity.value
   touched.value = false
 }
@@ -82,21 +126,31 @@ defineExpose({ reset })
 <template>
   <v-card>
     <v-card-item>
-      <v-card-title class="text-subtitle-1">Encolar generación</v-card-title>
+      <v-card-title class="text-subtitle-1">
+        {{ isTips ? 'Encolar generación de tips' : 'Encolar generación de preguntas' }}
+      </v-card-title>
       <v-card-subtitle>
-        Un trabajo = una llamada a la IA. Las preguntas se guardan como públicas.
+        {{
+          isTips
+            ? 'Un trabajo = una llamada a la IA. Cada tip se asigna a un tema.'
+            : 'Un trabajo = una llamada a la IA. Las preguntas se guardan como públicas.'
+        }}
       </v-card-subtitle>
     </v-card-item>
 
     <v-card-text>
       <v-row dense>
-        <v-col cols="12" md="6">
-          <TopicAutocomplete v-model="topicIds" label="Temas" required />
+        <v-col cols="12" :md="isTips ? 8 : 6">
+          <TopicAutocomplete
+            v-model="topicIds"
+            :label="isTips ? 'Temas para los tips' : 'Temas'"
+            required
+          />
         </v-col>
-        <v-col cols="12" md="3">
+        <v-col v-if="!isTips" cols="12" md="3">
           <DifficultySelect v-model="difficulty" />
         </v-col>
-        <v-col cols="12" md="3">
+        <v-col cols="12" :md="isTips ? 4 : 3">
           <v-text-field
             v-model.number="quantity"
             :min="1"
@@ -110,7 +164,26 @@ defineExpose({ reset })
             :disabled="budgetExhausted"
           />
         </v-col>
+        <v-col v-if="!isTips" cols="12" md="6">
+          <v-select
+            v-model="questionType"
+            label="Tipo de pregunta"
+            :items="IMPORT_PROMPT_KINDS"
+            item-title="title"
+            item-value="value"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
       </v-row>
+
+      <v-alert v-if="!isTips" type="info" variant="tonal" density="compact" class="mt-4">
+        {{ questionTypeHint }}
+        <div class="text-caption mt-1">
+          Completar código no se genera con IA: se crea a mano desde Preguntas.
+        </div>
+      </v-alert>
     </v-card-text>
 
     <v-card-actions>
@@ -123,7 +196,7 @@ defineExpose({ reset })
         :disabled="!canSubmit"
         @click="submit"
       >
-        Generar
+        Generar {{ isTips ? 'tips' : 'preguntas' }}
       </v-btn>
     </v-card-actions>
   </v-card>

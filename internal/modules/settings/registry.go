@@ -52,9 +52,9 @@ func buildRegistry(cfg config.AIConfig) map[string]definition {
 	return map[string]definition{
 		KeyAIMaxPerJob: {
 			Type:        typeInt,
-			Default:     "10",
+			Default:     "20",
 			Min:         1,
-			Max:         10,
+			Max:         50,
 			Description: "Máximo de preguntas por solicitud de generación con IA",
 		},
 		KeyAIMaxPerDay: {
@@ -66,9 +66,9 @@ func buildRegistry(cfg config.AIConfig) map[string]definition {
 		},
 		KeyAIDefaultQuantity: {
 			Type:        typeInt,
-			Default:     "5",
+			Default:     "20",
 			Min:         1,
-			Max:         10,
+			Max:         50,
 			Description: "Cantidad de preguntas preseleccionada por defecto al encolar un trabajo",
 		},
 		KeyAIModel: {

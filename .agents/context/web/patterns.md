@@ -269,13 +269,35 @@ function handleRefresh() {
 }
 ```
 
+## Identidad del usuario logueado
+
+El usuario debe poder identificarse en cualquier página **sin abrir menús ni entrar a "Mi perfil"** (necesario cuando hay muchas pestañas abiertas de cuentas distintas).
+
+- **App bar** (`DefaultLayout.vue`): botón de cuenta con **solo el avatar** (inicial). Abre el menú con "Mi perfil" y "Cerrar sesión". El email y el rol no se muestran en la barra ni se repiten en el menú: viven en el sidebar, en el título de la pestaña y en el `aria-label`/`title` del botón.
+- **Sidebar** (`#append`): el mismo `UserIdentity` (`variant="sidebar"`) es el **link a "Mi perfil"**: un `v-list-item :to="/profile"` con chevron, hover, estado activo y `aria-label` (`Mi perfil de <email> (<rol>)`). No hay un item "Mi perfil" separado; "Cerrar sesión" queda como acción aparte. El drawer es `permanent`, así que se ve siempre en desktop.
+- **Título de pestaña**: `useDocumentTitle()` + `buildDocumentTitle()` → `Rol · email — APP_NAME` (p. ej. `Admin · admin@empresa.com — DevTest`). El rol va **primero** porque el navegador trunca el título por la derecha. Sin usuario → `APP_NAME`. `AuthLayout` fija `APP_NAME` para que al cerrar sesión no quede el usuario anterior.
+- **Etiquetas de rol**: `roleLabel()` / `shortRoleLabel()` en `utils/identity.ts`. No hardcodear `'Administrador'` / `'Usuario'` en componentes.
+- **Rol = icono + color + texto** (nunca solo color): en el sidebar el chip va `tonal` con `mdi-shield-account` + `error` (admin) o `mdi-account` + `info` (usuario). En la app bar el avatar va blanco con la inicial en `primary` para contrastar con cualquier `VITE_APP_COLOR`.
+- **El avatar** está siempre visible en la app bar; el email y el rol se ven en el sidebar (desktop) y en el título de la pestaña.
+
 ## Styling
 
-- Vuetify theming: `plugins/vuetify.ts` (light/dark themes with color palette)
-- Theme toggle: `stores/app.store.ts` → `toggleTheme()`
+- Vuetify theming: `plugins/vuetify.ts` (`defaultTheme` se inicializa desde el tema persistido; paletas light/dark)
+- Theme toggle: `stores/app.store.ts` → `toggleTheme()`. El tema elegido se guarda **por dispositivo** en `localStorage` (`app_theme`) con `getTheme()`/`setTheme()` de `utils/storage.ts`, así sobrevive a un F5 o a reiniciar el dev server. Valores inválidos caen a `light`.
 - Font: Roboto via `unplugin-fonts` (configured in `vite.config.ts`)
 - Icons: `@mdi/font` (Material Design Icons, imported in `plugins/vuetify.ts`)
 - SASS overrides: `apps/web/src/styles/settings.scss`
+
+## Label + `v-progress-linear` rows
+
+Rows that pair a label with a horizontal bar (stats, dashboards, topic lists) must align the bars in a single column:
+
+- Label column with a **fixed `flex-basis`** (`flex: 0 1 220px; min-width: 120px`) — identical in every row, so all bars start at the same X. `shrink` + `min-width` keep the bar usable on mobile.
+- Label text with `text-truncate` (ellipsis) **plus `:title`** for the full value. Prefer a single line; don't stack metadata (e.g. the topic's category) under the name — it doubles the row height and eats the width the bar needs.
+- Counter **outside** the bar, in a fixed-width right column (`min-width: 32px; text-align: right`): a short bar can't hold a centered number.
+- Bar with explicit `class="flex-grow-1"`.
+
+Never use `text-no-wrap` + `max-width` for the label: the text isn't clipped, it overflows and paints over the bar, and the variable width makes the same percentage look like different bar lengths.
 
 ## Delete confirmation rule
 
@@ -372,7 +394,7 @@ const wrapper = await mountWithProviders(MyComponent, {
 ### Known stubs
 
 - `ResizeObserver`, `visualViewport`, `matchMedia` stubbed in `setup.ts` for Vuetify `VOverlay`/`VDialog`.
-- `v-highlight` directive: mock `highlight.js/lib/core` (`highlightElement`, `getLanguage`, `registerLanguage`).
+- `v-highlight` directive: mock `@devtest/shared` (`getHighlighter`, `normalizeCodeLanguage`) — el registro de lenguajes vive ahí.
 
 ### Coverage
 

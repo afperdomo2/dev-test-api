@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { getTheme, setTheme, type Theme } from '@/utils/storage'
 
 export const useAppStore = defineStore('app', () => {
-  const theme = ref<'light' | 'dark'>('light')
+  const theme = ref<Theme>(getTheme() ?? 'light')
   const sidebarOpen = ref(true)
   const snackbar = ref({
     show: false,
@@ -12,6 +13,7 @@ export const useAppStore = defineStore('app', () => {
 
   function toggleTheme() {
     theme.value = theme.value === 'light' ? 'dark' : 'light'
+    setTheme(theme.value)
   }
 
   function toggleSidebar() {

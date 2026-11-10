@@ -2,10 +2,13 @@
 import { computed } from 'vue'
 import type { User } from '@/types/user.types'
 import { formatDate } from '@/utils/format'
+import { roleLabel } from '@/utils/identity'
 
 const props = defineProps<{
   user: User | null
 }>()
+
+const role = computed(() => roleLabel(props.user?.isAdmin ?? false))
 
 const formattedDate = computed(() =>
   props.user?.createdAt ? formatDate(props.user.createdAt) : '',
@@ -33,7 +36,7 @@ const formattedDate = computed(() =>
         <v-icon start size="18">
           {{ user?.isAdmin ? 'mdi-shield-account' : 'mdi-account' }}
         </v-icon>
-        {{ user?.isAdmin ? 'Administrador' : 'Usuario' }}
+        {{ role }}
       </v-chip>
       <div class="d-flex align-center ga-2 mt-3 text-caption text-medium-emphasis">
         <v-icon size="16" color="success">mdi-identifier</v-icon>

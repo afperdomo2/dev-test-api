@@ -3,6 +3,7 @@ package tips
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/google/uuid"
@@ -14,34 +15,36 @@ import (
 /* ---------- mocks ---------- */
 
 type mockTipStore struct {
-	findPageFn   func(params ListTipsParams) ([]models.Tip, int64, error)
-	findByIDFn   func(id uuid.UUID) (*models.Tip, error)
-	findRandomFn func() (*models.Tip, error)
-	createFn     func(tip *models.Tip) error
-	updateFn     func(tip *models.Tip) error
-	deleteFn     func(id uuid.UUID) error
-	bulkCreateFn func(tips []*models.Tip) error
+	findPageFn     func(params ListTipsParams) ([]models.Tip, int64, error)
+	findByIDFn     func(id uuid.UUID) (*models.Tip, error)
+	findOfTheDayFn func(day time.Time) (*models.Tip, error)
+	createFn       func(tip *models.Tip) error
+	updateFn       func(tip *models.Tip) error
+	deleteFn       func(id uuid.UUID) error
+	bulkCreateFn   func(tips []*models.Tip) error
 }
 
 func (m *mockTipStore) FindPage(p ListTipsParams) ([]models.Tip, int64, error) {
 	return m.findPageFn(p)
 }
 func (m *mockTipStore) FindByID(id uuid.UUID) (*models.Tip, error) { return m.findByIDFn(id) }
-func (m *mockTipStore) FindRandom() (*models.Tip, error)           { return m.findRandomFn() }
-func (m *mockTipStore) Create(tip *models.Tip) error               { return m.createFn(tip) }
-func (m *mockTipStore) Update(tip *models.Tip) error               { return m.updateFn(tip) }
-func (m *mockTipStore) Delete(id uuid.UUID) error                  { return m.deleteFn(id) }
-func (m *mockTipStore) BulkCreate(tips []*models.Tip) error        { return m.bulkCreateFn(tips) }
+func (m *mockTipStore) FindOfTheDay(day time.Time) (*models.Tip, error) {
+	return m.findOfTheDayFn(day)
+}
+func (m *mockTipStore) Create(tip *models.Tip) error        { return m.createFn(tip) }
+func (m *mockTipStore) Update(tip *models.Tip) error        { return m.updateFn(tip) }
+func (m *mockTipStore) Delete(id uuid.UUID) error           { return m.deleteFn(id) }
+func (m *mockTipStore) BulkCreate(tips []*models.Tip) error { return m.bulkCreateFn(tips) }
 
 func newTipStore() *mockTipStore {
 	return &mockTipStore{
-		findPageFn:   func(ListTipsParams) ([]models.Tip, int64, error) { return nil, 0, nil },
-		findByIDFn:   func(uuid.UUID) (*models.Tip, error) { return nil, gorm.ErrRecordNotFound },
-		findRandomFn: func() (*models.Tip, error) { return nil, gorm.ErrRecordNotFound },
-		createFn:     func(*models.Tip) error { return nil },
-		updateFn:     func(*models.Tip) error { return nil },
-		deleteFn:     func(uuid.UUID) error { return nil },
-		bulkCreateFn: func([]*models.Tip) error { return nil },
+		findPageFn:     func(ListTipsParams) ([]models.Tip, int64, error) { return nil, 0, nil },
+		findByIDFn:     func(uuid.UUID) (*models.Tip, error) { return nil, gorm.ErrRecordNotFound },
+		findOfTheDayFn: func(time.Time) (*models.Tip, error) { return nil, gorm.ErrRecordNotFound },
+		createFn:       func(*models.Tip) error { return nil },
+		updateFn:       func(*models.Tip) error { return nil },
+		deleteFn:       func(uuid.UUID) error { return nil },
+		bulkCreateFn:   func([]*models.Tip) error { return nil },
 	}
 }
 
@@ -101,19 +104,19 @@ func TestTipService_GetByID(t *testing.T) {
 func TestTipService_GetTipOfTheDay(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		store := newTipStore()
-		store.findRandomFn = func() (*models.Tip, error) {
+		store.findOfTheDayFn = func(time.Time) (*models.Tip, error) {
 			tip := &models.Tip{ID: uuid.New(), Content: "tip del día"}
 			tipWithTopic(tip)
 			return tip, nil
 		}
 		svc := newTipService(store, &mockTopicStore{})
-		resp, err := svc.GetTipOfTheDay(uuid.New())
+		resp, err := svc.GetTipOfTheDay()
 		require.NoError(t, err)
 		assert.Equal(t, "tip del día", resp.Content)
 	})
 	t.Run("empty store", func(t *testing.T) {
 		svc := newTipService(newTipStore(), &mockTopicStore{})
-		_, err := svc.GetTipOfTheDay(uuid.New())
+		_, err := svc.GetTipOfTheDay()
 		assert.Contains(t, err.Error(), "no encontrado")
 	})
 }

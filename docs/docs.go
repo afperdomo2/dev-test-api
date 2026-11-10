@@ -316,7 +316,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista paginada de los trabajos de generación con IA (solo administradores), filtrable por estado.",
+                "description": "Lista paginada de los trabajos de generación con IA (solo administradores), filtrable por estado y tipo de contenido.",
                 "produces": [
                     "application/json"
                 ],
@@ -329,6 +329,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filtrar por estado: pending, running, completed o failed",
                         "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por tipo: question o tip",
+                        "name": "kind",
                         "in": "query"
                     },
                     {
@@ -389,7 +395,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Encola un trabajo de generación por lotes (solo administradores). Resuelve N preguntas en una única llamada a la IA. La cantidad es opcional y por defecto usa el ajuste ai.default_quantity. Rechaza si se supera el tope diario.",
+                "description": "Encola un trabajo de generación por lotes (solo administradores). ` + "`" + `kind` + "`" + ` elige preguntas (` + "`" + `question` + "`" + `, default) o tips (` + "`" + `tip` + "`" + `); un trabajo = una llamada a la IA. La cantidad es opcional y por defecto usa el ajuste ai.default_quantity. Rechaza si se supera el tope diario compartido.",
                 "consumes": [
                     "application/json"
                 ],
@@ -399,7 +405,7 @@ const docTemplate = `{
                 "tags": [
                     "generation"
                 ],
-                "summary": "Encolar generación de preguntas con IA",
+                "summary": "Encolar generación con IA",
                 "parameters": [
                     {
                         "description": "Trabajo a encolar",
@@ -452,7 +458,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Consumo del día (reservado y generado), topes vigentes y colas por estado (solo administradores).",
+                "description": "Consumo del día (reservado y generado), topes vigentes y colas por estado (solo administradores). El presupuesto diario es compartido; ` + "`" + `kind` + "`" + ` solo filtra los contadores de cola.",
                 "produces": [
                     "application/json"
                 ],
@@ -460,6 +466,14 @@ const docTemplate = `{
                     "generation"
                 ],
                 "summary": "Estadísticas de generación con IA",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar contadores por tipo: question o tip",
+                        "name": "kind",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Estadísticas",
@@ -475,6 +489,12 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -2064,7 +2084,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una sesión diaria inteligente con repasos vencidos, calentamiento true_false y tip del día",
+                "description": "Crea (o reutiliza la de hoy) una sesión diaria inteligente: repasos vencidos, calentamiento true_false, práctica normal como fallback y tip del día. Sin candidatos devuelve 409 y no crea sesión.",
                 "produces": [
                     "application/json"
                 ],
@@ -2081,6 +2101,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -2688,6 +2714,43 @@ const docTemplate = `{
                     },
                     "422": {
                         "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tips/today": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve el tip del día. Es estable durante el día UTC y rota al siguiente. 404 si no hay tips.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tips"
+                ],
+                "summary": "Tip del día",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/tips.TipResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/apierr.APIError"
                         }
@@ -3737,11 +3800,11 @@ const docTemplate = `{
         "generation.CreateJobRequest": {
             "type": "object",
             "required": [
-                "difficulty",
                 "topicIds"
             ],
             "properties": {
                 "difficulty": {
+                    "description": "Difficulty solo aplica a preguntas; en tips se ignora.",
                     "type": "string",
                     "enum": [
                         "beginner",
@@ -3750,10 +3813,28 @@ const docTemplate = `{
                         "random"
                     ]
                 },
+                "kind": {
+                    "description": "Kind elige qué se genera. Vacío = \"question\" (retrocompatible).",
+                    "type": "string",
+                    "enum": [
+                        "question",
+                        "tip"
+                    ]
+                },
                 "quantity": {
                     "description": "Quantity es opcional: si se omite se usa el ajuste ai.default_quantity.",
                     "type": "integer",
                     "minimum": 1
+                },
+                "questionType": {
+                    "description": "QuestionType solo aplica a preguntas; en tips se ignora. \"mixed\" reparte\nla cantidad entre selección única, múltiple y verdadero/falso.",
+                    "type": "string",
+                    "enum": [
+                        "mixed",
+                        "single_choice",
+                        "multiple_choice",
+                        "true_false"
+                    ]
                 },
                 "topicIds": {
                     "type": "array",
@@ -4509,9 +4590,6 @@ const docTemplate = `{
                 "session": {
                     "$ref": "#/definitions/sessions.SessionResponse"
                 },
-                "tip": {
-                    "$ref": "#/definitions/tips.TipResponse"
-                },
                 "warmupCount": {
                     "type": "integer"
                 }
@@ -4657,6 +4735,13 @@ const docTemplate = `{
                 },
                 "answerText": {
                     "type": "string"
+                },
+                "correctOptions": {
+                    "description": "CorrectOptions expone las opciones correctas SOLO en la respuesta de\n/answer (después de responder). El endpoint de la siguiente pregunta no\nlas incluye a propósito: no se filtra la respuesta antes de tiempo.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "createdAt": {
                     "type": "string"

@@ -47,6 +47,27 @@
 - Código (`code_completion`, code challenges): monospace (`Menlo` iOS / `monospace` Android en tokens; JetBrains Mono si se cargan fuentes custom).
 - Títulos grandes: tracking negativo (p.ej. `-0.5`), leading compacto.
 
+## Código: syntax highlighting
+
+Los bloques de código del markdown se resaltan con **highlight.js**, el mismo motor de la web (registro y tokenizador en `@devtest/shared` → `highlight/`). En mobile el render es `HighlightedCode` (`src/core/components/`) y la paleta vive en `codeTheme` (`src/core/theme/tokens.ts`).
+
+| Clase `hljs-*` | Color | Contraste sobre `muted` `#10242E` |
+|---|---|---|
+| `hljs-keyword`, `hljs-selector-tag` | `#C792EA` | 6.6:1 |
+| `hljs-string`, `hljs-regexp`, `hljs-addition` | `#98C379` | 7.9:1 |
+| `hljs-number` | `#F78C6C` | 6.8:1 |
+| `hljs-title`, `hljs-function`, `hljs-section` | `#61AFEF` | 6.8:1 |
+| `hljs-type`, `hljs-class`, `hljs-attr`, `hljs-bullet` | `#E5C07B` | 9.3:1 |
+| `hljs-built_in`, `hljs-literal`, `hljs-operator` | `#56B6C2` | 6.8:1 |
+| `hljs-variable`, `hljs-property`, `hljs-name`, `hljs-tag` | `#E06C75` | 5.0:1 |
+| `hljs-comment`, `hljs-meta`, `hljs-quote` | `#8494A3` | 5.1:1 |
+| `hljs-punctuation` | `colors.mutedForeground` | 6.2:1 |
+
+- **Fallback**: sin lenguaje o con un lenguaje no registrado, el bloque va en `colors.foreground` (sin colores). Los lenguajes soportados son `CODE_LANGUAGES` en `@devtest/shared`.
+- **Alias**: `ts`/`js`/`py`/`vue`/`lang`… los normaliza `normalizeCodeLanguage`; no agregues mapas de alias en la app.
+- **Tamaño**: `typography.size.sm` (14) con `lineHeight: 18` fijo. No heredar el `fontSize`/`lineHeight` del cuerpo del markdown (`RenderRules` pasa `inheritedStyles` y el bloque quedaba 16/22, demasiado grande).
+- El bloque mantiene `wrap` (sin scroll horizontal) para no romper el layout dentro de listas.
+
 ## Data viz
 
 - **Anillo** = dominio global de un tema (contra 100 %). `TopicRing`, SVG con `strokeDasharray`, **64 px**, `strokeWidth` 6, % escrito en el centro. Si el tema es débil: arco y número en `accent`, **sin icono** (el % es el dato y "tema débil" queda en la etiqueta accesible y en el filtro Débiles). Rejilla de 3 columnas con `rowGap: spacing.lg` (24 px): el aire separa las filas, sin líneas.

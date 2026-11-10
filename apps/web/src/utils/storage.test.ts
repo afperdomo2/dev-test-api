@@ -1,4 +1,4 @@
-import { getToken, setToken, removeToken } from './storage'
+import { getTheme, getToken, removeToken, setTheme, setToken } from './storage'
 
 describe('storage utils', () => {
   beforeEach(() => {
@@ -31,5 +31,28 @@ describe('storage utils', () => {
   it('removeToken is idempotent when empty', () => {
     expect(() => removeToken()).not.toThrow()
     expect(getToken()).toBeNull()
+  })
+})
+
+describe('theme storage', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('getTheme returns null initially', () => {
+    expect(getTheme()).toBeNull()
+  })
+
+  it('setTheme + getTheme round-trip', () => {
+    setTheme('dark')
+    expect(getTheme()).toBe('dark')
+    expect(localStorage.getItem('app_theme')).toBe('dark')
+    setTheme('light')
+    expect(getTheme()).toBe('light')
+  })
+
+  it('getTheme ignores an invalid stored value', () => {
+    localStorage.setItem('app_theme', 'sepia')
+    expect(getTheme()).toBeNull()
   })
 })

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { NextQuestionItem, SessionAnswer } from '@devtest/shared'
@@ -13,57 +12,57 @@ type QuestionCardMode = 'answer' | 'result'
 type QuestionCardProps = {
   question: NextQuestionItem
   mode: QuestionCardMode
-  selectedOptions: string[]
+  /** Opciones seleccionadas (controlado por la pantalla). */
+  selected: string[]
   lastResult: SessionAnswer | null
-  onAnswer: (selectedOptions: string[]) => void
-  onNext: () => void
-  submitting?: boolean
+  onToggleOption: (optionId: string) => void
+  /** Bloquea la interacción (p. ej. mientras se envía la respuesta). */
+  disabled?: boolean
 }
 
+/**
+ * Tarjeta presentacional: pregunta, opciones y feedback. Las acciones
+ * ("Confirmar" / "Siguiente") viven en la barra fija de `SessionStudyPage`, así
+ * el botón principal no cambia de sitio entre fases.
+ */
 export function QuestionCard({
   question,
   mode,
-  selectedOptions,
+  selected,
   lastResult,
-  onAnswer,
-  onNext,
-  submitting = false,
+  onToggleOption,
+  disabled = false,
 }: QuestionCardProps) {
-  const [localSelected, setLocalSelected] = useState<Set<string>>(new Set())
-  const isMultiple = question.type === 'multiple_choice'
   const isResult = mode === 'result'
+  const locked = isResult || disabled
+  const selectedSet = new Set(selected)
 
-  // La selección se reinicia sola: el padre monta este componente con
-  // `key={question.id}`, así que al cambiar de pregunta hay un remount.
+  // El contrato debería mandar siempre arrays, pero un backend viejo (o una
+  // pregunta rara) no debe tumbar la pantalla con `.map is not a function`.
+  const options = question.options ?? []
+  const topics = question.topics ?? []
 
-  const toggleOption = (id: string) => {
-    if (isResult) return
-    setLocalSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        if (!isMultiple) next.clear()
-        next.add(id)
-      }
-      return next
-    })
+  // `lastResult.correctOptions` es la fuente de verdad del backend. El
+  // fallback cubre backends viejos: si la respuesta fue correcta, las
+  // opciones elegidas son las correctas; si fue incorrecta no sabemos cuál
+  // era, así que solo marcamos las elegidas.
+  const correctIds =
+    isResult && lastResult?.correctOptions && lastResult.correctOptions.length > 0
+      ? new Set(lastResult.correctOptions)
+      : null
+  const isCorrectOption = (optionId: string, isSelected: boolean) => {
+    if (!isResult) return false
+    if (correctIds) return correctIds.has(optionId)
+    return isSelected && lastResult?.isCorrect === true
   }
-
-  const handleSubmit = () => {
-    if (localSelected.size === 0) return
-    onAnswer(Array.from(localSelected))
-  }
-
-  const activeSelection = isResult ? new Set(selectedOptions) : localSelected
 
   return (
     <View style={styles.container}>
       <MarkdownText style={styles.content}>{question.content}</MarkdownText>
 
-      {question.topics.length > 0 && (
+      {topics.length > 0 && (
         <View style={styles.topics}>
-          {question.topics.map((t) => (
+          {topics.map((t) => (
             <Text key={t} style={styles.topic}>
               {t}
             </Text>
@@ -72,34 +71,54 @@ export function QuestionCard({
       )}
 
       <View style={styles.options}>
-        {question.options.map((opt, idx) => {
-          const isSelected = activeSelection.has(opt.id)
-          const isCorrect = opt.isCorrect === true
-          const showCorrectHighlight = isResult && isCorrect
-          const showWrongHighlight = isResult && isSelected && !isCorrect
+        {options.map((opt, idx) => {
+          const isSelected = selectedSet.has(opt.id)
+          const optionIsCorrect = isCorrectOption(opt.id, isSelected)
+          const showWrongHighlight = isResult && isSelected && !optionIsCorrect
           const letter = LETTERS[idx] ?? String(idx + 1)
+          // Sin banner visible: el estado de cada opción viaja en su etiqueta
+          // accesible para que un lector de pantalla no dependa del color.
+          const optionLabel = !isResult
+            ? opt.content
+            : optionIsCorrect
+              ? `${opt.content}, correcta`
+              : showWrongHighlight
+                ? `${opt.content}, incorrecta`
+                : opt.content
 
           return (
             <Pressable
               key={opt.id}
-              onPress={() => toggleOption(opt.id)}
-              disabled={isResult}
+              onPress={() => onToggleOption(opt.id)}
+              disabled={locked}
               style={({ pressed }) => [
                 styles.option,
                 isSelected && !isResult && styles.optionSelected,
-                showCorrectHighlight && styles.optionCorrect,
+                isResult && optionIsCorrect && styles.optionCorrect,
                 showWrongHighlight && styles.optionWrong,
-                pressed && !isResult && styles.optionPressed,
+                pressed && !locked && styles.optionPressed,
               ]}
               accessibilityRole="button"
-              accessibilityState={{ selected: isSelected, disabled: isResult }}
-              accessibilityLabel={opt.content}
+              accessibilityState={{ selected: isSelected, disabled: locked }}
+              accessibilityLabel={optionLabel}
             >
               {isResult ? (
                 <MaterialCommunityIcons
-                  name={isCorrect ? 'check-circle' : isSelected ? 'close-circle' : 'circle-outline'}
+                  name={
+                    optionIsCorrect
+                      ? 'check-circle'
+                      : showWrongHighlight
+                        ? 'close-circle'
+                        : 'minus'
+                  }
                   size={18}
-                  color={isCorrect ? colors.primary : isSelected ? colors.destructive : colors.mutedForeground}
+                  color={
+                    optionIsCorrect
+                      ? colors.primary
+                      : showWrongHighlight
+                        ? colors.destructive
+                        : colors.mutedForeground
+                  }
                 />
               ) : (
                 <View style={[styles.letterBadge, isSelected && styles.letterBadgeSelected]}>
@@ -125,33 +144,6 @@ export function QuestionCard({
           <MarkdownText style={styles.explanationText}>{lastResult.explanation}</MarkdownText>
         </View>
       ) : null}
-
-      {isResult ? (
-        <Pressable
-          style={({ pressed }) => [styles.submit, pressed && styles.submitPressed]}
-          onPress={onNext}
-          accessibilityRole="button"
-          accessibilityLabel="Siguiente pregunta"
-        >
-          <Text style={styles.submitLabel}>Siguiente</Text>
-          <MaterialCommunityIcons name="arrow-right" size={18} color={colors.onPrimary} />
-        </Pressable>
-      ) : (
-        <Pressable
-          style={({ pressed }) => [
-            styles.submit,
-            (activeSelection.size === 0 || submitting) && styles.submitDisabled,
-            pressed && styles.submitPressed,
-          ]}
-          onPress={() => handleSubmit()}
-          disabled={activeSelection.size === 0 || submitting}
-          accessibilityRole="button"
-          accessibilityLabel="Confirmar respuesta"
-        >
-          <MaterialCommunityIcons name="check" size={18} color={colors.onPrimary} />
-          <Text style={styles.submitLabel}>Confirmar</Text>
-        </Pressable>
-      )}
     </View>
   )
 }
@@ -257,26 +249,5 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.foreground,
     lineHeight: 20,
-  },
-  submit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-    minHeight: 48,
-  },
-  submitPressed: {
-    opacity: 0.85,
-  },
-  submitDisabled: {
-    opacity: 0.5,
-  },
-  submitLabel: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold,
-    color: colors.onPrimary,
   },
 })

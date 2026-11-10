@@ -60,6 +60,7 @@ feedback rápido; no ejecuta suites completas por cambios menores.
 | `make build` | Build Go binary to `./tmp/main` |
 | `make run` | `go run main.go` on `:8080` |
 | `make swagger` | Regenerate `docs/` from Swagger annotations |
+| `make icons` | Regenera favicon/PWA y assets mobile desde `brand/*.svg` ([detalle](docs/branding.md)) |
 | `make check` | `make fmt` then `make vet` |
 | `make staged-check` | lefthook pre-commit sobre `{staged_files}` (verificación rápida) |
 | `make test` | Unit tests (`go test -short -count=1`) |
@@ -128,6 +129,8 @@ Guía completa: `docker/README.md` · invariantes para agentes: `.agents/context
 | `make docker-backup` / `docker-restore FILE=…` | Backup / restore de la DB de prod-local |
 | `make e2e-docker` | Playwright contra prod-local |
 | `make mobile-apk` | Preflight + APK manual en EAS cloud |
+| `make mobile-apk-local` | APK release local con Gradle (`API_URL=…` opcional) |
+| `make mobile-bump` | Versiona la app mobile (semver + `versionCode` +1) |
 
 Format the web files you touch with Prettier and let `make staged-check` run
 `vue-tsc`/eslint/vitest for the staged set. Do **not** run `make fe-build` outside
@@ -142,7 +145,8 @@ suite is a close/CI check, not something to run after every edit.
 - **Seguridad (convenciones)** — autorización por objeto en el **service** → **404** (nunca 403 para ocultar existencia); payload grande → **413** con `ErrPayloadTooLarge`; orden de middlewares y timeouts en `.agents/context/backend/architecture.md`; contrato de errores en `.agents/context/backend/responses.md`.
 - **`internal/` is Go-private** — the compiler blocks external imports.
 - **DB schema is goose-migrated** — `internal/database/migrations/*.sql` is the source of truth (base `00001_init.sql`); migrations run on server start (embedded) and via `make migrate-*`. **Any schema/DDL change = new migration file**, never AutoMigrate. `goose` is a Go tool (`go tool goose`).
-- **`tmp/` is auto-generated and gitignored; `docs/` is auto-generated but IS versioned** — never edit either manually (`make swagger` regenera `docs/swagger.yaml|json|docs.go`).
+- **`tmp/` is auto-generated and gitignored; `docs/swagger.yaml|json` and `docs/docs.go` are auto-generated and versioned** — never edit them manually (`make swagger` regenerates). El resto de `docs/` son guías versionadas y se editan a mano.
+- **Iconos (web + mobile)** — fuente única en `brand/icon.svg` + `brand/mark.svg`; `make icons` regenera `apps/web/public/` y `apps/mobile/assets/`. No editar los archivos generados ni copiar iconos a mano. Detalle: `docs/branding.md`.
 - **Air** and **Lefthook** are Go project tools in `go.mod` — invoke via `go tool air`, `go tool lefthook`, or their `make` targets.
 - **Git hooks** (lefthook, `lefthook.yml`) — todos los jobs se filtran por `glob`, así que un cambio de docs/markdown no dispara nada:
   - **pre-commit** (rápido, sobre los archivos staged): `gofmt` + `go vet` + `go test -short` **solo en los paquetes Go afectados**; `shared-typecheck`; web (`prettier --write`, `eslint`, `vue-tsc`, `vitest related`); mobile (`tsc`, `eslint`, `jest --findRelatedTests`).
@@ -164,7 +168,18 @@ suite is a close/CI check, not something to run after every edit.
 - **Vuetify MCP** — available via `opencode.json`. Query component APIs with `vuetify_get_component_api_by_version` or `vuetify_get_feature_guide`.
 - **Bash defensive patterns** — any `.sh` script must follow strict mode (`set -Eeuo pipefail`). See skill `bash-defensive-patterns` in the Skills section below.
 - **Contenedores** — 3 entornos: dev (`docker/compose.dev.yaml`, Compose Watch), prod-local (`docker/compose.prod.yaml`, same-origin `:8088`) y Dokploy (`docker/compose.dokploy.yaml`, DB en el stack). Detalles e invariantes en `.agents/context/devops/containers.md`. Nunca publicar la DB en prod/Dokploy, nunca `down -v` fuera de dev, y `TRUSTED_PROXIES` siempre con el CIDR del proxy.
-- **APK manual** — `EXPO_PUBLIC_API_BASE_URL` se compila en el APK (EAS cloud lee `apps/mobile/eas.json`, no el shell) y debe ser HTTPS. Si cambia el backend, recompilar. Ver `docs/mobile-apk.md`.
+- **APK mobile** — el humano **prefiere build local con Gradle**, no EAS cloud.
+  Comando: `make mobile-apk-local API_URL=https://…` (o el detalle en
+  `docs/mobile-apk.md` → "Build local con Gradle"). `EXPO_PUBLIC_API_BASE_URL`
+  se compila en el bundle: si cambia el backend, recompilar. Obligatorio borrar
+  `app/build/generated/assets` + `app/build/intermediates/assets` antes de
+  compilar, si no Gradle reusa el bundle con la URL vieja. EAS cloud
+  (`make mobile-apk`) solo si lo pide explícitamente.
+  - **Versionado mobile** — todo APK nuevo se versiona: `make mobile-bump
+    [VERSION=x.y.z]` (MAJOR rompe el backend, MINOR feature visible, PATCH
+    fix/config) y `versionCode` +1 siempre. Un cambio mobile no se cierra
+    dejando dos APKs con el mismo `versionCode`. Ver `docs/mobile-apk.md` →
+    "Versionado".
 - **Log icons** — prefix Go `log.*` calls with emoji (❌ errors, ✅ success, 🚀 startup, 🛢️ database, 🌱 seed). Pick the most descriptive icon per context.
 - **Tests** — backend: `testing` + `testify` unit tests (mocked `Store`). `make test` (unit, no DB), `make test-cover`. Lefthook pre-commit runs `go test -short`.
 
@@ -282,6 +297,16 @@ Backend, web, mobile, and shared have separate rule files with detailed conventi
 |------|---------|
 | `containers.md` | **SOURCE OF TRUTH** de Docker: 3 entornos, mapa de archivos, invariantes (non-root, DB no publicada, same-origin, TZ, `TRUSTED_PROXIES`), Compose Watch, Dokploy y troubleshooting |
 
+## Formato de planes
+Antes de implementar, todo plan debe incluir:
+- UI: un bosquejo (wireframe ASCII o Mermaid) de la pantalla antes/después,
+  indicando qué componente nuevo se agrega y dónde.
+- Backend: un diagrama de secuencia (Mermaid) del flujo
+  request → handler → servicio → DB, marcando qué cambia.
+- Datos: si hay migración, el esquema antes/después.
+- Archivos: tabla con archivo | qué cambia | por qué, sin párrafos largos.
+Termina con un resumen de 3 líneas y los riesgos.
+
 ## Documentation map
 
 Each fact has a **single source of truth**. Other files reference it, not duplicate it.
@@ -299,7 +324,8 @@ Each fact has a **single source of truth**. Other files reference it, not duplic
 | Data model (backend) | `.agents/context/backend/data-model.md` | `.agents/context/backend/architecture.md`, this file |
 | Design system (mobile) | `.agents/context/mobile/design-system.md` | `apps/mobile/src/core/theme/tokens.ts`, `.agents/context/mobile/architecture.md`, `apps/mobile/README.md`, this file |
 | Docker / entornos / Dokploy | `.agents/context/devops/containers.md` + `docker/README.md` | this file, `README.md` |
-| Build del APK (URL compilada, EAS) | `docs/mobile-apk.md` | this file, `apps/mobile/README.md` |
+| Build del APK (URL compilada, Gradle local / EAS) | `docs/mobile-apk.md` | this file, `README.md`, `apps/mobile/AGENTS.md` |
+| Branding / iconos web + mobile | `docs/branding.md` | this file, `README.md`, `apps/web/AGENTS.md`, `apps/mobile/AGENTS.md` |
 | Per-project quick context | `apps/mobile/AGENTS.md`, `apps/web/AGENTS.md`, `packages/shared/AGENTS.md` | `opencode.json` (`instructions`), this file |
 
 **When updating architecture**: touch the source of truth, then update every file that references it. Never duplicate the same fact in two places.

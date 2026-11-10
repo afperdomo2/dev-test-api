@@ -2,7 +2,6 @@ package sessions
 
 import (
 	"errors"
-	"io"
 	"testing"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
-	"github.com/felipe/dev-test-api/internal/modules/tips"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -21,22 +19,25 @@ import (
 /* ---------- mocks ---------- */
 
 type mockSessionStore struct {
-	findPageFn                func(userID uuid.UUID, params ListSessionsParams) ([]models.Session, int64, error)
-	findByIDFn                func(id uuid.UUID) (*models.Session, error)
-	createFn                  func(s *models.Session) error
-	updateFn                  func(s *models.Session) error
-	addSessionTopicsFn        func(sessionID uuid.UUID, topicIDs []uuid.UUID) error
-	createAnswerFn            func(a *models.SessionAnswer) (bool, error)
-	findByClientAnswerIDFn    func(sessionID, clientAnswerID uuid.UUID) (*models.SessionAnswer, error)
-	findAnsweredQuestionIDsFn func(sessionID uuid.UUID) ([]uuid.UUID, error)
-	findNextQuestionFn        func(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty, mode string, userID uuid.UUID) (*models.Question, error)
-	countAvailableQuestionsFn func(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty, mode string, userID uuid.UUID) (int64, error)
-	findQuestionByIDFn        func(id uuid.UUID) (*models.Question, error)
-	findNextDailyQuestionFn   func(userID uuid.UUID, answeredIDs []uuid.UUID) (*models.Question, error)
-	countDueReviewsFn         func(userID uuid.UUID) (int64, error)
-	countWarmupCandidatesFn   func(userID uuid.UUID) (int64, error)
-	findSummaryFn             func(id uuid.UUID) (*SessionSummaryData, error)
-	deleteFn                  func(id uuid.UUID) error
+	findPageFn                  func(userID uuid.UUID, params ListSessionsParams) ([]models.Session, int64, error)
+	findByIDFn                  func(id uuid.UUID) (*models.Session, error)
+	createFn                    func(s *models.Session) error
+	updateFn                    func(s *models.Session) error
+	addSessionTopicsFn          func(sessionID uuid.UUID, topicIDs []uuid.UUID) error
+	createAnswerFn              func(a *models.SessionAnswer) (bool, error)
+	findByClientAnswerIDFn      func(sessionID, clientAnswerID uuid.UUID) (*models.SessionAnswer, error)
+	findAnsweredQuestionIDsFn   func(sessionID uuid.UUID) ([]uuid.UUID, error)
+	findNextQuestionFn          func(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty, mode string, userID uuid.UUID) (*models.Question, error)
+	countAvailableQuestionsFn   func(topicIDs []uuid.UUID, answeredIDs []uuid.UUID, difficulty, mode string, userID uuid.UUID) (int64, error)
+	findQuestionByIDFn          func(id uuid.UUID) (*models.Question, error)
+	findNextDailyQuestionFn     func(userID uuid.UUID, answeredIDs []uuid.UUID, skipTrueFalse bool) (*models.Question, error)
+	countSessionAnswersByTypeFn func(sessionID uuid.UUID, questionType string) (int64, error)
+	countDueReviewsFn           func(userID uuid.UUID) (int64, error)
+	countWarmupCandidatesFn     func(userID uuid.UUID) (int64, error)
+	countPracticeCandidatesFn   func(userID uuid.UUID) (int64, error)
+	findTodayInProgressDailyFn  func(userID uuid.UUID, since time.Time) (*models.Session, error)
+	findSummaryFn               func(id uuid.UUID) (*SessionSummaryData, error)
+	deleteFn                    func(id uuid.UUID) error
 }
 
 func (m *mockSessionStore) FindPage(u uuid.UUID, p ListSessionsParams) ([]models.Session, int64, error) {
@@ -66,12 +67,21 @@ func (m *mockSessionStore) CountAvailableQuestions(tIDs []uuid.UUID, aIDs []uuid
 func (m *mockSessionStore) FindQuestionByID(id uuid.UUID) (*models.Question, error) {
 	return m.findQuestionByIDFn(id)
 }
-func (m *mockSessionStore) FindNextDailyQuestion(u uuid.UUID, aIDs []uuid.UUID) (*models.Question, error) {
-	return m.findNextDailyQuestionFn(u, aIDs)
+func (m *mockSessionStore) FindNextDailyQuestion(u uuid.UUID, aIDs []uuid.UUID, skipTrueFalse bool) (*models.Question, error) {
+	return m.findNextDailyQuestionFn(u, aIDs, skipTrueFalse)
+}
+func (m *mockSessionStore) CountSessionAnswersByType(sessionID uuid.UUID, questionType string) (int64, error) {
+	return m.countSessionAnswersByTypeFn(sessionID, questionType)
 }
 func (m *mockSessionStore) CountDueReviews(u uuid.UUID) (int64, error) { return m.countDueReviewsFn(u) }
 func (m *mockSessionStore) CountWarmupCandidates(u uuid.UUID) (int64, error) {
 	return m.countWarmupCandidatesFn(u)
+}
+func (m *mockSessionStore) CountPracticeCandidates(u uuid.UUID) (int64, error) {
+	return m.countPracticeCandidatesFn(u)
+}
+func (m *mockSessionStore) FindTodayInProgressDaily(u uuid.UUID, since time.Time) (*models.Session, error) {
+	return m.findTodayInProgressDailyFn(u, since)
 }
 func (m *mockSessionStore) FindSummary(id uuid.UUID) (*SessionSummaryData, error) {
 	return m.findSummaryFn(id)
@@ -95,44 +105,21 @@ func newSessionStore() *mockSessionStore {
 		},
 		countAvailableQuestionsFn: func([]uuid.UUID, []uuid.UUID, string, string, uuid.UUID) (int64, error) { return 1, nil },
 		findQuestionByIDFn:        func(uuid.UUID) (*models.Question, error) { return nil, gorm.ErrRecordNotFound },
-		findNextDailyQuestionFn: func(uuid.UUID, []uuid.UUID) (*models.Question, error) {
+		findNextDailyQuestionFn: func(uuid.UUID, []uuid.UUID, bool) (*models.Question, error) {
 			return nil, gorm.ErrRecordNotFound
 		},
-		countDueReviewsFn:       func(uuid.UUID) (int64, error) { return 0, nil },
-		countWarmupCandidatesFn: func(uuid.UUID) (int64, error) { return 0, nil },
+		countSessionAnswersByTypeFn: func(uuid.UUID, string) (int64, error) { return 0, nil },
+		countDueReviewsFn:           func(uuid.UUID) (int64, error) { return 0, nil },
+		countWarmupCandidatesFn:     func(uuid.UUID) (int64, error) { return 0, nil },
+		countPracticeCandidatesFn:   func(uuid.UUID) (int64, error) { return 1, nil },
+		findTodayInProgressDailyFn: func(uuid.UUID, time.Time) (*models.Session, error) {
+			return nil, gorm.ErrRecordNotFound
+		},
 		findSummaryFn: func(uuid.UUID) (*SessionSummaryData, error) {
 			return &SessionSummaryData{Status: "completed"}, nil
 		},
 		deleteFn: func(uuid.UUID) error { return nil },
 	}
-}
-
-/* adapter that satisfies tips.Service without heavy logic */
-type fakeTipsAdapter struct {
-	getTipOfTheDayFn func(userID uuid.UUID) (*tips.TipResponse, error)
-}
-
-func (f *fakeTipsAdapter) List(params tips.ListTipsParams) ([]tips.TipResponse, int64, error) {
-	return nil, 0, nil
-}
-func (f *fakeTipsAdapter) GetByID(id uuid.UUID) (*tips.TipResponse, error) {
-	return nil, apierr.ErrNotFound("Tip", "")
-}
-func (f *fakeTipsAdapter) GetTipOfTheDay(userID uuid.UUID) (*tips.TipResponse, error) {
-	if f.getTipOfTheDayFn != nil {
-		return f.getTipOfTheDayFn(userID)
-	}
-	return &tips.TipResponse{}, nil
-}
-func (f *fakeTipsAdapter) Create(userID uuid.UUID, input tips.CreateTipRequest) (*tips.TipResponse, error) {
-	return nil, nil
-}
-func (f *fakeTipsAdapter) Update(id uuid.UUID, input tips.UpdateTipRequest) (*tips.TipResponse, error) {
-	return nil, nil
-}
-func (f *fakeTipsAdapter) Delete(id uuid.UUID) error { return nil }
-func (f *fakeTipsAdapter) Import(userID uuid.UUID, r io.Reader) (*tips.ImportResult, error) {
-	return nil, nil
 }
 
 /* adapter that satisfies progress.Service without heavy logic */
@@ -203,6 +190,41 @@ func TestSessionEvaluateCorrectness(t *testing.T) {
 	t.Run("unknown type", func(t *testing.T) {
 		q := &models.Question{Type: "code_completion"}
 		assert.False(t, evaluateCorrectness(q, nil))
+	})
+}
+
+func TestToAnswerResponseCorrectOptions(t *testing.T) {
+	optA, optB, optC := uuid.New(), uuid.New(), uuid.New()
+
+	t.Run("single_choice expone solo la correcta", func(t *testing.T) {
+		q := &models.Question{
+			Type:        "single_choice",
+			Options:     []models.QuestionOption{{ID: optA, IsCorrect: true}, {ID: optB}},
+			Explanation: "porque A",
+		}
+		got := ToAnswerResponse(models.SessionAnswer{Question: q, IsCorrect: true})
+		assert.Equal(t, []uuid.UUID{optA}, got.CorrectOptions)
+		assert.Equal(t, "porque A", got.Explanation)
+	})
+
+	t.Run("multiple_choice expone todas las correctas", func(t *testing.T) {
+		q := &models.Question{
+			Type:    "multiple_choice",
+			Options: []models.QuestionOption{{ID: optA, IsCorrect: true}, {ID: optB, IsCorrect: true}, {ID: optC}},
+		}
+		got := ToAnswerResponse(models.SessionAnswer{Question: q})
+		assert.ElementsMatch(t, []uuid.UUID{optA, optB}, got.CorrectOptions)
+	})
+
+	t.Run("sin pregunta no inventa opciones", func(t *testing.T) {
+		got := ToAnswerResponse(models.SessionAnswer{IsCorrect: false})
+		assert.Empty(t, got.CorrectOptions)
+	})
+
+	t.Run("code_completion no tiene opciones", func(t *testing.T) {
+		q := &models.Question{Type: "code_completion"}
+		got := ToAnswerResponse(models.SessionAnswer{Question: q})
+		assert.Empty(t, got.CorrectOptions)
 	})
 }
 
@@ -325,6 +347,23 @@ func TestSessionFinish(t *testing.T) {
 		_, err := svc.Finish(id, uid)
 		require.Error(t, err)
 	})
+	t.Run("sin respuestas no otorga recompensa", func(t *testing.T) {
+		store := newSessionStore()
+		calls := 0
+		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
+			calls++
+			if calls == 1 {
+				return &models.Session{ID: id, UserID: uid, Status: "in_progress"}, nil
+			}
+			return &models.Session{ID: id, UserID: uid, Status: "completed"}, nil
+		}
+		gam := &spyGamification{}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, gamificationService: gam}
+		got, err := svc.Finish(id, uid)
+		require.NoError(t, err)
+		assert.Equal(t, "completed", got.Status)
+		assert.Zero(t, gam.completed, "una sesión vacía no debe dar XP ni racha")
+	})
 }
 
 func TestSessionDelete(t *testing.T) {
@@ -398,6 +437,20 @@ func TestSessionSummary(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, int64(5), int64(got.AnswerCount))
 	})
+	t.Run("daily sin tope guardado → tope efectivo de 15", func(t *testing.T) {
+		store := newSessionStore()
+		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
+			return &models.Session{ID: id, UserID: uid, Status: "in_progress", Mode: "daily"}, nil
+		}
+		store.findSummaryFn = func(uuid.UUID) (*SessionSummaryData, error) {
+			return &SessionSummaryData{Status: "in_progress", AnswerCount: 2}, nil
+		}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		got, err := svc.Summary(id, uid)
+		require.NoError(t, err)
+		require.NotNil(t, got.QuestionLimit)
+		assert.Equal(t, dailyQuestionLimit, *got.QuestionLimit)
+	})
 	t.Run("not found", func(t *testing.T) {
 		store := newSessionStore()
 		store.findSummaryFn = func(uuid.UUID) (*SessionSummaryData, error) {
@@ -411,46 +464,105 @@ func TestSessionSummary(t *testing.T) {
 
 func TestSessionCreateDaily(t *testing.T) {
 	uid := uuid.New()
-	tip := &tips.TipResponse{ID: uuid.New(), Content: "tip"}
 
-	t.Run("success with tip", func(t *testing.T) {
+	t.Run("success aplica el tope de 15", func(t *testing.T) {
 		store := newSessionStore()
 		store.countDueReviewsFn = func(uuid.UUID) (int64, error) { return 3, nil }
 		store.countWarmupCandidatesFn = func(uuid.UUID) (int64, error) { return 5, nil }
+		var created *models.Session
+		store.createFn = func(s *models.Session) error {
+			created = s
+			return nil
+		}
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
 			return &models.Session{ID: uuid.New(), Mode: "daily", Name: "Repaso diario"}, nil
 		}
-		tipsSvc := &fakeTipsAdapter{getTipOfTheDayFn: func(uuid.UUID) (*tips.TipResponse, error) { return tip, nil }}
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: tipsSvc}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		got, err := svc.CreateDaily(uid)
 		require.NoError(t, err)
 		assert.NotNil(t, got)
 		assert.Equal(t, int64(3), got.DueCount)
 		assert.Equal(t, int64(5), got.WarmupCount)
-		assert.NotNil(t, got.Tip)
 		assert.Equal(t, "daily", got.Session.Mode)
-	})
-
-	t.Run("no tips → tip nil, no error", func(t *testing.T) {
-		store := newSessionStore()
-		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
-			return &models.Session{ID: uuid.New(), Mode: "daily"}, nil
-		}
-		tipsSvc := &fakeTipsAdapter{
-			getTipOfTheDayFn: func(uuid.UUID) (*tips.TipResponse, error) { return nil, apierr.ErrNotFound("Tip", "") },
-		}
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: tipsSvc}
-		got, err := svc.CreateDaily(uid)
-		require.NoError(t, err)
-		assert.Nil(t, got.Tip)
+		require.NotNil(t, created)
+		require.NotNil(t, created.QuestionLimit)
+		assert.Equal(t, dailyQuestionLimit, *created.QuestionLimit)
 	})
 
 	t.Run("store error → internal error", func(t *testing.T) {
 		store := newSessionStore()
 		store.countDueReviewsFn = func(uuid.UUID) (int64, error) { return 0, errors.New("fail") }
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: &fakeTipsAdapter{}}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		_, err := svc.CreateDaily(uid)
 		require.Error(t, err)
+	})
+
+	t.Run("sin candidatos → 409 y no crea sesión", func(t *testing.T) {
+		store := newSessionStore()
+		store.countPracticeCandidatesFn = func(uuid.UUID) (int64, error) { return 0, nil }
+		created := 0
+		store.createFn = func(*models.Session) error {
+			created++
+			return nil
+		}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		_, err := svc.CreateDaily(uid)
+		require.Error(t, err)
+		var apiErr *apierr.APIError
+		require.ErrorAs(t, err, &apiErr)
+		assert.Equal(t, 409, apiErr.Status)
+		assert.Zero(t, created, "no debe crear una sesión que nace vacía")
+	})
+
+	t.Run("reutiliza la sesión diaria de hoy y le aplica el tope si faltaba", func(t *testing.T) {
+		existingID := uuid.New()
+		store := newSessionStore()
+		existing := &models.Session{
+			ID: existingID, UserID: uid, Mode: "daily", Status: "in_progress",
+		}
+		store.findTodayInProgressDailyFn = func(gotUserID uuid.UUID, since time.Time) (*models.Session, error) {
+			assert.Equal(t, uid, gotUserID)
+			assert.False(t, since.After(time.Now()), "el corte debe ser el inicio del día")
+			return existing, nil
+		}
+		created := 0
+		store.createFn = func(*models.Session) error {
+			created++
+			return nil
+		}
+		updated := 0
+		store.updateFn = func(s *models.Session) error {
+			updated++
+			require.NotNil(t, s.QuestionLimit)
+			assert.Equal(t, dailyQuestionLimit, *s.QuestionLimit)
+			return nil
+		}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		got, err := svc.CreateDaily(uid)
+		require.NoError(t, err)
+		assert.Equal(t, existingID, got.Session.ID)
+		assert.Zero(t, created, "debe reutilizar la sesión de hoy, no crear otra")
+		assert.Equal(t, 1, updated, "una sesión antigua sin tope debe recibirlo")
+	})
+
+	t.Run("reutiliza sin tocar una sesión que ya tiene tope", func(t *testing.T) {
+		limit := 10
+		store := newSessionStore()
+		store.findTodayInProgressDailyFn = func(uuid.UUID, time.Time) (*models.Session, error) {
+			return &models.Session{
+				ID: uuid.New(), UserID: uid, Mode: "daily", Status: "in_progress",
+				QuestionLimit: &limit,
+			}, nil
+		}
+		updated := 0
+		store.updateFn = func(*models.Session) error {
+			updated++
+			return nil
+		}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		_, err := svc.CreateDaily(uid)
+		require.NoError(t, err)
+		assert.Zero(t, updated, "no debe reescribir una sesión que ya tenía tope")
 	})
 }
 
@@ -465,28 +577,100 @@ func TestSessionNextQuestionDaily(t *testing.T) {
 			return &models.Session{ID: id, UserID: uid, Status: "in_progress", Mode: "daily"}, nil
 		}
 		store.findAnsweredQuestionIDsFn = func(uuid.UUID) ([]uuid.UUID, error) { return nil, nil }
-		store.findNextDailyQuestionFn = func(uuid.UUID, []uuid.UUID) (*models.Question, error) { return q, nil }
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: &fakeTipsAdapter{}}
+		store.findNextDailyQuestionFn = func(uuid.UUID, []uuid.UUID, bool) (*models.Question, error) { return q, nil }
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		got, err := svc.NextQuestion(id, uid)
 		require.NoError(t, err)
 		assert.Equal(t, q.ID, got.Question.ID)
 	})
 
-	t.Run("no more questions → 404", func(t *testing.T) {
+	t.Run("con cupo de true_false disponible permite calentamiento", func(t *testing.T) {
 		store := newSessionStore()
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
 			return &models.Session{ID: id, UserID: uid, Status: "in_progress", Mode: "daily"}, nil
 		}
-		store.findAnsweredQuestionIDsFn = func(uuid.UUID) ([]uuid.UUID, error) { return nil, nil }
-		store.findNextDailyQuestionFn = func(uuid.UUID, []uuid.UUID) (*models.Question, error) {
-			return nil, gorm.ErrRecordNotFound
+		store.countSessionAnswersByTypeFn = func(sessionID uuid.UUID, questionType string) (int64, error) {
+			assert.Equal(t, id, sessionID)
+			assert.Equal(t, "true_false", questionType)
+			return dailyTrueFalseLimit - 1, nil
 		}
-		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}, tipService: &fakeTipsAdapter{}}
+		var skipTrueFalse bool
+		store.findNextDailyQuestionFn = func(_ uuid.UUID, _ []uuid.UUID, skip bool) (*models.Question, error) {
+			skipTrueFalse = skip
+			return q, nil
+		}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		_, err := svc.NextQuestion(id, uid)
+		require.NoError(t, err)
+		assert.False(t, skipTrueFalse)
+	})
+
+	t.Run("daily sin tope guardado corta a las 15 respuestas", func(t *testing.T) {
+		store := newSessionStore()
+		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
+			return &models.Session{ID: id, UserID: uid, Status: "in_progress", Mode: "daily"}, nil
+		}
+		answers := make([]uuid.UUID, dailyQuestionLimit)
+		for i := range answers {
+			answers[i] = uuid.New()
+		}
+		store.findAnsweredQuestionIDsFn = func(uuid.UUID) ([]uuid.UUID, error) { return answers, nil }
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
 		_, err := svc.NextQuestion(id, uid)
 		require.Error(t, err)
 		var apiErr *apierr.APIError
 		require.ErrorAs(t, err, &apiErr)
 		assert.Equal(t, 404, apiErr.Status)
+	})
+
+	t.Run("sin más preguntas → 404", func(t *testing.T) {
+		store := newSessionStore()
+		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
+			return &models.Session{ID: id, UserID: uid, Status: "in_progress", Mode: "daily"}, nil
+		}
+		store.findNextDailyQuestionFn = func(uuid.UUID, []uuid.UUID, bool) (*models.Question, error) {
+			return nil, gorm.ErrRecordNotFound
+		}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		_, err := svc.NextQuestion(id, uid)
+		require.Error(t, err)
+		var apiErr *apierr.APIError
+		require.ErrorAs(t, err, &apiErr)
+		assert.Equal(t, 404, apiErr.Status)
+	})
+
+	t.Run("con el cupo de true_false agotado pasa a práctica normal", func(t *testing.T) {
+		store := newSessionStore()
+		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
+			return &models.Session{ID: id, UserID: uid, Status: "in_progress", Mode: "daily"}, nil
+		}
+		store.countSessionAnswersByTypeFn = func(uuid.UUID, string) (int64, error) {
+			return dailyTrueFalseLimit, nil
+		}
+		var skipTrueFalse bool
+		store.findNextDailyQuestionFn = func(_ uuid.UUID, _ []uuid.UUID, skip bool) (*models.Question, error) {
+			skipTrueFalse = skip
+			return q, nil
+		}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		_, err := svc.NextQuestion(id, uid)
+		require.NoError(t, err)
+		assert.True(t, skipTrueFalse)
+	})
+
+	t.Run("error al contar true_false → 500", func(t *testing.T) {
+		store := newSessionStore()
+		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
+			return &models.Session{ID: id, UserID: uid, Status: "in_progress", Mode: "daily"}, nil
+		}
+		store.countSessionAnswersByTypeFn = func(uuid.UUID, string) (int64, error) {
+			return 0, errors.New("boom")
+		}
+		svc := &sessionService{store: store, progressService: &fakeProgressAdapter{}}
+		_, err := svc.NextQuestion(id, uid)
+		var apiErr *apierr.APIError
+		require.ErrorAs(t, err, &apiErr)
+		assert.Equal(t, 500, apiErr.Status)
 	})
 }
 
@@ -555,7 +739,13 @@ func TestSessionAnswerIdempotency(t *testing.T) {
 			return stored, nil
 		}
 		store.findQuestionByIDFn = func(id uuid.UUID) (*models.Question, error) {
-			return &models.Question{ID: id, Explanation: "porque sí"}, nil
+			correct := uuid.New()
+			return &models.Question{
+				ID:          id,
+				Type:        "single_choice",
+				Explanation: "porque sí",
+				Options:     []models.QuestionOption{{ID: correct, IsCorrect: true}},
+			}, nil
 		}
 		progressSvc := &countingProgressAdapter{}
 		svc := &sessionService{store: store, progressService: progressSvc}
@@ -566,6 +756,7 @@ func TestSessionAnswerIdempotency(t *testing.T) {
 		assert.Equal(t, stored.ID, got.ID)
 		assert.True(t, got.IsCorrect)
 		assert.Equal(t, "porque sí", got.Explanation)
+		assert.Len(t, got.CorrectOptions, 1)
 		assert.Zero(t, progressSvc.calls)
 	})
 
@@ -657,7 +848,10 @@ func TestSessionOwnership(t *testing.T) {
 		t.Helper()
 		store := newSessionStore()
 		store.findByIDFn = func(uuid.UUID) (*models.Session, error) {
-			return &models.Session{ID: id, UserID: owner, Status: "in_progress"}, nil
+			return &models.Session{
+				ID: id, UserID: owner, Status: "in_progress",
+				Answers: []models.SessionAnswer{{ID: uuid.New()}},
+			}, nil
 		}
 		return store
 	}

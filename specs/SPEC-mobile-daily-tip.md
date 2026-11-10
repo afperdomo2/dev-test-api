@@ -4,10 +4,14 @@
 |---|---|
 | Module id | `mobile-daily-tip` |
 | Origen | Alcance nuevo mobile (D-26, D-30) |
-| Estado | `ready` |
+| Estado | `superseded` por D-53 (`tasks/daily-tip-home.md`) |
 | Depende de | — (el backend ya lo envía en `POST /sessions/daily`) |
 | Migración goose | Ninguna |
 | Dependencia nueva | **Ninguna** |
+
+> **Nota (D-53):** este spec describe el comportamiento previo (tip dentro de la pantalla de estudio).
+> Ahora el tip vive en **Inicio**, es determinista por día (`GET /tips/today`) y se puede cerrar por día.
+> Se conserva como histórico; la fuente viva es `tasks/daily-tip-home.md` y `.agents/context/mobile/architecture.md`.
 
 ## Objective
 

@@ -3,18 +3,20 @@ package generation
 import "time"
 
 type JobResponse struct {
-	ID          string     `json:"id"`
-	RequestedBy string     `json:"requestedBy"`
-	TopicIDs    []string   `json:"topicIds"`
-	Topics      []string   `json:"topics"`
-	Difficulty  string     `json:"difficulty"`
-	Quantity    int        `json:"quantity"`
-	Status      string     `json:"status"`
-	Generated   int        `json:"generated"`
-	Error       string     `json:"error,omitempty"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	StartedAt   *time.Time `json:"startedAt,omitempty"`
-	FinishedAt  *time.Time `json:"finishedAt,omitempty"`
+	ID           string     `json:"id"`
+	RequestedBy  string     `json:"requestedBy"`
+	Kind         string     `json:"kind"`
+	TopicIDs     []string   `json:"topicIds"`
+	Topics       []string   `json:"topics"`
+	Difficulty   string     `json:"difficulty"`
+	QuestionType string     `json:"questionType"`
+	Quantity     int        `json:"quantity"`
+	Status       string     `json:"status"`
+	Generated    int        `json:"generated"`
+	Error        string     `json:"error,omitempty"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	StartedAt    *time.Time `json:"startedAt,omitempty"`
+	FinishedAt   *time.Time `json:"finishedAt,omitempty"`
 }
 
 type StatsResponse struct {

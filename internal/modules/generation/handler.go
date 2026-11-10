@@ -19,8 +19,8 @@ func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// @Summary      Encolar generación de preguntas con IA
-// @Description  Encola un trabajo de generación por lotes (solo administradores). Resuelve N preguntas en una única llamada a la IA. La cantidad es opcional y por defecto usa el ajuste ai.default_quantity. Rechaza si se supera el tope diario.
+// @Summary      Encolar generación con IA
+// @Description  Encola un trabajo de generación por lotes (solo administradores). `kind` elige preguntas (`question`, default) o tips (`tip`); un trabajo = una llamada a la IA. La cantidad es opcional y por defecto usa el ajuste ai.default_quantity. Rechaza si se supera el tope diario compartido.
 // @Tags         generation
 // @Security     BearerAuth
 // @Accept       json
@@ -56,11 +56,12 @@ func (h *Handler) CreateJob(c *gin.Context) {
 }
 
 // @Summary      Listar trabajos de generación
-// @Description  Lista paginada de los trabajos de generación con IA (solo administradores), filtrable por estado.
+// @Description  Lista paginada de los trabajos de generación con IA (solo administradores), filtrable por estado y tipo de contenido.
 // @Tags         generation
 // @Security     BearerAuth
 // @Produce      json
 // @Param        status     query     string  false  "Filtrar por estado: pending, running, completed o failed"
+// @Param        kind       query     string  false  "Filtrar por tipo: question o tip"
 // @Param        page       query     int     false  "Página (default 1)"
 // @Param        perPage    query     int     false  "Elementos por página (default 20, max 100)"
 // @Param        sortBy     query     string  false  "Campo de orden: created_at, started_at o finished_at"
@@ -77,7 +78,11 @@ func (h *Handler) ListJobs(c *gin.Context) {
 		return
 	}
 
-	params := ListJobsParams{PaginationParams: pagination, Status: c.Query("status")}
+	params := ListJobsParams{
+		PaginationParams: pagination,
+		Status:           c.Query("status"),
+		Kind:             c.Query("kind"),
+	}
 
 	jobs, total, err := h.service.ListJobs(params)
 	if err != nil {
@@ -120,16 +125,18 @@ func (h *Handler) GetJob(c *gin.Context) {
 }
 
 // @Summary      Estadísticas de generación con IA
-// @Description  Consumo del día (reservado y generado), topes vigentes y colas por estado (solo administradores).
+// @Description  Consumo del día (reservado y generado), topes vigentes y colas por estado (solo administradores). El presupuesto diario es compartido; `kind` solo filtra los contadores de cola.
 // @Tags         generation
 // @Security     BearerAuth
 // @Produce      json
+// @Param        kind  query     string  false  "Filtrar contadores por tipo: question o tip"
 // @Success      200  {object}  response.Meta  "Estadísticas"
 // @Failure      401  {object}  apierr.APIError
 // @Failure      403  {object}  apierr.APIError
+// @Failure      422  {object}  apierr.APIError
 // @Router       /api/v1/generation/stats [get]
 func (h *Handler) Stats(c *gin.Context) {
-	stats, err := h.service.Stats()
+	stats, err := h.service.Stats(c.Query("kind"))
 	if err != nil {
 		problem(c, err)
 		return

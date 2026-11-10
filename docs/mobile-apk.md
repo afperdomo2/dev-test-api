@@ -15,10 +15,14 @@ APK  â”€â”€HTTPSâ”€â”€â–¶  https://app.tu-dominio.com  �
 - El APK **solo** habla con el API. **No** se conecta a Postgres.
 - `EXPO_PUBLIC_API_BASE_URL` se **compila dentro del bundle**. No es una
   variable de runtime.
+- `EXPO_PUBLIC_APP_NAME` también es **build-time** y define el nombre visible
+  (launcher). Default: `DevTest`; para pruebas: `DevTest Pruebas`.
 - EAS cloud **no lee** `apps/mobile/.env` ni las variables exportadas en tu
   shell. Usa `apps/mobile/eas.json` â†’ `build.preview.env.EXPO_PUBLIC_API_BASE_URL`.
 - Fuera de desarrollo la URL debe ser **HTTPS** (D-41).
 - Si el backend cambia de dominio, hay que **volver a compilar** el APK.
+- Dos caminos: **Gradle local** (día a día, sin cuenta Expo) y **EAS cloud**
+  (release). Ambos hornean la URL en el bundle.
 
 ## Requisitos (una vez)
 
@@ -57,14 +61,51 @@ volver a firmar actualizaciones.
 Cambiar `app.example.com` por el dominio real **antes** de compilar. El
 preflight falla si sigue el placeholder.
 
-### Versionado
+> El dominio **no se commitea**: `eas.json` queda con el placeholder. Solo se
+> edita para un build EAS cloud (y se revierte después). En el build local la
+> URL se pasa como variable de entorno (`make mobile-apk-local API_URL=…`), que
+> es el camino por defecto y no toca `eas.json`.
 
-Antes de **cada** APK nuevo:
+`apps/mobile/app.config.ts` sobreescribe `expo.name` con
+`EXPO_PUBLIC_APP_NAME` (default `DevTest`). `app.json` sigue siendo la fuente de
+`version` y `versionCode`.
 
-1. Subir `expo.version` (visible al usuario, ej. `1.0.1`).
-2. Subir `expo.android.versionCode` (entero, siempre creciente; Android no
-   instala un APK con `versionCode` menor o igual al instalado).
-3. `npx --yes eas-cli@latest build -p android --profile preview`.
+### Versionado (mobile)
+
+Todo APK nuevo se versiona. Dos números, ambos en `apps/mobile/app.json`
+(fuente única):
+
+| Campo | Ejemplo | Regla |
+|---|---|---|
+| `expo.version` | `1.1.0` | Semver visible; se muestra en Perfil |
+| `expo.android.versionCode` | `3` | Entero **+1 en cada APK** entregado; nunca se reusa ni baja |
+
+Cuándo subir `version`:
+
+- **MAJOR** (`2.0.0`): rompe compatibilidad con el backend o rediseño de la app.
+- **MINOR** (`1.1.0`): funcionalidad nueva visible (pantalla, flujo, sección).
+- **PATCH** (`1.0.1`): fixes, textos, estilos, config (URL, nombre, iconos) y
+  dependencias sin cambio funcional.
+
+`versionCode` sube **siempre**, incluso si el `version` no cambia (recompilaste
+lo mismo) y aunque el APK no se publique en ninguna tienda: es lo que permite
+instalar encima y distinguir builds.
+
+Bump + sincronización del proyecto nativo generado (no borra `android/`):
+
+```bash
+make mobile-bump                 # versionCode +1, mismo version
+make mobile-bump VERSION=1.1.0   # versionCode +1 + version nueva
+```
+
+Equivale a editar `app.json` y reflejar `versionCode`/`versionName` en
+`android/app/build.gradle`. Si volvés a correr `expo prebuild`, los valores se
+regeneran igual desde `app.json`.
+
+```bash
+npx --yes eas-cli@latest build -p android --profile preview   # EAS cloud
+make mobile-apk-local                                         # Gradle local
+```
 
 ## Preflight (obligatorio)
 
@@ -121,6 +162,75 @@ Si la app no conecta:
 - HTTPS vÃ¡lido (certificado de Let's Encrypt, no autofirmado).
 - El APK de release **no** permite HTTP en claro; no insistas con `http://LAN`.
 
+## Build local con Gradle (sin cuenta Expo)
+
+Camino **preferido para iterar**: compila en la PC con el Android SDK + JDK 21.
+No necesita login ni `eas init`; `EXPO_PUBLIC_API_BASE_URL` y
+`EXPO_PUBLIC_APP_NAME` se pasan como variables de entorno y quedan compiladas
+en el bundle.
+
+Requisitos: `~/Android/Sdk` y `/usr/lib/jvm/java-21-openjdk-amd64`.
+
+Versioná antes de compilar (ver "Versionado" arriba): `make mobile-bump [VERSION=x.y.z]`.
+
+```bash
+make mobile-apk-local                      # URL por defecto: devtest.afperdomo.cloud
+make mobile-apk-local API_URL=https://otro-dominio.com
+make mobile-apk-local APP_NAME="DevTest Pruebas" API_URL=https://devtest-staging.afperdomo.cloud
+```
+
+Para cambiar el nombre visible de la app, pasá `APP_NAME`. El target ejecuta
+`npx expo prebuild --platform android --no-install` antes de Gradle: el label
+vive en `android/app/src/main/res/values/strings.xml` y Gradle no evalúa
+`app.config.ts`. El target respalda y restaura `android/app/debug.keystore`
+automáticamente (misma firma = se instala encima). Sin `APP_NAME` no se ejecuta
+prebuild y se conserva el nombre actual.
+
+Equivale a:
+
+```bash
+cd apps/mobile/android
+
+# 1) Borrar el bundle previo: Gradle NO invalida la tarea al cambiar la env
+rm -rf app/build/generated/assets app/build/intermediates/assets app/build/intermediates/compressed_assets
+
+# 2) Compilar (la env va en el mismo comando que gradlew)
+ANDROID_HOME=$HOME/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 \
+EXPO_PUBLIC_API_BASE_URL=https://devtest.afperdomo.cloud ./gradlew assembleRelease
+
+# 3) Verificar la URL horneada
+unzip -p app/build/outputs/apk/release/app-release.apk assets/index.android.bundle \
+  | grep -ao "devtest[a-z.-]*\.cloud" | sort -u
+```
+
+Salida (ruta para copiar y pegar en el gestor de archivos):
+
+```
+apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+```
+
+Para abrir la carpeta directamente:
+
+```bash
+xdg-open "$(realpath apps/mobile/android/app/build/outputs/apk/release)"
+# o el archivo exacto:
+realpath apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+```
+
+Firmado con **debug keystore**: sirve para instalar a mano, **no** para Play
+Store. Instalación: `adb install -r <ruta>.apk` o copiando el APK al teléfono.
+
+Notas:
+
+- `android/` es prebuild generado (gitignored): no lee `app.json` ni
+  `app.config.ts`. Si cambiás `expo.version`/`versionCode`, el nombre
+  (`EXPO_PUBLIC_APP_NAME`) **o los iconos** (`assets/`, regenerados con
+  `make icons`; ver `docs/branding.md`), corré
+  `npx expo prebuild --platform android --no-install` (el target
+  `mobile-apk-local APP_NAME=...` ya lo hace). Si usás `--clean`, respaldá y
+  restaurá `android/app/debug.keystore` (misma firma = se instala encima).
+- Si el APK sigue con la URL vieja: `./gradlew clean` y repetir el paso 2.
+
 ## Pruebas locales (sin APK)
 
 Para desarrollo usÃ¡ Expo Go contra el stack dev:
@@ -159,7 +269,7 @@ terminal del contenedor, tÃºnel SSH o External Port temporal. **Nunca** publiq
 - [ ] Backend desplegado y `https://â€¦/health` OK.
 - [ ] Admin creado (o setup disponible si es una DB nueva).
 - [ ] `eas.json` apunta al dominio correcto (HTTPS, sin `/` final).
-- [ ] `expo.version` y `android.versionCode` incrementados.
+- [ ] `expo.version` y `android.versionCode` incrementados (`make mobile-bump`).
 - [ ] `bash scripts/preflight-apk.sh` en verde.
 - [ ] APK instalado y login verificado en un Android real.
 - [ ] Si cambiÃ³ el backend: APK recompilado (no reutilizar el anterior).

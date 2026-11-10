@@ -5,17 +5,25 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"sync"
 	"time"
 
 	"github.com/felipe/dev-test-api/internal/models"
 	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/progress"
-	"github.com/felipe/dev-test-api/internal/modules/tips"
 	"github.com/felipe/dev-test-api/pkg/apierr"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+)
+
+// Topes del repaso diario (D-55).
+const (
+	// dailyTrueFalseLimit es el máximo de preguntas true_false por sesión
+	// diaria, contando vencidas y calentamiento. Al llegar, el repaso pasa a
+	// práctica normal. Las true_false pendientes siguen vencidas para mañana.
+	dailyTrueFalseLimit = 3
+	// dailyQuestionLimit es el tope total de respuestas de una sesión diaria.
+	dailyQuestionLimit = 15
 )
 
 type Service interface {
@@ -34,11 +42,10 @@ type sessionService struct {
 	store               Store
 	progressService     progress.Service
 	gamificationService gamification.Service
-	tipService          tips.Service
 }
 
-func NewService(store Store, progressService progress.Service, gamificationService gamification.Service, tipService tips.Service) Service {
-	return &sessionService{store: store, progressService: progressService, gamificationService: gamificationService, tipService: tipService}
+func NewService(store Store, progressService progress.Service, gamificationService gamification.Service) Service {
+	return &sessionService{store: store, progressService: progressService, gamificationService: gamificationService}
 }
 
 // findOwnedSession carga la sesión y comprueba que pertenece al usuario.
@@ -135,10 +142,10 @@ func (s *sessionService) Create(userID uuid.UUID, input CreateSessionRequest) (*
 }
 
 type dailySessionData struct {
-	dueCount    int64
-	warmupCount int64
-	tip         *tips.TipResponse
-	errs        []error
+	dueCount      int64
+	warmupCount   int64
+	practiceCount int64
+	errs          []error
 }
 
 func (s *sessionService) gatherDailyData(userID uuid.UUID) dailySessionData {
@@ -173,18 +180,11 @@ func (s *sessionService) gatherDailyData(userID uuid.UUID) dailySessionData {
 		return err
 	})
 	go collect(func() error {
-		tip, err := s.tipService.GetTipOfTheDay(userID)
-		if err != nil {
-			var apiErr *apierr.APIError
-			if errors.As(err, &apiErr) && apiErr.Status == http.StatusNotFound {
-				return nil
-			}
-			return err
-		}
+		n, err := s.store.CountPracticeCandidates(userID)
 		mu.Lock()
-		res.tip = tip
+		res.practiceCount = n
 		mu.Unlock()
-		return nil
+		return err
 	})
 	wg.Wait()
 
@@ -197,15 +197,35 @@ func (s *sessionService) CreateDaily(userID uuid.UUID) (*DailySessionResponse, e
 		return nil, apierr.ErrInternal("Error al preparar la sesion diaria", "")
 	}
 
-	session := &models.Session{
-		UserID:     userID,
-		Name:       "Repaso diario",
-		Status:     "in_progress",
-		Mode:       "daily",
-		Difficulty: "intermediate",
+	// Reutiliza la sesión diaria de hoy si sigue en progreso: así pulsar
+	// "Repasar hoy" varias veces no acumula sesiones abiertas.
+	if existing := s.findTodayDailySession(userID); existing != nil {
+		s.ensureDailyLimit(existing)
+		return &DailySessionResponse{
+			Session:     ToSessionResponse(*existing),
+			DueCount:    data.dueCount,
+			WarmupCount: data.warmupCount,
+		}, nil
 	}
-	if data.tip != nil {
-		session.TipID = &data.tip.ID
+
+	// Sin vencidas y sin banco visible no hay nada que repasar. No se crea una
+	// sesión fantasma que se quedaría "en progreso" para siempre (ver D-52).
+	if data.dueCount == 0 && data.practiceCount == 0 {
+		return nil, apierr.ErrConflict(
+			"No Questions For Daily Session",
+			"No hay preguntas para repasar hoy. Crea una sesión de estudio.",
+			"",
+		)
+	}
+
+	limit := dailyQuestionLimit
+	session := &models.Session{
+		UserID:        userID,
+		Name:          "Repaso diario",
+		Status:        "in_progress",
+		Mode:          "daily",
+		Difficulty:    "intermediate",
+		QuestionLimit: &limit,
 	}
 
 	if err := s.store.Create(session); err != nil {
@@ -220,10 +240,48 @@ func (s *sessionService) CreateDaily(userID uuid.UUID) (*DailySessionResponse, e
 	sessResp := ToSessionResponse(*session)
 	return &DailySessionResponse{
 		Session:     sessResp,
-		Tip:         data.tip,
 		DueCount:    data.dueCount,
 		WarmupCount: data.warmupCount,
 	}, nil
+}
+
+// findTodayDailySession devuelve la sesión diaria de hoy en progreso, o nil si
+// no existe (o si la consulta falla: el peor caso es crear una nueva).
+func (s *sessionService) findTodayDailySession(userID uuid.UUID) *models.Session {
+	startOfDay := time.Now().UTC().Truncate(24 * time.Hour)
+	sess, err := s.store.FindTodayInProgressDaily(userID, startOfDay)
+	if err != nil {
+		return nil
+	}
+	return sess
+}
+
+// ensureDailyLimit aplica el tope a sesiones diarias creadas antes de D-55
+// (quedaron con QuestionLimit nulo). Best effort: si no se puede guardar, la
+// sesión sigue funcionando sin tope.
+func (s *sessionService) ensureDailyLimit(sess *models.Session) {
+	if sess.QuestionLimit != nil {
+		return
+	}
+	limit := dailyQuestionLimit
+	sess.QuestionLimit = &limit
+	if err := s.store.Update(sess); err != nil {
+		log.Printf("⚠️ No se pudo aplicar el tope a la sesión diaria %s: %v", sess.ID, err)
+	}
+}
+
+// effectiveQuestionLimit devuelve el tope real de la sesión. Las daily creadas
+// antes de D-55 quedaron con el tope vacío: para ellas se asume el actual, así
+// el límite se aplica aunque se entre desde el listado de Sesiones.
+func effectiveQuestionLimit(sess *models.Session) *int {
+	if sess.QuestionLimit != nil {
+		return sess.QuestionLimit
+	}
+	if sess.Mode == "daily" {
+		limit := dailyQuestionLimit
+		return &limit
+	}
+	return nil
 }
 
 func (s *sessionService) Finish(sessionID, userID uuid.UUID) (*SessionResponse, error) {
@@ -250,7 +308,9 @@ func (s *sessionService) Finish(sessionID, userID uuid.UUID) (*SessionResponse, 
 	}
 
 	resp := ToSessionResponse(*sess)
-	if s.gamificationService != nil {
+	// Finalizar sin responder no otorga recompensa: una sesión vacía no debe
+	// servir para granjear XP ni racha (ver D-52).
+	if s.gamificationService != nil && len(sess.Answers) > 0 {
 		reward, gErr := s.gamificationService.CompleteSession(sess.UserID)
 		if gErr != nil {
 			return nil, gErr
@@ -275,12 +335,20 @@ func (s *sessionService) NextQuestion(sessionID, userID uuid.UUID) (*NextQuestio
 		return nil, apierr.ErrInternal("Error al obtener las preguntas respondidas", "")
 	}
 
-	if sess.QuestionLimit != nil && len(answeredIDs) >= *sess.QuestionLimit {
+	if limit := effectiveQuestionLimit(sess); limit != nil && len(answeredIDs) >= *limit {
 		return nil, apierr.ErrNotFound("Pregunta", "Has alcanzado el limite de preguntas de esta sesion")
 	}
 
 	if sess.Mode == "daily" {
-		question, err := s.store.FindNextDailyQuestion(sess.UserID, answeredIDs)
+		// Cupo de calentamiento: tras N true_false en esta sesión (vencidas o
+		// warmup) se pasa a práctica normal. Las pendientes siguen vencidas.
+		trueFalseAnswered, err := s.store.CountSessionAnswersByType(sessionID, "true_false")
+		if err != nil {
+			return nil, apierr.ErrInternal("Error al obtener las respuestas de la sesion", "")
+		}
+		skipTrueFalse := trueFalseAnswered >= dailyTrueFalseLimit
+
+		question, err := s.store.FindNextDailyQuestion(sess.UserID, answeredIDs, skipTrueFalse)
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return nil, apierr.ErrNotFound("Pregunta", "No hay mas preguntas disponibles para esta sesion")
@@ -289,7 +357,7 @@ func (s *sessionService) NextQuestion(sessionID, userID uuid.UUID) (*NextQuestio
 		}
 
 		resp := NextQuestionResponse{
-			Question: toNextQuestionItem(*question),
+			Question: toNextQuestionItem(*question, sess.ID),
 		}
 		return &resp, nil
 	}
@@ -308,7 +376,7 @@ func (s *sessionService) NextQuestion(sessionID, userID uuid.UUID) (*NextQuestio
 	}
 
 	resp := NextQuestionResponse{
-		Question: toNextQuestionItem(*question),
+		Question: toNextQuestionItem(*question, sess.ID),
 	}
 	return &resp, nil
 }
@@ -451,7 +519,8 @@ func (s *sessionService) Delete(sessionID, userID uuid.UUID) error {
 func (s *sessionService) Summary(sessionID, userID uuid.UUID) (*SessionSummaryResponse, error) {
 	// FindSummary solo agrega contadores y no filtra por usuario: el dueño se
 	// comprueba antes con la misma regla que el resto (D-AZ-2).
-	if _, err := findOwnedSession(s.store, sessionID, userID); err != nil {
+	sess, err := findOwnedSession(s.store, sessionID, userID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -466,6 +535,6 @@ func (s *sessionService) Summary(sessionID, userID uuid.UUID) (*SessionSummaryRe
 	return &SessionSummaryResponse{
 		AnswerCount:   int(data.AnswerCount),
 		Status:        data.Status,
-		QuestionLimit: data.QuestionLimit,
+		QuestionLimit: effectiveQuestionLimit(sess),
 	}, nil
 }

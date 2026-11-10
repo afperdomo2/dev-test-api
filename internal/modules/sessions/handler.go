@@ -100,12 +100,13 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 // @Summary      Crear sesión diaria
-// @Description  Crea una sesión diaria inteligente con repasos vencidos, calentamiento true_false y tip del día
+// @Description  Crea (o reutiliza la de hoy) una sesión diaria inteligente: repasos vencidos, calentamiento true_false, práctica normal como fallback y tip del día. Sin candidatos devuelve 409 y no crea sesión.
 // @Tags         sessions
 // @Security     BearerAuth
 // @Produce      json
 // @Success      201  {object}  DailySessionResponse
 // @Failure      401  {object}  apierr.APIError
+// @Failure      409  {object}  apierr.APIError
 // @Failure      500  {object}  apierr.APIError
 // @Router       /api/v1/sessions/daily [post]
 func (h *Handler) CreateDaily(c *gin.Context) {

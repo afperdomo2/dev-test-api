@@ -105,6 +105,8 @@ services:
       target: runtime
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_APP_NAME: ${VITE_APP_NAME:-DevTest}
+        VITE_APP_COLOR: ${VITE_APP_COLOR:-red}
     restart: unless-stopped
     expose:
       - "8080"

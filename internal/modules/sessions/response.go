@@ -5,7 +5,6 @@ import (
 
 	"github.com/felipe/dev-test-api/internal/modules/gamification"
 	"github.com/felipe/dev-test-api/internal/modules/questions"
-	"github.com/felipe/dev-test-api/internal/modules/tips"
 	"github.com/google/uuid"
 )
 
@@ -49,17 +48,21 @@ type SessionDetailResponse struct {
 }
 
 type DailySessionResponse struct {
-	Session     SessionResponse   `json:"session"`
-	Tip         *tips.TipResponse `json:"tip,omitempty"`
-	DueCount    int64             `json:"dueCount"`
-	WarmupCount int64             `json:"warmupCount"`
+	Session     SessionResponse `json:"session"`
+	DueCount    int64           `json:"dueCount"`
+	WarmupCount int64           `json:"warmupCount"`
 }
 
+// SessionAnswerResponse incluye CorrectOptions (IDs de las opciones correctas)
+// SOLO en la respuesta de /answer, es decir, después de responder. El endpoint
+// de la siguiente pregunta no las expone a propósito: no se filtra la respuesta
+// antes de tiempo.
 type SessionAnswerResponse struct {
 	ID              uuid.UUID            `json:"id"`
 	QuestionID      uuid.UUID            `json:"questionId"`
 	AnswerText      string               `json:"answerText,omitempty"`
 	SelectedOptions []uuid.UUID          `json:"selectedOptions,omitempty"`
+	CorrectOptions  []uuid.UUID          `json:"correctOptions,omitempty"`
 	IsCorrect       bool                 `json:"isCorrect"`
 	AiFeedback      string               `json:"aiFeedback,omitempty"`
 	Explanation     string               `json:"explanation,omitempty"`
@@ -106,7 +109,7 @@ type NextQuestionItem struct {
 	Type          string                           `json:"type"`
 	Content       string                           `json:"content"`
 	Difficulty    string                           `json:"difficulty"`
-	Options       []NextQuestionOption             `json:"options,omitempty"`
+	Options       []NextQuestionOption             `json:"options"`
 	CodeChallenge *questions.CodeChallengeResponse `json:"codeChallenge,omitempty"`
 	Topics        []string                         `json:"topics"`
 }

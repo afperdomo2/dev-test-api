@@ -1,4 +1,4 @@
-import { getErrorDetail, isNetworkError } from './errors'
+import { getErrorDetail, getErrorStatus, isNetworkError } from './errors'
 
 describe('getErrorDetail', () => {
   it('returns the detail when the error carries one', () => {
@@ -20,8 +20,22 @@ describe('getErrorDetail', () => {
   })
 })
 
-describe('isNetworkError', () => {
-  it('detecta el error de red de apiClient', () => {
+describe('getErrorStatus', () => {
+  it('devuelve el status numérico del ApiError', () => {
+    expect(getErrorStatus({ status: 404, detail: 'No existe' })).toBe(404)
+    expect(getErrorStatus({ status: 409 })).toBe(409)
+  })
+
+  it('devuelve null cuando no hay status numérico', () => {
+    expect(getErrorStatus(null)).toBeNull()
+    expect(getErrorStatus(undefined)).toBeNull()
+    expect(getErrorStatus('boom')).toBeNull()
+    expect(getErrorStatus(new Error('boom'))).toBeNull()
+    expect(getErrorStatus({ status: '404' })).toBeNull()
+  })
+})
+
+describe('isNetworkError', () => {  it('detecta el error de red de apiClient', () => {
     expect(
       isNetworkError({ title: 'Network Error', detail: 'No se pudo conectar con el servidor' }),
     ).toBe(true)

@@ -19,11 +19,12 @@ import (
 // maxExistingContent acota cuántas preguntas previas se cargan para el prompt.
 const maxExistingContent = 60
 
-// QuestionGenerator es la parte del servicio de IA que usa este módulo. Es una
+// AIGenerator es la parte del servicio de IA que usa este módulo. Es una
 // interfaz (no *ai.Generator) para poder testear el módulo sin red.
-type QuestionGenerator interface {
+type AIGenerator interface {
 	IsConfigured() bool
 	GenerateQuestions(ctx context.Context, req ai.BatchRequest) ([]*ai.GeneratedQuestion, error)
+	GenerateTips(ctx context.Context, req ai.TipBatchRequest) ([]*ai.GeneratedTip, error)
 }
 
 type SettingsProvider interface {
@@ -36,7 +37,7 @@ type Service interface {
 	CreateJob(ctx context.Context, requestedBy uuid.UUID, req CreateJobRequest) (*JobResponse, error)
 	ListJobs(params ListJobsParams) ([]JobResponse, int64, error)
 	GetJob(id uuid.UUID) (*JobResponse, error)
-	Stats() (*StatsResponse, error)
+	Stats(kind string) (*StatsResponse, error)
 
 	// ProcessJob ejecuta un trabajo ya reclamado. Lo usa el worker, no los handlers.
 	ProcessJob(ctx context.Context, job models.GenerationJob) error
@@ -49,11 +50,11 @@ type Service interface {
 
 type service struct {
 	store     Store
-	generator QuestionGenerator
+	generator AIGenerator
 	settings  SettingsProvider
 }
 
-func NewService(store Store, generator QuestionGenerator, settings SettingsProvider) Service {
+func NewService(store Store, generator AIGenerator, settings SettingsProvider) Service {
 	return &service{store: store, generator: generator, settings: settings}
 }
 
@@ -85,6 +86,23 @@ func (s *service) CreateJob(_ context.Context, requestedBy uuid.UUID, req Create
 		}
 	}
 
+	kind, err := normalizeKind(req.Kind)
+	if err != nil {
+		return nil, err
+	}
+
+	questionType, err := normalizeQuestionType(req.QuestionType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Los tips no tienen dificultad; se guarda el default para respetar el
+	// CHECK de la tabla y se ignora al construir el prompt.
+	difficulty := req.Difficulty
+	if kind == models.GenerationKindTip || difficulty == "" {
+		difficulty = "intermediate"
+	}
+
 	maxPerJob, err := s.settings.MaxPerJob()
 	if err != nil {
 		return nil, apierr.ErrInternal("Error al obtener el máximo por trabajo", "")
@@ -101,10 +119,12 @@ func (s *service) CreateJob(_ context.Context, requestedBy uuid.UUID, req Create
 	}
 
 	job := &models.GenerationJob{
-		RequestedBy: requestedBy,
-		Difficulty:  req.Difficulty,
-		Quantity:    quantity,
-		Status:      models.GenerationJobStatusPending,
+		RequestedBy:  requestedBy,
+		Kind:         kind,
+		Difficulty:   difficulty,
+		QuestionType: questionType,
+		Quantity:     quantity,
+		Status:       models.GenerationJobStatusPending,
 	}
 
 	// El lock consultivo + el INSERT ocurren en la misma transacción, así que
@@ -116,7 +136,7 @@ func (s *service) CreateJob(_ context.Context, requestedBy uuid.UUID, req Create
 	if reserved+quantity > maxPerDay {
 		return nil, apierr.ErrTooManyRequests(
 			fmt.Sprintf(
-				"Tope diario de generación alcanzado (%d/%d). Se han reservado %d preguntas hoy",
+				"Tope diario de generación alcanzado (%d/%d). Se han reservado %d unidades hoy",
 				reserved, maxPerDay, reserved,
 			),
 			"",
@@ -132,8 +152,13 @@ func (s *service) CreateJob(_ context.Context, requestedBy uuid.UUID, req Create
 		names = append(names, t.Name)
 	}
 
-	log.Printf("📥 Trabajo de generación encolado: %d preguntas, dificultad %s, temas [%s]",
-		quantity, job.Difficulty, strings.Join(names, ", "))
+	if kind == models.GenerationKindTip {
+		log.Printf("📥 Trabajo de generación encolado: %d tips, temas [%s]",
+			quantity, strings.Join(names, ", "))
+	} else {
+		log.Printf("📥 Trabajo de generación encolado: %d preguntas (%s), dificultad %s, temas [%s]",
+			quantity, questionType, job.Difficulty, strings.Join(names, ", "))
+	}
 
 	out := toJobResponse(*job, names)
 	return &out, nil
@@ -144,6 +169,13 @@ func (s *service) ListJobs(params ListJobsParams) ([]JobResponse, int64, error) 
 		return nil, 0, apierr.ErrValidation(
 			fmt.Sprintf("status '%s' no es válido. Valores permitidos: %s",
 				params.Status, strings.Join(jobStatusList(), ", ")),
+			"",
+		)
+	}
+	if params.Kind != "" && !validKinds[params.Kind] {
+		return nil, 0, apierr.ErrValidation(
+			fmt.Sprintf("kind '%s' no es válido. Valores permitidos: %s",
+				params.Kind, strings.Join(kindList(), ", ")),
 			"",
 		)
 	}
@@ -189,12 +221,20 @@ func (s *service) GetJob(id uuid.UUID) (*JobResponse, error) {
 	return &out, nil
 }
 
-func (s *service) Stats() (*StatsResponse, error) {
+func (s *service) Stats(kind string) (*StatsResponse, error) {
+	if kind != "" && !validKinds[kind] {
+		return nil, apierr.ErrValidation(
+			fmt.Sprintf("kind '%s' no es válido. Valores permitidos: %s",
+				kind, strings.Join(kindList(), ", ")),
+			"",
+		)
+	}
+
 	budget, err := s.store.DailyBudget(startOfDay(time.Now().UTC()))
 	if err != nil {
 		return nil, apierr.ErrInternal("Error al obtener el consumo diario", "")
 	}
-	counts, err := s.store.StatusCounts()
+	counts, err := s.store.StatusCounts(kind)
 	if err != nil {
 		return nil, apierr.ErrInternal("Error al obtener el estado de los trabajos", "")
 	}
@@ -235,6 +275,14 @@ func (s *service) ProcessJob(ctx context.Context, job models.GenerationJob) erro
 	if len(topics) == 0 {
 		return errors.New("el trabajo no tiene temas asociados")
 	}
+
+	if job.Kind == models.GenerationKindTip {
+		return s.processTips(ctx, job, topics, start)
+	}
+	return s.processQuestions(ctx, job, topics, start)
+}
+
+func (s *service) processQuestions(ctx context.Context, job models.GenerationJob, topics []models.Topic, start time.Time) error {
 	names := make([]string, 0, len(topics))
 	for _, t := range topics {
 		names = append(names, t.Name)
@@ -249,6 +297,7 @@ func (s *service) ProcessJob(ctx context.Context, job models.GenerationJob) erro
 	generated, err := s.generator.GenerateQuestions(ctx, ai.BatchRequest{
 		TopicNames:      names,
 		Difficulty:      job.Difficulty,
+		QuestionType:    job.QuestionType,
 		Count:           job.Quantity,
 		ExistingContent: existing,
 	})
@@ -269,6 +318,49 @@ func (s *service) ProcessJob(ctx context.Context, job models.GenerationJob) erro
 		log.Printf("⚠️ Trabajo %s completado parcialmente: %d de %d preguntas", job.ID, saved, job.Quantity)
 	} else {
 		log.Printf("✅ Trabajo %s completado en %v: %d preguntas sobre [%s]",
+			job.ID, time.Since(start).Round(time.Millisecond), saved, strings.Join(names, ", "))
+	}
+
+	return nil
+}
+
+func (s *service) processTips(ctx context.Context, job models.GenerationJob, topics []models.Topic, start time.Time) error {
+	names := make([]string, 0, len(topics))
+	slugs := make([]string, 0, len(topics))
+	for _, t := range topics {
+		names = append(names, t.Name)
+		slugs = append(slugs, t.Slug)
+	}
+
+	existing, err := s.store.ExistingTipContentByTopics(topicIDsOf(job), maxExistingContent)
+	if err != nil {
+		// No es fatal: sin el histórico la IA puede repetir algún tip.
+		log.Printf("⚠️ No se pudieron obtener los tips existentes del trabajo %s: %v", job.ID, err)
+	}
+
+	generated, err := s.generator.GenerateTips(ctx, ai.TipBatchRequest{
+		TopicNames:      names,
+		TopicSlugs:      slugs,
+		Count:           job.Quantity,
+		ExistingContent: existing,
+	})
+	if err != nil {
+		return err
+	}
+
+	saved, err := s.store.SaveTips(job.RequestedBy, topics, generated)
+	if err != nil {
+		return fmt.Errorf("error al guardar los tips generados: %w", err)
+	}
+
+	if err := s.store.CompleteJob(job.ID, saved); err != nil {
+		return fmt.Errorf("error al marcar el trabajo como completado: %w", err)
+	}
+
+	if saved < job.Quantity {
+		log.Printf("⚠️ Trabajo %s completado parcialmente: %d de %d tips", job.ID, saved, job.Quantity)
+	} else {
+		log.Printf("✅ Trabajo %s completado en %v: %d tips sobre [%s]",
 			job.ID, time.Since(start).Round(time.Millisecond), saved, strings.Join(names, ", "))
 	}
 
@@ -312,6 +404,63 @@ func jobStatusList() []string {
 		models.GenerationJobStatusCompleted,
 		models.GenerationJobStatusFailed,
 	}
+}
+
+var validKinds = map[string]bool{
+	models.GenerationKindQuestion: true,
+	models.GenerationKindTip:      true,
+}
+
+func kindList() []string {
+	return []string{models.GenerationKindQuestion, models.GenerationKindTip}
+}
+
+var validQuestionTypes = map[string]bool{
+	models.GenerationQuestionTypeMixed:          true,
+	models.GenerationQuestionTypeSingleChoice:   true,
+	models.GenerationQuestionTypeMultipleChoice: true,
+	models.GenerationQuestionTypeTrueFalse:      true,
+}
+
+func questionTypeList() []string {
+	return []string{
+		models.GenerationQuestionTypeMixed,
+		models.GenerationQuestionTypeSingleChoice,
+		models.GenerationQuestionTypeMultipleChoice,
+		models.GenerationQuestionTypeTrueFalse,
+	}
+}
+
+// normalizeQuestionType valida el tipo pedido. Sin valor se conserva el
+// comportamiento histórico (single_choice), igual que el default de la
+// columna; la UI manda "mixed" explícito cuando el admin elige la mezcla.
+func normalizeQuestionType(questionType string) (string, error) {
+	if questionType == "" {
+		return models.GenerationQuestionTypeSingleChoice, nil
+	}
+	if !validQuestionTypes[questionType] {
+		return "", apierr.ErrValidation(
+			fmt.Sprintf("questionType '%s' no es válido. Valores permitidos: %s",
+				questionType, strings.Join(questionTypeList(), ", ")),
+			"",
+		)
+	}
+	return questionType, nil
+}
+
+// normalizeKind aplica el default retrocompatible: sin kind = preguntas.
+func normalizeKind(kind string) (string, error) {
+	if kind == "" {
+		return models.GenerationKindQuestion, nil
+	}
+	if !validKinds[kind] {
+		return "", apierr.ErrValidation(
+			fmt.Sprintf("kind '%s' no es válido. Valores permitidos: %s",
+				kind, strings.Join(kindList(), ", ")),
+			"",
+		)
+	}
+	return kind, nil
 }
 
 // topicNamesMap agrupa los nombres de temas por job para la respuesta paginada,

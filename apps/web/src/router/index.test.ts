@@ -3,11 +3,15 @@ import { createRouter, createMemoryHistory, type RouteRecordRaw } from 'vue-rout
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth.store'
 
-vi.mock('@/utils/storage', () => ({
-  getToken: vi.fn(() => null),
-  setToken: vi.fn(),
-  removeToken: vi.fn(),
-}))
+vi.mock('@/utils/storage', async () => {
+  const actual = await vi.importActual('@/utils/storage')
+  return {
+    ...(actual as object),
+    getToken: vi.fn(() => null),
+    setToken: vi.fn(),
+    removeToken: vi.fn(),
+  }
+})
 
 function createTestRouter() {
   const routes: Array<RouteRecordRaw> = [

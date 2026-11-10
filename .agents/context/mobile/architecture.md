@@ -23,7 +23,8 @@
 | `src/core/auth/` | Almacenamiento del token (`expo-secure-store`) y estado de sesión | Yes |
 | `src/core/utils/` | Shared utilities | Yes |
 | `apps/mobile/package.json` | `"main": "expo-router/entry"` | Rarely |
-| `apps/mobile/app.json` | Expo config (plugins, scheme, userInterfaceStyle: "dark") | Yes |
+| `apps/mobile/app.json` | Expo config (plugins, scheme, userInterfaceStyle: "dark", `version`/`versionCode`) | Yes |
+| `apps/mobile/app.config.ts` | Config dinámica: sobreescribe `expo.name` con `EXPO_PUBLIC_APP_NAME` | Yes |
 | `apps/mobile/tsconfig.json` | Extends `expo/tsconfig.base`, `@/*` → `src/*` | Rarely |
 | `.agents/context/mobile/design-system.md` | Design system (Dark OLED, paleta, tipografía, anti-patrones) — source of truth | Yes |
 
@@ -139,7 +140,8 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 ### Layout & Spacing
 - Use design tokens from `src/core/theme/tokens.ts` — never hardcode hex values.
 - 8dp spacing rhythm (spacing.xs=4, sm=8, md=16, lg=24, xl=32).
-- Expo Router tabs handle safe areas automatically — don't add SafeAreaView manually.
+- **Safe areas**: las `NativeTabs` ya insertan el contenido por abajo (Android envuelve en `SafeAreaView` con `edges: { bottom: true }`, iOS con provider por tab): no sumes `insets.bottom` a scrolls ni a footers. Los headers propios (`headerShown: false`) sí deben usar `useSafeAreaInsets().top`.
+- **`Pressable` disabled**: pasá siempre un booleano explícito (`disabled={false}`) cuando el botón está habilitado. Si `disabled` pasa de `true` a `undefined`, Android deja de tratar el host como touch target y solo responde el texto interno (RN 0.84–0.86, react-native#56777; el workaround es no omitir la prop).
 - Scroll content must not be hidden behind fixed bars.
 
 ### Progress & Feedback
@@ -159,6 +161,13 @@ All mobile UI must follow these rules (source: `pro-rules.md` + `ui-ux-pro-max` 
 - **Nueva sesión** (`features/sessions/screens/StudySessionScreen`): dificultad en rejilla 2×2 y cantidad en una fila `10/25/50/Sin límite`. Cantidad ilimitada = **omitir `questionLimit`** (el backend usa `nil`); el límite máximo del contrato es 50.
 - **422 por disponibilidad** (`Solo hay N preguntas disponibles…`): no es un dead-end; la pantalla ofrece reintentar **sin límite** además de cambiar la cantidad.
 - El nombre se autogenera (`Estudio · Tema1, Tema2 +N`) y deja de regenerarse cuando el usuario lo edita (`nameDirty`).
+
+### Pantalla de estudio y sesión diaria
+- `SessionStudyPage` distingue **4 resultados** de `GET /next`, no 2: pregunta → `question`; **404 con ≥1 respuesta** → `finished`; **404 con 0 respuestas** → `empty` (la sesión nació vacía, nunca "Sesión completada"); **500/red** → `error` con reintento. Cualquier error tratado como "completada" deja la sesión en progreso para siempre.
+- `empty` ofrece crear sesión de estudio o volver a Sesiones y **descarta** la sesión vacía (`DELETE`, best effort) para no dejar fantasmas en progreso.
+- `HomeScreen` interpreta el **409** de `POST /sessions/daily` ("no hay preguntas para repasar hoy") como estado neutro, no como error rojo. Detalle del backend: D-52 / `tasks/daily-review.md`.
+- **Tip del día**: vive en Inicio (`DailyTipCard` en `core/components`), no en la sesión (D-53). `getTipOfTheDay()` pega a `GET /tips/today`; la tarjeta se carga aparte y su fallo (404/red) no afecta a la Home. El cierre se persiste **por día UTC** en `SecureStore` (`features/home/dailyTipDismissal.ts`): oculta el tip hasta mañana. Un componente usado por dos dominios vive en `core/components`, no en `features/*`.
+- **Navegación entre preguntas**: el `ScrollView` vuelve al inicio cuando cambia `question.id` (`useScrollToTopOnChange`: `useLayoutEffect` + `scrollTo({ y: 0, animated: false })`), para no heredar el offset del botón de acción de una pregunta larga. La acción principal vive **siempre en una barra fija inferior** (con `insets.bottom`): "Confirmar" (deshabilitado sin selección o mientras envía) → "Siguiente". `QuestionCard` es presentacional: recibe `selected` + `onToggleOption`, no renderiza botones y no guarda estado de selección; el estado vive en la pantalla. El contenido suma `paddingBottom` para que la barra no tape la explicación.
 
 ### Pre-delivery checklist
 Before delivering any mobile UI, verify against `pro-rules.md`:
@@ -221,6 +230,20 @@ The mobile app uses `fetch` (not axios). The client must:
 The envelope/error contract is defined in `.agents/context/backend/responses.md` — the mobile client implements the consuming side.
 
 Servicios por dominio en `src/core/api/services/` (`sessions`, `topics`, `gamification`, `insights`, `progress`, `questions`, `push`, `auth`). Cada uno es una función fina sobre `apiClient`; las pantallas no llaman a `apiClient` directamente.
+
+## Environment variables
+
+`EXPO_PUBLIC_*` se compilan en el bundle: cambiarlas exige recompilar el APK.
+
+| Variable | Default | Uso |
+|---|---|---|
+| `EXPO_PUBLIC_API_BASE_URL` | `http://localhost:8080` | URL del backend (HTTPS fuera de dev, D-41) |
+| `EXPO_PUBLIC_APP_NAME` | `DevTest` | Nombre visible de la app (launcher y Perfil); en pruebas `DevTest Pruebas` |
+
+`app.config.ts` solo sobreescribe `name`; `app.json` sigue siendo la fuente de
+`version` y `versionCode` (los leen los scripts de bump/preflight). En local,
+`make mobile-apk-local APP_NAME=...` ejecuta el prebuild necesario para
+actualizar `android/app/src/main/res/values/strings.xml`.
 
 ## Push notifications
 

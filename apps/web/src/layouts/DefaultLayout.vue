@@ -4,10 +4,26 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import { useRouter } from 'vue-router'
 import NotificationBell from '@/features/notifications/components/NotificationBell.vue'
+import UserIdentity from '@/components/UserIdentity.vue'
+import { APP_COLOR, APP_NAME } from '@/config/app'
+import { buildDocumentTitle, roleLabel } from '@/utils/identity'
+import { useDocumentTitle } from '@/composables/useDocumentTitle'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
+
+useDocumentTitle(() => buildDocumentTitle(authStore.user, APP_NAME))
+
+const accountLabel = computed(() => {
+  const role = roleLabel(authStore.isAdmin)
+  return authStore.user?.email ? `Cuenta de ${authStore.user.email} (${role})` : `Cuenta (${role})`
+})
+
+const profileLinkLabel = computed(() => {
+  const role = roleLabel(authStore.isAdmin)
+  return authStore.user?.email ? `Mi perfil de ${authStore.user.email} (${role})` : 'Mi perfil'
+})
 
 interface NavItem {
   title: string
@@ -47,7 +63,7 @@ const navSections: Array<NavSection> = [
     title: 'Administración',
     items: [
       { title: 'Usuarios', to: '/users', icon: 'mdi-account-group', adminOnly: true },
-      { title: 'Generar preguntas', to: '/generation', icon: 'mdi-auto-fix', adminOnly: true },
+      { title: 'Generación con IA', to: '/generation', icon: 'mdi-auto-fix', adminOnly: true },
       {
         title: 'Configuración de IA',
         to: '/generation/settings',
@@ -84,7 +100,7 @@ function logout() {
       <v-list-item
         class="pa-4"
         prepend-icon="mdi-code-braces"
-        title="DevTest"
+        :title="APP_NAME"
         subtitle="Estudio inteligente"
       />
 
@@ -107,15 +123,20 @@ function logout() {
       <template #append>
         <v-divider />
         <v-list density="compact" nav class="pa-2">
-          <v-list-item prepend-icon="mdi-account-circle" title="Mi perfil" to="/profile" exact />
+          <v-list-item :to="'/profile'" exact :aria-label="profileLinkLabel" class="pa-2">
+            <UserIdentity :user="authStore.user" />
+            <template #append>
+              <v-icon icon="mdi-chevron-right" size="18" />
+            </template>
+          </v-list-item>
           <v-list-item prepend-icon="mdi-logout" title="Cerrar sesión" @click="logout" />
         </v-list>
       </template>
     </v-navigation-drawer>
 
-    <v-app-bar color="primary" density="compact">
+    <v-app-bar :color="APP_COLOR" density="compact">
       <v-app-bar-nav-icon @click="appStore.toggleSidebar" />
-      <v-toolbar-title>DevTest</v-toolbar-title>
+      <v-toolbar-title>{{ APP_NAME }}</v-toolbar-title>
 
       <v-spacer />
 
@@ -129,17 +150,20 @@ function logout() {
 
       <v-menu>
         <template #activator="{ props }">
-          <v-btn v-bind="props" variant="text" icon="mdi-account-circle" />
+          <v-btn
+            v-bind="props"
+            variant="text"
+            icon
+            class="identity-activator"
+            :aria-label="accountLabel"
+            :title="accountLabel"
+          >
+            <UserIdentity :user="authStore.user" variant="icon" />
+          </v-btn>
         </template>
         <v-list density="compact">
-          <v-list-item>
-            <v-list-item-title>{{ authStore.user?.email }}</v-list-item-title>
-            <v-list-item-subtitle>
-              {{ authStore.isAdmin ? 'Administrador' : 'Usuario' }}
-            </v-list-item-subtitle>
-          </v-list-item>
-          <v-divider />
           <v-list-item prepend-icon="mdi-account-circle" title="Mi perfil" to="/profile" />
+          <v-divider />
           <v-list-item prepend-icon="mdi-logout" title="Cerrar sesión" @click="logout" />
         </v-list>
       </v-menu>

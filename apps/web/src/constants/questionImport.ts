@@ -5,6 +5,7 @@ export {
   IMPORT_CSV_TEMPLATE_MULTIPLE,
   getImportCsvTemplate,
   IMPORT_QUESTION_KINDS,
+  IMPORT_PROMPT_KINDS,
   PROMPT_DIFFICULTIES,
   PROMPT_OBJECTIVES,
   buildImportPrompt,
@@ -13,6 +14,7 @@ export {
 } from '@devtest/shared'
 export type {
   ImportQuestionKind,
+  PromptQuestionKind,
   PromptDifficulty,
   PromptObjective,
   BuildImportPromptOptions,

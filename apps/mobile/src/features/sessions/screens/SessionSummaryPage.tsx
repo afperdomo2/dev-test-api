@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { SessionDetail, SessionAnswerDetail } from '@devtest/shared'
 
 import { MarkdownText } from '@/core/components/MarkdownText'
@@ -12,6 +13,7 @@ import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 export default function SessionSummaryPage() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const [detail, setDetail] = useState<SessionDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,8 +67,9 @@ export default function SessionSummaryPage() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <Pressable
+          style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
           onPress={handleBack}
           accessibilityRole="button"
           accessibilityLabel="Volver a sesiones"
@@ -210,9 +213,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
     paddingBottom: spacing.sm,
     gap: spacing.md,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -spacing.sm,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   headerTitle: {
     flex: 1,

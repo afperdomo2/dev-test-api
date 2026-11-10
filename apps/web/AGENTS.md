@@ -35,7 +35,11 @@ Page → useQuery(queries.*Options()) → service → apiClient → backend
 ## Key facts
 
 - Contracto API (envelope `{ data }`, errores RFC 9457, camelCase): `.agents/context/backend/responses.md`.
+- **Identidad visible**: avatar en la app bar, email + rol en el sidebar (el bloque es el link a "Mi perfil") y `document.title` = `Rol · email — APP_NAME`. El rol se lee sin abrir menús. Detalle: `.agents/context/web/patterns.md` → "Identidad del usuario logueado".
 - Design system UI: Vuetify (componentes + `VITE_*` env). Ver `.agents/context/web/architecture.md`.
+- Identidad de build: `VITE_APP_NAME` (default `DevTest`) y `VITE_APP_COLOR` (presets en `src/config/app.ts`); se compilan en el bundle y exigen rebuild.
+- **Bloques de código**: `v-highlight` (directiva) usa `highlight.js` con los lenguajes y alias registrados en `@devtest/shared` (`highlight/`). No registres lenguajes en la app; el tema visual es `highlight.js/styles/github.css` (importado en `main.ts`).
+- **Iconos/PWA**: favicons y manifest en `apps/web/public/` (`favicon.svg|ico`, `apple-touch-icon.png`, `icon-192|512.png`, `maskable-512.png`, `site.webmanifest`). Son generados: no se editan a mano, se regeneran con `make icons` desde `brand/`. Detalle: `docs/branding.md`.
 
 ## Details
 

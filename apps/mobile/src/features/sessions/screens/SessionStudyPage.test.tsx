@@ -1,15 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 import { useLocalSearchParams } from 'expo-router'
-import type { NextQuestionItem, Tip } from '@devtest/shared'
+import type { NextQuestionItem } from '@devtest/shared'
 
 import SessionStudyPage from './SessionStudyPage'
-import { clearPendingTip, setPendingTip } from '@/features/sessions/dailyTipStore'
 import {
+  deleteSession,
   getNextQuestion,
   getSessionById,
   getSessionSummary,
   submitAnswer,
 } from '@/core/api/services/sessions.service'
+import { resetRouterMock, routerMock } from '@/__tests__/router'
 
 jest.mock('@/core/api/services/sessions.service', () => ({
   getSessionById: jest.fn(),
@@ -17,6 +18,7 @@ jest.mock('@/core/api/services/sessions.service', () => ({
   getNextQuestion: jest.fn(),
   submitAnswer: jest.fn(),
   finishSession: jest.fn(),
+  deleteSession: jest.fn(),
 }))
 
 const question: NextQuestionItem = {
@@ -25,8 +27,8 @@ const question: NextQuestionItem = {
   content: 'Pregunta de prueba',
   difficulty: 'beginner',
   options: [
-    { id: 'o1', content: 'Opción A', isCorrect: true },
-    { id: 'o2', content: 'Opción B', isCorrect: false },
+    { id: 'o1', content: 'Opción A' },
+    { id: 'o2', content: 'Opción B' },
   ],
   codeChallenge: null,
   topics: [],
@@ -37,7 +39,7 @@ const mockedParams = useLocalSearchParams as unknown as jest.Mock
 describe('SessionStudyPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    clearPendingTip()
+    resetRouterMock()
     mockedParams.mockReturnValue({ id: 's1' })
     jest.mocked(getSessionById).mockResolvedValue({ id: 's1', status: 'in_progress' } as never)
     jest
@@ -53,10 +55,61 @@ describe('SessionStudyPage', () => {
     expect(screen.getByLabelText('Opción A')).toBeOnTheScreen()
   })
 
+  it('Confirmar está deshabilitado sin selección', async () => {
+    await render(<SessionStudyPage />)
+    await screen.findByText(/Pregunta de prueba/)
+
+    const confirmar = screen.getByLabelText('Confirmar respuesta')
+    expect(confirmar).toBeDisabled()
+
+    await fireEvent.press(confirmar)
+    expect(submitAnswer).not.toHaveBeenCalled()
+  })
+
+  it('en single_choice la nueva selección reemplaza a la anterior', async () => {
+    jest.mocked(submitAnswer).mockResolvedValue({ id: 'a1', isCorrect: true } as never)
+
+    await render(<SessionStudyPage />)
+    await screen.findByText(/Pregunta de prueba/)
+
+    await fireEvent.press(screen.getByLabelText('Opción A'))
+    await fireEvent.press(screen.getByLabelText('Opción B'))
+    await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
+
+    await waitFor(() =>
+      expect(submitAnswer).toHaveBeenCalledWith(
+        's1',
+        expect.objectContaining({ selectedOptions: ['o2'] }),
+      ),
+    )
+  })
+
+  it('en multiple_choice acumula las selecciones', async () => {
+    jest.mocked(getNextQuestion).mockResolvedValue({ ...question, type: 'multiple_choice' })
+    jest.mocked(submitAnswer).mockResolvedValue({ id: 'a1', isCorrect: true } as never)
+
+    await render(<SessionStudyPage />)
+    await screen.findByText(/Pregunta de prueba/)
+
+    await fireEvent.press(screen.getByLabelText('Opción A'))
+    await fireEvent.press(screen.getByLabelText('Opción B'))
+    await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
+
+    await waitFor(() =>
+      expect(submitAnswer).toHaveBeenCalledWith(
+        's1',
+        expect.objectContaining({ selectedOptions: ['o1', 'o2'] }),
+      ),
+    )
+  })
+
   it('responder envía la respuesta al backend', async () => {
-    jest
-      .mocked(submitAnswer)
-      .mockResolvedValue({ id: 'a1', isCorrect: true, explanation: '' } as never)
+    jest.mocked(submitAnswer).mockResolvedValue({
+      id: 'a1',
+      isCorrect: true,
+      correctOptions: ['o1'],
+      explanation: '',
+    } as never)
 
     await render(<SessionStudyPage />)
     await screen.findByText(/Pregunta de prueba/)
@@ -71,6 +124,23 @@ describe('SessionStudyPage', () => {
         clientAnswerId: expect.any(String),
       }),
     )
+
+    expect(await screen.findByLabelText('Opción A, correcta')).toBeOnTheScreen()
+    expect(screen.getByLabelText('Siguiente pregunta')).toBeOnTheScreen()
+  })
+
+  it('tras responder hay un único "Siguiente" (barra fija, sin duplicar)', async () => {
+    jest
+      .mocked(submitAnswer)
+      .mockResolvedValue({ id: 'a1', isCorrect: true, correctOptions: ['o1'] } as never)
+
+    await render(<SessionStudyPage />)
+    await screen.findByText(/Pregunta de prueba/)
+
+    await fireEvent.press(screen.getByLabelText('Opción A'))
+    await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
+
+    expect(await screen.findAllByLabelText('Siguiente pregunta')).toHaveLength(1)
   })
 
   it('un error de red no avanza y el reintento reutiliza el clientAnswerId', async () => {
@@ -164,7 +234,10 @@ describe('SessionStudyPage', () => {
     expect(second?.[1]?.clientAnswerId).not.toBe(first?.[1]?.clientAnswerId)
   })
 
-  it('sin más preguntas pasa al estado terminado', async () => {
+  it('404 con respuestas previas pasa al estado terminado', async () => {
+    jest
+      .mocked(getSessionSummary)
+      .mockResolvedValue({ answerCount: 1, questionLimit: null } as never)
     jest.mocked(getNextQuestion).mockRejectedValue({ status: 404 })
 
     await render(<SessionStudyPage />)
@@ -172,58 +245,37 @@ describe('SessionStudyPage', () => {
     expect(await screen.findByText(/Respondiste/)).toBeOnTheScreen()
   })
 
-  describe('tip del día', () => {
-    const tip: Tip = {
-      id: 'tip1',
-      userId: 'u1',
-      topicId: 't1',
-      topic: 'Go',
-      content: 'Usa defer para cerrar recursos.',
-      source: 'manual',
-      createdAt: '2026-10-19T00:00:00Z',
-      updatedAt: '2026-10-19T00:00:00Z',
-    }
+  it('404 sin respuestas muestra el estado vacío, no "Sesión completada"', async () => {
+    jest.mocked(getNextQuestion).mockRejectedValue({ status: 404 })
 
-    it('muestra la tarjeta al empezar la sesión', async () => {
-      setPendingTip('s1', tip)
+    await render(<SessionStudyPage />)
 
-      await render(<SessionStudyPage />)
+    expect(await screen.findByText('No hay preguntas para repasar')).toBeOnTheScreen()
+    expect(screen.queryByText(/Sesion completada/)).toBeNull()
+    expect(screen.queryByText(/Respondiste/)).toBeNull()
+  })
 
-      expect(await screen.findByText('Tip del día')).toBeOnTheScreen()
-      expect(screen.getByText('Go')).toBeOnTheScreen()
-    })
+  it('descartar la sesión vacía la elimina y navega a crear sesión', async () => {
+    jest.mocked(getNextQuestion).mockRejectedValue({ status: 404 })
 
-    it('sin tip no muestra la tarjeta', async () => {
-      await render(<SessionStudyPage />)
-      await screen.findByText(/Pregunta de prueba/)
+    await render(<SessionStudyPage />)
+    await screen.findByText('No hay preguntas para repasar')
 
-      expect(screen.queryByText('Tip del día')).toBeNull()
-    })
+    await fireEvent.press(screen.getByLabelText('Crear sesión de estudio'))
 
-    it('al cerrarla deja de mostrarse', async () => {
-      setPendingTip('s1', tip)
+    await waitFor(() => expect(deleteSession).toHaveBeenCalledWith('s1'))
+    expect(routerMock.replace).toHaveBeenCalledWith('/(tabs)/sesiones/nueva')
+  })
 
-      await render(<SessionStudyPage />)
-      await screen.findByText('Tip del día')
+  it('un 500 al pedir la siguiente pregunta muestra error y ofrece reintentar', async () => {
+    jest
+      .mocked(getNextQuestion)
+      .mockRejectedValueOnce({ status: 500, detail: 'Explotó el servidor' })
 
-      await fireEvent.press(screen.getByLabelText('Cerrar tip del día'))
+    await render(<SessionStudyPage />)
 
-      expect(screen.queryByText('Tip del día')).toBeNull()
-    })
-
-    it('no se muestra durante el resultado de una respuesta', async () => {
-      setPendingTip('s1', tip)
-      jest
-        .mocked(submitAnswer)
-        .mockResolvedValue({ id: 'a1', isCorrect: true, explanation: '' } as never)
-
-      await render(<SessionStudyPage />)
-      await screen.findByText('Tip del día')
-
-      await fireEvent.press(screen.getByLabelText('Opción A'))
-      await fireEvent.press(screen.getByLabelText('Confirmar respuesta'))
-
-      await waitFor(() => expect(screen.queryByText('Tip del día')).toBeNull())
-    })
+    expect(await screen.findByText('Explotó el servidor')).toBeOnTheScreen()
+    expect(screen.getByText('Reintentar')).toBeOnTheScreen()
+    expect(screen.queryByText(/Sesion completada/)).toBeNull()
   })
 })

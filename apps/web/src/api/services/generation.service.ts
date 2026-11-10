@@ -4,6 +4,7 @@ import type {
   CreateGenerationJobRequest,
   GenerationJob,
   GenerationJobStatus,
+  GenerationKind,
   GenerationStats,
   Setting,
   UpdateSettingsRequest,
@@ -20,17 +21,21 @@ export async function listGenerationJobs(
   page: number,
   perPage: number,
   status?: GenerationJobStatus,
+  kind?: GenerationKind,
 ): Promise<PaginatedResponse<GenerationJob>> {
   const params: Record<string, string | number> = { page, perPage }
   if (status) params.status = status
+  if (kind) params.kind = kind
   const res = await apiClient.get<PaginatedResponse<GenerationJob>>('/api/v1/generation', {
     params,
   })
   return res.data
 }
 
-export async function getGenerationStats(): Promise<GenerationStats> {
-  const res = await apiClient.get<GenerationStats>('/api/v1/generation/stats')
+export async function getGenerationStats(kind?: GenerationKind): Promise<GenerationStats> {
+  const res = kind
+    ? await apiClient.get<GenerationStats>('/api/v1/generation/stats', { params: { kind } })
+    : await apiClient.get<GenerationStats>('/api/v1/generation/stats')
   return res.data
 }
 

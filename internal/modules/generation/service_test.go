@@ -34,6 +34,12 @@ type fakeStore struct {
 	saveErr   error
 	saveCount int
 
+	savedTips      []*ai.GeneratedTip
+	savedTipUser   uuid.UUID
+	savedTipTopics []models.Topic
+	saveTipsErr    error
+	saveTipsN      int
+
 	completedID uuid.UUID
 	completedN  int
 	failedID    uuid.UUID
@@ -46,6 +52,10 @@ type stubGenerator struct {
 	questions  []*ai.GeneratedQuestion
 	err        error
 	gotReq     ai.BatchRequest
+
+	tips      []*ai.GeneratedTip
+	tipsErr   error
+	gotTipReq ai.TipBatchRequest
 }
 
 func (g *stubGenerator) IsConfigured() bool { return g.configured }
@@ -56,6 +66,14 @@ func (g *stubGenerator) GenerateQuestions(_ context.Context, req ai.BatchRequest
 		return nil, g.err
 	}
 	return g.questions, nil
+}
+
+func (g *stubGenerator) GenerateTips(_ context.Context, req ai.TipBatchRequest) ([]*ai.GeneratedTip, error) {
+	g.gotTipReq = req
+	if g.tipsErr != nil {
+		return nil, g.tipsErr
+	}
+	return g.tips, nil
 }
 
 func (s *fakeStore) CreateJob(job *models.GenerationJob, topicIDs []uuid.UUID) error {
@@ -102,10 +120,13 @@ func (s *fakeStore) DailyBudget(time.Time) (*DailyBudget, error) {
 	}
 	return s.budget, nil
 }
-func (s *fakeStore) StatusCounts() (map[string]int64, error) {
+func (s *fakeStore) StatusCounts(string) (map[string]int64, error) {
 	return s.counts, nil
 }
 func (s *fakeStore) ExistingContentByTopics([]uuid.UUID, int) ([]string, error) {
+	return nil, nil
+}
+func (s *fakeStore) ExistingTipContentByTopics([]uuid.UUID, int) ([]string, error) {
 	return nil, nil
 }
 func (s *fakeStore) TopicsExist([]uuid.UUID) ([]uuid.UUID, error) { return s.existingTopicIDs, nil }
@@ -120,6 +141,16 @@ func (s *fakeStore) SaveQuestions(_ uuid.UUID, _ []uuid.UUID, questions []*ai.Ge
 	return s.saveCount, nil
 }
 
+func (s *fakeStore) SaveTips(userID uuid.UUID, topics []models.Topic, tips []*ai.GeneratedTip) (int, error) {
+	if s.saveTipsErr != nil {
+		return 0, s.saveTipsErr
+	}
+	s.savedTipUser = userID
+	s.savedTipTopics = topics
+	s.savedTips = tips
+	return s.saveTipsN, nil
+}
+
 type fakeSettings struct {
 	maxPerJob  int
 	maxPerDay  int
@@ -130,7 +161,7 @@ func (f fakeSettings) MaxPerJob() (int, error)       { return f.maxPerJob, nil }
 func (f fakeSettings) MaxPerDay() (int, error)       { return f.maxPerDay, nil }
 func (f fakeSettings) DefaultQuantity() (int, error) { return f.defaultQty, nil }
 
-func newTestService(store *fakeStore, settings fakeSettings, gen QuestionGenerator) *service {
+func newTestService(store *fakeStore, settings fakeSettings, gen AIGenerator) *service {
 	return &service{store: store, generator: gen, settings: settings}
 }
 
@@ -234,7 +265,7 @@ func TestStatsReportsReservedAndGeneratedSeparately(t *testing.T) {
 	}
 	svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, okGen(1))
 
-	stats, err := svc.Stats()
+	stats, err := svc.Stats("")
 	require.NoError(t, err)
 	assert.Equal(t, 12, stats.ReservedToday)
 	assert.Equal(t, 7, stats.GeneratedToday)
@@ -286,6 +317,161 @@ func TestProcessJobDoesNotCompleteWhenGenerationFails(t *testing.T) {
 	err := svc.ProcessJob(context.Background(), job)
 	require.Error(t, err)
 	assert.Equal(t, uuid.Nil, store.completedID, "no debe marcar completado si falla la IA")
+}
+
+func TestProcessJobTipsUsesTipGeneratorAndSavesTips(t *testing.T) {
+	topicID := uuid.New()
+	store := &fakeStore{
+		topics:    []models.Topic{{ID: topicID, Name: "Go", Slug: "go"}},
+		saveTipsN: 4,
+	}
+	gen := &stubGenerator{
+		configured: true,
+		tips:       []*ai.GeneratedTip{{Content: "Usa defer", Topic: "go"}},
+	}
+	svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, gen)
+
+	jobID := uuid.New()
+	job := models.GenerationJob{
+		ID:        jobID,
+		Kind:      models.GenerationKindTip,
+		Quantity:  5,
+		JobTopics: []models.GenerationJobTopic{{JobID: jobID, TopicID: topicID}},
+	}
+
+	require.NoError(t, svc.ProcessJob(context.Background(), job))
+	assert.Equal(t, jobID, store.completedID)
+	assert.Equal(t, 4, store.completedN, "se completa con cuántos tips se guardaron")
+	assert.Equal(t, 5, gen.gotTipReq.Count, "una sola llamada por la cantidad pedida")
+	assert.Equal(t, []string{"Go"}, gen.gotTipReq.TopicNames)
+	assert.Equal(t, []string{"go"}, gen.gotTipReq.TopicSlugs)
+	assert.Len(t, store.savedTips, 1)
+	assert.Empty(t, gen.gotReq.TopicNames, "un job de tips no llama al generador de preguntas")
+}
+
+func TestProcessJobTipsDoesNotCompleteWhenGenerationFails(t *testing.T) {
+	topicID := uuid.New()
+	store := &fakeStore{topics: []models.Topic{{ID: topicID, Name: "Go", Slug: "go"}}}
+	gen := &stubGenerator{configured: true, tipsErr: errors.New("la IA no respondió")}
+	svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, gen)
+
+	jobID := uuid.New()
+	job := models.GenerationJob{
+		ID:        jobID,
+		Kind:      models.GenerationKindTip,
+		Quantity:  5,
+		JobTopics: []models.GenerationJobTopic{{JobID: jobID, TopicID: topicID}},
+	}
+
+	require.Error(t, svc.ProcessJob(context.Background(), job))
+	assert.Equal(t, uuid.Nil, store.completedID)
+}
+
+func TestCreateJobKindDefaultsToQuestionAndAcceptsTip(t *testing.T) {
+	topicID := uuid.New()
+
+	t.Run("sin kind se asume question", func(t *testing.T) {
+		store := &fakeStore{existingTopicIDs: []uuid.UUID{topicID}}
+		svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, okGen(5))
+
+		_, err := svc.CreateJob(context.Background(), uuid.New(), CreateJobRequest{
+			TopicIDs: []uuid.UUID{topicID},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, models.GenerationKindQuestion, store.enqueuedJob.Kind)
+	})
+
+	t.Run("kind tip ignora la dificultad", func(t *testing.T) {
+		store := &fakeStore{existingTopicIDs: []uuid.UUID{topicID}}
+		svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, okGen(5))
+
+		_, err := svc.CreateJob(context.Background(), uuid.New(), CreateJobRequest{
+			TopicIDs: []uuid.UUID{topicID},
+			Kind:     models.GenerationKindTip,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, models.GenerationKindTip, store.enqueuedJob.Kind)
+		assert.Equal(t, "intermediate", store.enqueuedJob.Difficulty)
+	})
+
+	t.Run("kind inválido se rechaza", func(t *testing.T) {
+		topics := []uuid.UUID{uuid.New()}
+		store := &fakeStore{existingTopicIDs: topics}
+		svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, okGen(1))
+
+		_, err := svc.CreateJob(context.Background(), uuid.New(), CreateJobRequest{
+			TopicIDs: topics,
+			Kind:     "inventado",
+		})
+		requireAPIError(t, err, apierr.ErrValidation)
+	})
+}
+
+func TestCreateJobNormalizesQuestionType(t *testing.T) {
+	topicID := uuid.New()
+
+	t.Run("sin questionType se conserva single_choice", func(t *testing.T) {
+		store := &fakeStore{existingTopicIDs: []uuid.UUID{topicID}}
+		svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, okGen(1))
+
+		_, err := svc.CreateJob(context.Background(), uuid.New(), CreateJobRequest{
+			TopicIDs: []uuid.UUID{topicID},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, models.GenerationQuestionTypeSingleChoice, store.enqueuedJob.QuestionType)
+	})
+
+	t.Run("questionType válido se persiste", func(t *testing.T) {
+		store := &fakeStore{existingTopicIDs: []uuid.UUID{topicID}}
+		svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, okGen(1))
+
+		_, err := svc.CreateJob(context.Background(), uuid.New(), CreateJobRequest{
+			TopicIDs:     []uuid.UUID{topicID},
+			QuestionType: models.GenerationQuestionTypeTrueFalse,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, models.GenerationQuestionTypeTrueFalse, store.enqueuedJob.QuestionType)
+	})
+
+	t.Run("questionType inválido se rechaza", func(t *testing.T) {
+		store := &fakeStore{existingTopicIDs: []uuid.UUID{topicID}}
+		svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, okGen(1))
+
+		_, err := svc.CreateJob(context.Background(), uuid.New(), CreateJobRequest{
+			TopicIDs:     []uuid.UUID{topicID},
+			QuestionType: "code_completion",
+		})
+		requireAPIError(t, err, apierr.ErrValidation)
+	})
+}
+
+func TestProcessJobPassesQuestionTypeToGenerator(t *testing.T) {
+	topicID := uuid.New()
+	store := &fakeStore{
+		topics:    []models.Topic{{ID: topicID, Name: "Go"}},
+		saveCount: 2,
+	}
+	gen := okGen(2)
+	svc := newTestService(store, fakeSettings{maxPerJob: 10, maxPerDay: 200, defaultQty: 5}, gen)
+
+	jobID := uuid.New()
+	job := models.GenerationJob{
+		ID:           jobID,
+		Quantity:     2,
+		Difficulty:   "beginner",
+		QuestionType: models.GenerationQuestionTypeMultipleChoice,
+		JobTopics:    []models.GenerationJobTopic{{JobID: jobID, TopicID: topicID}},
+	}
+
+	require.NoError(t, svc.ProcessJob(context.Background(), job))
+	assert.Equal(t, models.GenerationQuestionTypeMultipleChoice, gen.gotReq.QuestionType)
+}
+
+func TestStatsRejectsUnknownKind(t *testing.T) {
+	svc := newTestService(&fakeStore{}, fakeSettings{}, okGen(1))
+
+	_, err := svc.Stats("inventado")
+	requireAPIError(t, err, apierr.ErrValidation)
 }
 
 func TestCreateJobFailsClosedWhenStoreCannotVerifyBudget(t *testing.T) {

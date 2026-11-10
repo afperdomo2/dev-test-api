@@ -72,6 +72,12 @@ func ToAnswerResponse(a models.SessionAnswer) SessionAnswerResponse {
 
 	if a.Question != nil {
 		resp.Explanation = a.Question.Explanation
+
+		for _, o := range a.Question.Options {
+			if o.IsCorrect {
+				resp.CorrectOptions = append(resp.CorrectOptions, o.ID)
+			}
+		}
 	}
 
 	return resp
@@ -122,8 +128,11 @@ func ToAnswerDetailResponse(a models.SessionAnswer) SessionAnswerDetailResponse 
 		}
 
 		if q.Options != nil {
-			resp.Question.Options = make([]QuestionSnapshotOption, len(q.Options))
-			for i, o := range q.Options {
+			// Mismo orden que vio el usuario en /next: la semilla es la misma
+			// (sesión, pregunta), así el repaso no reordena las opciones.
+			options := optionsForPresentation(q.Type, q.Options, a.SessionID, a.QuestionID)
+			resp.Question.Options = make([]QuestionSnapshotOption, len(options))
+			for i, o := range options {
 				resp.Question.Options[i] = QuestionSnapshotOption{
 					ID:        o.ID,
 					Content:   o.Content,
@@ -136,22 +145,23 @@ func ToAnswerDetailResponse(a models.SessionAnswer) SessionAnswerDetailResponse 
 	return resp
 }
 
-func toNextQuestionItem(q models.Question) NextQuestionItem {
+func toNextQuestionItem(q models.Question, sessionID uuid.UUID) NextQuestionItem {
+	// `options` y `topics` siempre se emiten como arrays (nunca se omiten ni
+	// salen `null`): el cliente hace `.map()` / `.length` sin comprobar.
 	item := NextQuestionItem{
 		ID:         q.ID,
 		Type:       q.Type,
 		Content:    q.Content,
 		Difficulty: q.Difficulty,
+		Options:    make([]NextQuestionOption, 0, len(q.Options)),
+		Topics:     make([]string, 0, len(q.Topics)),
 	}
 
-	if q.Options != nil {
-		item.Options = make([]NextQuestionOption, len(q.Options))
-		for i, o := range q.Options {
-			item.Options[i] = NextQuestionOption{
-				ID:      o.ID,
-				Content: o.Content,
-			}
-		}
+	for _, o := range optionsForPresentation(q.Type, q.Options, sessionID, q.ID) {
+		item.Options = append(item.Options, NextQuestionOption{
+			ID:      o.ID,
+			Content: o.Content,
+		})
 	}
 
 	if q.CodeChallenge != nil {
@@ -164,11 +174,8 @@ func toNextQuestionItem(q models.Question) NextQuestionItem {
 		}
 	}
 
-	if q.Topics != nil {
-		item.Topics = make([]string, len(q.Topics))
-		for i, t := range q.Topics {
-			item.Topics[i] = t.Name
-		}
+	for _, t := range q.Topics {
+		item.Topics = append(item.Topics, t.Name)
 	}
 
 	return item

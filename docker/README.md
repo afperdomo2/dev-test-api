@@ -249,7 +249,9 @@ Reglas:
 
 - **Secretos**: `DB_PASSWORD`, `JWT_SECRET`, `SETUP_TOKEN`, `AI_API_KEY`,
   `EXPO_ACCESS_TOKEN`. Nunca en `ARG`/`ENV` de una imagen.
-- **Públicos**: `VITE_*` y `EXPO_PUBLIC_*` se compilan en el bundle. Solo URLs.
+- **Públicos**: `VITE_*` y `EXPO_PUBLIC_*` se compilan en el bundle. Solo URLs y
+  datos de presentación (`VITE_APP_NAME`, `VITE_APP_COLOR`,
+  `EXPO_PUBLIC_APP_NAME`); nunca secretos.
 - **Nunca compartas secretos entre entornos**: sobre todo `JWT_SECRET` (un token
   de pruebas valdría en producción).
 - `DB_*` y `POSTGRES_*` salen del mismo valor para que no se desincronicen.
@@ -345,6 +347,9 @@ La DB **no** debe publicarse. En orden de preferencia:
 - nginx non-root en `:8080`, CSP/HSTS/nosniff, gzip, cache de assets,
   `client_max_body_size 9m`, proxy a `api:8080`.
 - `VITE_API_BASE_URL` vacío = same-origin (build arg).
+- `VITE_APP_NAME` / `VITE_APP_COLOR` se pasan como build args. Defaults:
+  `DevTest` / `blue` en dev; `DevTest` / `red` en prod y Dokploy. Cambiarlos
+  exige rebuild (Vite los compila en el bundle).
 - Tamaño: **~30 MB** (la variante `-slim` evita ~60 MB de módulos que no usamos).
 
 ### Build manual / escaneo

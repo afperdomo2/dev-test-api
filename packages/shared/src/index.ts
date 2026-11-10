@@ -15,6 +15,7 @@ export * from './types/insight.types'
 
 export * from './utils/format'
 export * from './utils/validators'
+export * from './highlight'
 
 export * from './constants/index'
 export * from './constants/questionImport'

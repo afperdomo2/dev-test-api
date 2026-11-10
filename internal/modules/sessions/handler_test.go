@@ -310,6 +310,18 @@ func TestSessionsHandler_GetDeleteFinishNextAnswerSummary(t *testing.T) {
 		h.CreateDaily(c)
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
+	t.Run("create daily without candidates → 409", func(t *testing.T) {
+		svc := &mockSessionService{createDailyFn: func(uuid.UUID) (*DailySessionResponse, error) {
+			return nil, apierr.ErrConflict("No Questions For Daily Session", "No hay preguntas para repasar hoy", "")
+		}}
+		h := NewHandler(svc)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/sessions/daily", nil)
+		c.Set("user_claims", sClaims(uid))
+		h.CreateDaily(c)
+		assert.Equal(t, http.StatusConflict, w.Code)
+	})
 }
 
 /* ---------- AZ-2: ownership a nivel HTTP con router + middleware real ---------- */

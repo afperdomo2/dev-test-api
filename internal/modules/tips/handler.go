@@ -64,6 +64,27 @@ func (h *Handler) List(c *gin.Context) {
 	response.Paginated(c, http.StatusOK, tips, response.Meta{Total: total, Page: params.Page, PerPage: params.PerPage})
 }
 
+// @Summary      Tip del día
+// @Description  Devuelve el tip del día. Es estable durante el día UTC y rota al siguiente. 404 si no hay tips.
+// @Tags         tips
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  TipResponse
+// @Failure      401  {object}  apierr.APIError
+// @Failure      404  {object}  apierr.APIError
+// @Router       /api/v1/tips/today [get]
+func (h *Handler) GetOfTheDay(c *gin.Context) {
+	tip, err := h.service.GetTipOfTheDay()
+	if err != nil {
+		e := err.(*apierr.APIError)
+		e.Instance = c.Request.URL.Path
+		response.Problem(c, e)
+		return
+	}
+
+	response.Success(c, http.StatusOK, tip)
+}
+
 // @Summary      Obtener tip
 // @Description  Obtiene un tip por ID con los detalles del tema asociado
 // @Tags         tips

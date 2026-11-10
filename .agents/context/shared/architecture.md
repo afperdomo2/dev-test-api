@@ -13,6 +13,7 @@
 | Format functions (`formatDateTime`, `formatScore`, `formatRelativeTime`, `formatDuration`) | Anything using `localStorage`, `import.meta.env`, DOM APIs |
 | Constants (`ITEMS_PER_PAGE_OPTIONS`, `DEFAULT_PER_PAGE`) | Anything using `document`, `window`, `navigator` |
 | Type-only re-exports from Swagger (`ApiError`, `PaginatedResponse`) | Platform-specific storage (SecureStore, AsyncStorage) |
+| Helpers puros y framework-agnósticos (p. ej. tokenizador de código) | Componentes de render (Vue o React Native) |
 
 ## File structure
 
@@ -29,7 +30,7 @@ packages/shared/src/
 │   ├── tip.types.ts            # Tip, CreateTipRequest
 │   ├── moderation.types.ts     # Report, CreateReportRequest, ReportStatus
 │   ├── gamification.types.ts   # Reward, OverviewResponse, StreakInfo, DailyGoalInfo
-│   ├── generation.types.ts     # GenerationJob, GenerationStats, Setting
+│   ├── generation.types.ts     # GenerationJob, GenerationKind, GenerationStats, Setting
 │   └── opencode.types.ts       # OpenCodeUsage
 ├── utils/
 │   ├── format.ts           # formatDateTime, formatDate, formatShortDateTime, formatScore, formatTimeUntil, formatRelativeTime, formatDuration
@@ -37,6 +38,8 @@ packages/shared/src/
 ├── constants/
 │   ├── index.ts            # ITEMS_PER_PAGE_OPTIONS, DEFAULT_PER_PAGE, REFRESH_COOLDOWN_MS
 │   └── questionImport.ts   # plantillas CSV + buildImportPrompt + buildTipsImportPrompt
+├── highlight/
+│   └── index.ts            # registro de lenguajes highlight.js, normalizeCodeLanguage, tokenizeCode
 └── index.ts                # Barrel export (re-exports all)
 ```
 
@@ -67,6 +70,19 @@ export type { User, CreateUserRequest, UpdateUserRequest } from '@devtest/shared
 
 This preserves all existing `@/types/...` imports in web without changes. **Keep these re-exports in sync** — if you add a new type to shared, add it to the corresponding web re-export file.
 
+## Syntax highlighting
+
+`highlight/` es la **fuente única** del resaltado de código para web y mobile:
+
+- `CODE_LANGUAGES` — lenguajes registrados (uno por uno, nunca `highlight.js/lib/common`).
+- `normalizeCodeLanguage(lang)` — alias (`ts`, `js`, `py`, `vue`, `lang`…) → nombre canónico; nunca falla (cae en `plaintext`).
+- `getHighlighter()` — instancia de `highlight.js/lib/core` con registro perezoso y memoizado.
+- `tokenizeCode(code, lang)` — devuelve `CodeToken[]` (`{ text, classes }`) a partir de la salida HTML de highlight.js; no necesita DOM.
+
+Cada app solo aporta la capa de presentación: web la directiva `v-highlight` (DOM + `github.css`) y mobile el componente `HighlightedCode` (Text anidados + `codeTheme`). **No agregues lenguajes ni alias en las apps**: se hace aquí.
+
+> `packages/shared` ya no es dependency-free: `highlight.js` es su única dependencia de runtime (web la necesita igual para el CSS del tema).
+
 ## CodeChallenge deduplication
 
 `CodeChallenge` is defined once in `question.types.ts` and imported (not re-exported) in `session.types.ts`. The barrel `index.ts` exports it from `question.types.ts` only. Do not re-export the same type from multiple modules.
@@ -87,3 +103,5 @@ The backend is the source of truth for API contracts (`docs/swagger.yaml`).
 Tests live in `packages/shared/src/utils/` (co-located with source). Run via `pnpm --filter @devtest/shared typecheck` (type-check only; test runner TBD).
 
 Test files are excluded from `tsconfig.json` (no vitest globals in typecheck scope).
+
+`highlight/` has no test of its own in the package (there is no runner yet): its contract is covered from `apps/mobile/src/core/markdown/code.test.ts` with `jest-expo`.

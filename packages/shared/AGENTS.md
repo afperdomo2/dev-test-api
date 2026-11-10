@@ -13,6 +13,9 @@ Paquete TypeScript puro (sin runtime de React/Vue) compartido entre **web** y **
 - `types/` — DTOs y tipos de API (`ApiError`, `PaginatedResponse`, `Topic`, `Question`, `Progress`, …)
 - `constants/` — `ITEMS_PER_PAGE_OPTIONS`, `DEFAULT_PER_PAGE`, `QUESTION_*` maps
 - `utils/` — `format.ts` (formatDateTime, formatScore), `validators.ts` (isValidEmail, isRequired)
+- `highlight/` — registro de lenguajes de highlight.js + `normalizeCodeLanguage` + `tokenizeCode` (fuente única del resaltado web/mobile)
+
+`highlight.js` es la única dependencia de runtime del paquete.
 
 Barrel export: `src/index.ts`.
 

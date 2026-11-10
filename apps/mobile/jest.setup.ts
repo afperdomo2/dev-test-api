@@ -23,6 +23,13 @@ jest.mock('expo-crypto', () => {
   }
 })
 
+// Provee insets 0 por defecto: los tests que necesiten otros valores pueden
+// envolver el render en `SafeAreaProvider initialMetrics={...}`.
+jest.mock('react-native-safe-area-context', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require('react-native-safe-area-context/jest/mock').default
+})
+
 jest.mock('expo-router', () => {
   const router = {
     push: jest.fn(),

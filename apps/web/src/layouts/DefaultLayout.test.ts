@@ -5,12 +5,17 @@ import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import DefaultLayout from './DefaultLayout.vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { getUnreadCount } from '@/api/services/notifications.service'
+import { APP_NAME } from '@/config/app'
 
-vi.mock('@/utils/storage', () => ({
-  getToken: vi.fn(() => null),
-  setToken: vi.fn(),
-  removeToken: vi.fn(),
-}))
+vi.mock('@/utils/storage', async () => {
+  const actual = await vi.importActual('@/utils/storage')
+  return {
+    ...(actual as object),
+    getToken: vi.fn(() => null),
+    setToken: vi.fn(),
+    removeToken: vi.fn(),
+  }
+})
 
 vi.mock('@/api/services/notifications.service', () => ({
   getUnreadCount: vi.fn(() => Promise.resolve({ count: 0 })),
@@ -55,12 +60,53 @@ function mountLayout(isAdmin = false) {
 describe('DefaultLayout', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
+    document.title = ''
     vi.mocked(getUnreadCount).mockResolvedValue({ count: 0 })
   })
 
-  it('renders DevTest branding', () => {
+  it('renders the configured app name', () => {
     const { wrapper } = mountLayout()
-    expect(wrapper.text()).toContain('DevTest')
+    expect(wrapper.text()).toContain(APP_NAME)
+  })
+
+  it('muestra el avatar del usuario en la app bar', () => {
+    const { wrapper } = mountLayout(true)
+
+    const identity = wrapper.find('.identity-activator')
+    expect(identity.exists()).toBe(true)
+    expect(identity.find('.v-avatar').exists()).toBe(true)
+    expect(identity.text()).not.toContain('test@example.com')
+  })
+
+  it('expone email y rol en el aria-label y el title del botón de cuenta', () => {
+    const { wrapper } = mountLayout(true)
+
+    const identity = wrapper.find('.identity-activator')
+    expect(identity.attributes('aria-label')).toBe('Cuenta de test@example.com (Administrador)')
+    expect(identity.attributes('title')).toBe('Cuenta de test@example.com (Administrador)')
+  })
+
+  it('identifica al usuario en el sidebar', () => {
+    const { wrapper } = mountLayout(true)
+
+    expect(wrapper.find('.v-navigation-drawer').text()).toContain('test@example.com')
+  })
+
+  it('incluye rol y email en el título de la pestaña', () => {
+    mountLayout(true)
+
+    expect(document.title).toBe(`Admin · test@example.com — ${APP_NAME}`)
+  })
+
+  it('vuelve al nombre de la app al cerrar sesión', async () => {
+    const { wrapper } = mountLayout(true)
+    const vm = wrapper.vm as unknown as { logout: () => void }
+
+    vm.logout()
+    await wrapper.vm.$nextTick()
+
+    expect(document.title).toBe(APP_NAME)
   })
 
   it('muestra la campana de notificaciones', () => {
@@ -68,9 +114,22 @@ describe('DefaultLayout', () => {
     expect(wrapper.find('[aria-label="Notificaciones"]').exists()).toBe(true)
   })
 
-  it('expone Mi perfil en el sidebar', () => {
+  it('el bloque de identidad del sidebar lleva a Mi perfil', () => {
+    const { wrapper } = mountLayout(true)
+
+    const drawer = wrapper.find('.v-navigation-drawer')
+    const profileLink = drawer.find('a[href="/profile"]')
+    expect(profileLink.exists()).toBe(true)
+    expect(profileLink.attributes('aria-label')).toContain('test@example.com')
+    expect(profileLink.text()).toContain('test@example.com')
+    expect(profileLink.text()).toContain('Administrador')
+  })
+
+  it('no duplica el acceso a Mi perfil en el sidebar', () => {
     const { wrapper } = mountLayout()
-    expect(wrapper.text()).toContain('Mi perfil')
+
+    const drawer = wrapper.find('.v-navigation-drawer')
+    expect(drawer.findAll('a[href="/profile"]')).toHaveLength(1)
   })
 
   it('muestra el badge con el número de no leídas', async () => {
@@ -170,8 +229,8 @@ describe('DefaultLayout', () => {
     const adminItems = vm.filteredSections.find((s) => s.title === 'Administración')?.items ?? []
     const titles = adminItems.map((i) => i.title)
 
-    expect(titles).toEqual(expect.arrayContaining(['Generar preguntas', 'Configuración de IA']))
-    expect(adminItems.find((i) => i.title === 'Generar preguntas')?.to).toBe('/generation')
+    expect(titles).toEqual(expect.arrayContaining(['Generación con IA', 'Configuración de IA']))
+    expect(adminItems.find((i) => i.title === 'Generación con IA')?.to).toBe('/generation')
     expect(adminItems.find((i) => i.title === 'Configuración de IA')?.to).toBe(
       '/generation/settings',
     )
@@ -183,7 +242,7 @@ describe('DefaultLayout', () => {
       filteredSections: Array<{ title?: string; items: Array<{ title: string }> }>
     }
     const titles = vm.filteredSections.flatMap((s) => s.items.map((n) => n.title))
-    expect(titles).not.toContain('Generar preguntas')
+    expect(titles).not.toContain('Generación con IA')
     expect(titles).not.toContain('Configuración de IA')
   })
 

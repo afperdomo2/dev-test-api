@@ -10,26 +10,30 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { randomUUID } from 'expo-crypto'
-import type { NextQuestionItem, SessionAnswer, SessionSummary, Reward } from '@devtest/shared'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import type { NextQuestionItem, SessionAnswer, SessionSummary } from '@devtest/shared'
 
 import { QuestionCard } from '@/features/sessions/components/QuestionCard'
-import { DailyTipCard } from '@/features/sessions/components/DailyTipCard'
-import { clearPendingTip, getPendingTip } from '@/features/sessions/dailyTipStore'
+import { useScrollToTopOnChange } from '@/features/sessions/useScrollToTopOnChange'
 import {
   getSessionById,
   getSessionSummary,
   getNextQuestion,
   submitAnswer,
   finishSession,
+  deleteSession,
 } from '@/core/api/services/sessions.service'
-import { getErrorDetail, isNetworkError } from '@/core/utils/errors'
+import { getErrorDetail, getErrorStatus, isNetworkError } from '@/core/utils/errors'
 import { colors, radius, spacing, typography } from '@/core/theme/tokens'
 
-type Phase = 'loading' | 'question' | 'result' | 'finished' | 'error'
+// 'empty' = la sesión no tiene preguntas (nació vacía). No es 'finished':
+// no se respondió nada, así que no debe mostrarse como "Sesión completada".
+type Phase = 'loading' | 'question' | 'result' | 'finished' | 'empty' | 'error'
 
 export default function SessionStudyPage() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
 
   const [phase, setPhase] = useState<Phase>('loading')
   const [sessionStatus, setSessionStatus] = useState<string | null>(null)
@@ -40,22 +44,23 @@ export default function SessionStudyPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitErrorIsNetwork, setSubmitErrorIsNetwork] = useState(false)
+  // Qué acción muestra la barra fija. Se mantiene durante el `loading` para que
+  // el botón no cambie de etiqueta mientras espera la red.
+  const [barAction, setBarAction] = useState<'confirm' | 'next'>('confirm')
   const loadingRef = useRef(false)
   const submittingRef = useRef(false)
+  const scrollRef = useRef<ScrollView>(null)
   // UUID estable por pregunta: se reutiliza en los reintentos y se renueva al
   // cargar la siguiente (idempotencia, D-35).
   const clientAnswerIdRef = useRef<string | null>(null)
 
-  // El tip del día se guarda al crear la sesión (Home) y solo se muestra al
-  // empezar. Se limpia al salir de la pantalla.
-  const [tipDismissed, setTipDismissed] = useState(false)
-  const pendingTip = id ? getPendingTip(id) : null
-
-  useEffect(() => () => clearPendingTip(), [])
-
   const questionNumber = summary ? summary.answerCount + 1 : 1
   const questionLimit = summary?.questionLimit ?? null
   const progress = questionLimit ? questionNumber / questionLimit : 0
+
+  // La siguiente pregunta debe empezar arriba, no donde quedó el scroll de la
+  // anterior (acción al final de una pregunta/ explicación larga).
+  useScrollToTopOnChange(scrollRef, question?.id)
 
   const loadSessionData = useCallback(async (sessionId: string) => {
     const [sess, sum] = await Promise.all([
@@ -72,6 +77,7 @@ export default function SessionStudyPage() {
       if (loadingRef.current) return
       loadingRef.current = true
       setPhase('loading')
+      setError(null)
       setSelectedOptions([])
       setLastResult(null)
       setSubmitError(null)
@@ -81,10 +87,23 @@ export default function SessionStudyPage() {
         const next = await getNextQuestion(sessionId)
         clientAnswerIdRef.current = randomUUID()
         setQuestion(next)
+        setBarAction('confirm')
         setPhase('question')
-      } catch {
-        await loadSessionData(sessionId)
-        setPhase('finished')
+      } catch (err) {
+        const { session, summary: sum } = await loadSessionData(sessionId)
+        if (!session) {
+          setError(getErrorDetail(err, 'No se pudo cargar la sesión'))
+          setPhase('error')
+          return
+        }
+        if (getErrorStatus(err) === 404) {
+          // 404 = no quedan preguntas. Solo es "completada" si ya respondiste
+          // algo; si no, la sesión está vacía y hay que ofrecer una salida.
+          setPhase((sum?.answerCount ?? 0) > 0 ? 'finished' : 'empty')
+          return
+        }
+        setError(getErrorDetail(err, 'No se pudo cargar la siguiente pregunta'))
+        setPhase('error')
       } finally {
         loadingRef.current = false
       }
@@ -97,7 +116,7 @@ export default function SessionStudyPage() {
     let cancelled = false
     ;(async () => {
       try {
-        const { session, summary: sum } = await loadSessionData(id)
+        const { session } = await loadSessionData(id)
         if (cancelled) return
 
         if (session?.status === 'completed') {
@@ -137,10 +156,12 @@ export default function SessionStudyPage() {
         setSummary((prev) =>
           prev ? { ...prev, answerCount: prev.answerCount + 1 } : prev,
         )
+        setBarAction('next')
         setPhase('result')
       } catch (err) {
         // No se avanza: el usuario ve el error y puede reintentar sin duplicar.
         const network = isNetworkError(err)
+        setBarAction('confirm')
         setPhase('question')
         setSubmitErrorIsNetwork(network)
         setSubmitError(
@@ -164,6 +185,21 @@ export default function SessionStudyPage() {
     void loadNext(id)
   }, [id, questionNumber, questionLimit, loadNext])
 
+  const handleToggleOption = useCallback(
+    (optionId: string) => {
+      if (!question || phase === 'result' || phase === 'loading') return
+      setSelectedOptions((prev) => {
+        if (question.type === 'multiple_choice') {
+          return prev.includes(optionId)
+            ? prev.filter((id) => id !== optionId)
+            : [...prev, optionId]
+        }
+        return [optionId]
+      })
+    },
+    [question, phase],
+  )
+
   const handleFinish = useCallback(async () => {
     if (!id) return
     if (sessionStatus === 'completed') {
@@ -180,6 +216,23 @@ export default function SessionStudyPage() {
       }
     }
   }, [id, sessionStatus, router])
+
+  // Una sesión sin preguntas no tiene valor: se descarta (best effort) al salir
+  // para no dejarla "en progreso" para siempre. Si el borrado falla, la salida
+  // no se bloquea; el usuario puede eliminarla desde Sesiones.
+  const handleLeaveEmpty = useCallback(
+    async (target: '/(tabs)/sesiones' | '/(tabs)/sesiones/nueva') => {
+      if (id) {
+        try {
+          await deleteSession(id)
+        } catch {
+          // Silencioso a propósito: es limpieza de una sesión sin respuestas.
+        }
+      }
+      router.replace(target)
+    },
+    [id, router],
+  )
 
   if (phase === 'loading' && !question) {
     return (
@@ -241,10 +294,43 @@ export default function SessionStudyPage() {
     )
   }
 
+  if (phase === 'empty') {
+    return (
+      <View style={styles.center}>
+        <MaterialCommunityIcons
+          name="inbox-outline"
+          size={56}
+          color={colors.mutedForeground}
+        />
+        <Text style={styles.finishedTitle}>No hay preguntas para repasar</Text>
+        <Text style={[styles.finishedMeta, styles.emptyMeta]}>
+          No tienes repasos vencidos ni preguntas disponibles en este momento.
+        </Text>
+        <Pressable
+          style={styles.button}
+          onPress={() => void handleLeaveEmpty('/(tabs)/sesiones/nueva')}
+          accessibilityRole="button"
+          accessibilityLabel="Crear sesión de estudio"
+        >
+          <MaterialCommunityIcons name="plus-circle-outline" size={18} color={colors.onPrimary} />
+          <Text style={styles.buttonLabel}>Crear sesión de estudio</Text>
+        </Pressable>
+        <Pressable
+          style={styles.buttonGhost}
+          onPress={() => void handleLeaveEmpty('/(tabs)/sesiones')}
+          accessibilityRole="button"
+        >
+          <Text style={styles.buttonGhostLabel}>Volver a sesiones</Text>
+        </Pressable>
+      </View>
+    )
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <Pressable
+          style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Volver"
@@ -266,23 +352,20 @@ export default function SessionStudyPage() {
         </View>
       )}
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {pendingTip && !tipDismissed && phase === 'question' && questionNumber === 1 && (
-          <View style={styles.tipWrapper}>
-            <DailyTipCard tip={pendingTip} onDismiss={() => setTipDismissed(true)} />
-          </View>
-        )}
-
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+      >
         {question && (
           <QuestionCard
             key={question.id}
             question={question}
             mode={phase === 'result' ? 'result' : 'answer'}
-            selectedOptions={selectedOptions}
+            selected={selectedOptions}
             lastResult={lastResult}
-            onAnswer={handleAnswer}
-            onNext={handleNext}
-            submitting={phase === 'loading'}
+            onToggleOption={handleToggleOption}
+            disabled={phase === 'loading'}
           />
         )}
 
@@ -308,6 +391,40 @@ export default function SessionStudyPage() {
           </View>
         ) : null}
       </ScrollView>
+
+      <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+        {barAction === 'next' ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              phase === 'loading' && styles.actionButtonDisabled,
+              pressed && styles.actionButtonPressed,
+            ]}
+            onPress={handleNext}
+            disabled={phase === 'loading'}
+            accessibilityRole="button"
+            accessibilityLabel="Siguiente pregunta"
+          >
+            <Text style={styles.actionLabel}>Siguiente</Text>
+            <MaterialCommunityIcons name="arrow-right" size={18} color={colors.onPrimary} />
+          </Pressable>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              (selectedOptions.length === 0 || phase === 'loading') && styles.actionButtonDisabled,
+              pressed && styles.actionButtonPressed,
+            ]}
+            onPress={() => void handleAnswer(selectedOptions)}
+            disabled={selectedOptions.length === 0 || phase === 'loading'}
+            accessibilityRole="button"
+            accessibilityLabel="Confirmar respuesta"
+          >
+            <MaterialCommunityIcons name="check" size={18} color={colors.onPrimary} />
+            <Text style={styles.actionLabel}>Confirmar</Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   )
 }
@@ -330,8 +447,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
     paddingBottom: spacing.sm,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -spacing.sm,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   counter: {
     fontSize: typography.size.sm,
@@ -358,10 +484,37 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
+    // Deja aire para la barra fija de acción (no tapa la explicación).
+    paddingBottom: spacing['3xl'],
     flexGrow: 1,
   },
-  tipWrapper: {
-    marginBottom: spacing.lg,
+  actionBar: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+    minHeight: 48,
+  },
+  actionButtonPressed: {
+    opacity: 0.85,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
+  actionLabel: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.onPrimary,
   },
   submitError: {
     marginTop: spacing.lg,
@@ -439,5 +592,8 @@ const styles = StyleSheet.create({
   finishedMeta: {
     fontSize: typography.size.md,
     color: colors.mutedForeground,
+  },
+  emptyMeta: {
+    textAlign: 'center',
   },
 })

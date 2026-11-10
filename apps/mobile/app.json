@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "DevTest",
     "slug": "mobile",
-    "version": "1.0.0",
+    "version": "1.1.4",
     "scheme": "devtest",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,11 +12,10 @@
     },
     "android": {
       "package": "com.felipe.devtest",
-      "versionCode": 1,
+      "versionCode": 11,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0F766E",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
@@ -26,7 +25,7 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-notifications", { "color": "#22C55E" }]
+      ["expo-notifications", { "color": "#0F766E" }]
     ],
     "experiments": {
       "tsconfigPaths": true

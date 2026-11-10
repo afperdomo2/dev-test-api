@@ -10,6 +10,8 @@ Stack: **React Native + Expo SDK 57** + **Expo Router** (file-based) + **NativeT
 | `pnpm --filter mobile typecheck` | `tsc --noEmit` (corre tras cada cambio) |
 | `pnpm --filter mobile test:run` | Unit tests (`jest-expo`, co-located `*.test.ts`) |
 | `pnpm --filter mobile android` / `ios` | Abrir en dispositivo |
+| `make mobile-apk-local` | APK Android local con Gradle (`API_URL=…`, `APP_NAME=…` opcional); ruta y detalle en `docs/mobile-apk.md` |
+| `make mobile-bump [VERSION=x.y.z]` | Sube `version` (semver) y `versionCode` (+1) y sincroniza el proyecto nativo |
 
 ## Structure
 
@@ -31,7 +33,20 @@ Rutas actuales: `app/login.tsx` y `app/setup.tsx` (auth) + `app/(tabs)/` → Ini
 - **Iconos**: `MaterialCommunityIcons` de `@expo/vector-icons` — nunca emojis para iconos estructurales.
 - **`expo-notifications` se carga en diferido** (`loadNotifications()` en `src/core/push/notifications.ts`): un import estático rompe Expo Go en Android (N-12).
 - **Bottom sheet**: `@gorhom/bottom-sheet` para menús de acciones (requiere reanimated + gesture-handler del SDK).
-- **Markdown**: `react-native-markdown-display` para contenido de preguntas/explicaciones.
+- **Markdown**: `react-native-markdown-display` para contenido de preguntas/explicaciones. Los bloques de código se resaltan con `HighlightedCode` (highlight.js vía `@devtest/shared`; paleta en `codeTheme` de los tokens).
+- **Nombre por entorno**: `EXPO_PUBLIC_APP_NAME` (build-time, default `DevTest`). En local: `make mobile-apk-local APP_NAME="DevTest Pruebas"` (ejecuta prebuild). `app.config.ts` sobreescribe `expo.name`; `app.json` sigue siendo la fuente de `version`/`versionCode`.
+- **Iconos**: `assets/icon.png` + capas adaptive (foreground/monochrome) se generan desde `brand/` con `make icons`. Cambiar assets exige `expo prebuild` + bump + rebuild. Detalle: `docs/branding.md`.
+
+## Versionado
+
+`app.json` es la fuente única: `expo.version` (semver) + `expo.android.versionCode`.
+
+- **Todo cambio mobile que entregue APK nuevo se versiona** — no se cierra un
+  cambio dejando dos APKs con el mismo `versionCode`.
+- MAJOR si rompe el contrato con el backend, MINOR si agrega funcionalidad
+  visible, PATCH si es fix/config/estilo/textos.
+- Antes de compilar: `make mobile-bump` (mismo version) o
+  `make mobile-bump VERSION=x.y.z`. Detalle: `docs/mobile-apk.md` → "Versionado".
 
 ## UX conventions
 

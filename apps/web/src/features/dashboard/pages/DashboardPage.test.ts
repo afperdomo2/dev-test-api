@@ -4,11 +4,15 @@ import { useAuthStore } from '@/stores/auth.store'
 import { mountWithProviders } from '@/__tests__/utils/mount'
 import type * as QuestionsService from '@/api/services/questions.service'
 
-vi.mock('@/utils/storage', () => ({
-  getToken: vi.fn(() => null),
-  setToken: vi.fn(),
-  removeToken: vi.fn(),
-}))
+vi.mock('@/utils/storage', async () => {
+  const actual = await vi.importActual('@/utils/storage')
+  return {
+    ...(actual as object),
+    getToken: vi.fn(() => null),
+    setToken: vi.fn(),
+    removeToken: vi.fn(),
+  }
+})
 
 vi.mock('@/api/services/questions.service', async () => {
   const actual = await vi.importActual<typeof QuestionsService>('@/api/services/questions.service')

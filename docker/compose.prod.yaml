@@ -97,6 +97,8 @@ services:
       target: runtime
       args:
         VITE_API_BASE_URL: ""
+        VITE_APP_NAME: ${VITE_APP_NAME:-DevTest}
+        VITE_APP_COLOR: ${VITE_APP_COLOR:-red}
     image: devtest-web:local
     restart: unless-stopped
     ports:

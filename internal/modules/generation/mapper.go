@@ -24,19 +24,33 @@ func toJobResponse(job models.GenerationJob, topicNames []string) JobResponse {
 		topics = topicNames
 	}
 
+	kind := job.Kind
+	if kind == "" {
+		kind = models.GenerationKindQuestion
+	}
+
+	// Los trabajos anteriores a la migración 00011 se leen con el default de la
+	// columna, pero los tests y los jobs en memoria pueden traerlo vacío.
+	questionType := job.QuestionType
+	if questionType == "" {
+		questionType = models.GenerationQuestionTypeSingleChoice
+	}
+
 	return JobResponse{
-		ID:          job.ID.String(),
-		RequestedBy: job.RequestedBy.String(),
-		TopicIDs:    topicIDs,
-		Topics:      topics,
-		Difficulty:  job.Difficulty,
-		Quantity:    job.Quantity,
-		Status:      job.Status,
-		Generated:   job.Generated,
-		Error:       job.Error,
-		CreatedAt:   job.CreatedAt,
-		StartedAt:   job.StartedAt,
-		FinishedAt:  job.FinishedAt,
+		ID:           job.ID.String(),
+		RequestedBy:  job.RequestedBy.String(),
+		Kind:         kind,
+		TopicIDs:     topicIDs,
+		Topics:       topics,
+		Difficulty:   job.Difficulty,
+		QuestionType: questionType,
+		Quantity:     job.Quantity,
+		Status:       job.Status,
+		Generated:    job.Generated,
+		Error:        job.Error,
+		CreatedAt:    job.CreatedAt,
+		StartedAt:    job.StartedAt,
+		FinishedAt:   job.FinishedAt,
 	}
 }
 

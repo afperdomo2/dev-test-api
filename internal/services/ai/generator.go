@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/felipe/dev-test-api/internal/config"
+	"github.com/felipe/dev-test-api/internal/models"
 	"gorm.io/gorm"
 )
 
@@ -54,9 +55,10 @@ func stripCodeFence(text string) string {
 }
 
 var validGeneratedTypes = map[string]bool{
-	"single_choice":   true,
-	"multiple_choice": true,
-	"code_completion": true,
+	models.QuestionTypeSingleChoice:   true,
+	models.QuestionTypeMultipleChoice: true,
+	models.QuestionTypeTrueFalse:      true,
+	models.QuestionTypeCodeCompletion: true,
 }
 
 // validateGeneratedQuestion normaliza y valida una pregunta devuelta por la IA.
@@ -71,7 +73,7 @@ func validateGeneratedQuestion(q *GeneratedQuestion) error {
 		return fmt.Errorf("tipo de pregunta no válido: %s", q.Type)
 	}
 
-	if q.Type == "code_completion" {
+	if q.Type == models.QuestionTypeCodeCompletion {
 		if q.Language == "" {
 			q.Language = "plaintext"
 		}
@@ -91,8 +93,23 @@ func validateGeneratedQuestion(q *GeneratedQuestion) error {
 			correct++
 		}
 	}
-	if correct != 1 {
-		return fmt.Errorf("se requiere exactamente 1 opción correcta (se encontraron %d)", correct)
+
+	switch q.Type {
+	case models.GenerationQuestionTypeTrueFalse:
+		if len(q.Options) != 2 {
+			return fmt.Errorf("true_false requiere exactamente 2 opciones (se encontraron %d)", len(q.Options))
+		}
+		if correct != 1 {
+			return fmt.Errorf("true_false requiere exactamente 1 opción correcta (se encontraron %d)", correct)
+		}
+	case models.GenerationQuestionTypeMultipleChoice:
+		if correct < 2 || correct >= len(q.Options) {
+			return fmt.Errorf("multiple_choice requiere entre 2 y %d opciones correctas (se encontraron %d)", len(q.Options)-1, correct)
+		}
+	default:
+		if correct != 1 {
+			return fmt.Errorf("se requiere exactamente 1 opción correcta (se encontraron %d)", correct)
+		}
 	}
 
 	return nil

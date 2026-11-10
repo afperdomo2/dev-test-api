@@ -111,8 +111,11 @@ function isSelected(optionId: string): boolean {
 }
 
 function isCorrectOption(optionId: string): boolean {
-  if (!currentQuestion.value) return false
-  return !!currentQuestion.value.options?.find((o) => o.id === optionId)?.isCorrect
+  const correct = lastResult.value?.correctOptions
+  if (correct && correct.length > 0) return correct.includes(optionId)
+  // Fallback (backend sin `correctOptions`): si acertó, lo elegido es correcto.
+  if (lastResult.value?.isCorrect) return selectedOptions.value.includes(optionId)
+  return false
 }
 
 async function submitAnswer() {

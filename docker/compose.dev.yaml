@@ -133,6 +133,8 @@ services:
       # Vacío = same-origin: el navegador llama a /api y Vite lo proxya al API.
       VITE_API_BASE_URL: ""
       VITE_PROXY_TARGET: http://api:8080
+      VITE_APP_NAME: ${VITE_APP_NAME:-DevTest}
+      VITE_APP_COLOR: ${VITE_APP_COLOR:-blue}
     ports:
       - "${WEB_PORT_HOST:-3030}:3000"
     depends_on:

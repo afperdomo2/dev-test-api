@@ -41,8 +41,8 @@ La primera vez: editá `docker/.env.prod`, levantá prod-local, creá el admin c
 el `SETUP_TOKEN`, vacialo y redeployá. La DB no se publica; backup/restore con
 `make docker-backup` / `make docker-restore FILE=…`.
 
-Mobile no corre en Docker: Metro en el host y APK manual con EAS cloud
-([`docs/mobile-apk.md`](docs/mobile-apk.md)).
+Mobile no corre en Docker: Metro en el host y APK manual — **Gradle local**
+(iteración) o **EAS cloud** (release) — [`docs/mobile-apk.md`](docs/mobile-apk.md).
 
 ## 📁 Estructura del proyecto
 
@@ -57,7 +57,8 @@ dev-test-api/
 │   ├── modules/
 │   └── server/
 ├── pkg/                       # Paquetes públicos
-├── docs/                      # Swagger auto-generado
+├── brand/                     # Fuente de iconos web + mobile (make icons)
+├── docs/                      # Swagger auto-generado + guías (branching, APK, branding)
 ├── apps/
 │   ├── web/                   # SPA Vue 3 + Vite (ver apps/web/README.md)
 │   └── mobile/                # Expo React Native (ver apps/mobile/README.md)
@@ -104,46 +105,30 @@ DELETE /api/v1/users/:id      # soft-delete
 
 ## ⚙️ Variables de entorno
 
-Copiá `.env.example` a `.env` y ajustá los valores:
+Copiá `.env.example` a `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `PORT` | `8080` | Puerto del servidor |
-| `GIN_MODE` | `release` | `debug` o `release` |
-| `DB_HOST` | `localhost` | Host de PostgreSQL |
-| `DB_PORT` | `5432` | Puerto de PostgreSQL |
-| `DB_USER` | `postgres` | Usuario de la DB |
-| `DB_PASSWORD` | — | Contraseña de la DB (obligatoria) |
-| `DB_NAME` | `dev_test_api` | Nombre de la base de datos |
-| `DB_SSL_MODE` | `disable` | SSL mode |
-| `JWT_SECRET` | — | Secreto para firmar JWTs (obligatorio) |
-| `JWT_EXPIRY_HOURS` | `24` | Expiración del token |
-| `SETUP_TOKEN` | — | Token del primer admin (obligatorio con la DB vacía; ≥16 chars) |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Orígenes permitidos, separados por coma |
-| `MAX_BODY_BYTES` | `1048576` | Límite del body JSON (1 MiB) |
-| `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Rate limit de `/auth/setup` y `/auth/login`; `0` = deshabilitado |
-| `AUTH_RATE_LIMIT_BURST` | `5` | Ráfaga inicial del rate limit |
-| `TRUSTED_PROXIES` | — | IPs/CIDR del reverse proxy; vacío = no confiar en `X-Forwarded-For` |
-| `HSTS_ENABLED` | `true` | Emitir `Strict-Transport-Security` (solo si el borde sirve HTTPS) |
-| `SWAGGER_ENABLED` | — | Swagger UI; vacío = on en debug, off en release |
-| `AI_API_URL` | — | Endpoint compatible con OpenAI (sin esto la IA queda deshabilitada) |
-| `AI_API_KEY` | — | Clave de la API de IA |
-| `AI_MODEL` | `gpt-4o-mini` | Modelo a usar (los `.example` traen `deepseek-v4.1-flash`) |
-| `AI_REQUEST_TIMEOUT` | `120` | Timeout de la IA, en segundos |
-| `OPENCODE_USAGE_URL` | `https://opencode.ai/zen/go/v1/usage` | Consumo en el panel admin |
-| `OPENCODE_USAGE_TIMEOUT` | `10` | Timeout del consumo, en segundos |
-| `EXPO_PUSH_URL` | `https://exp.host/--/api/v2/push/send` | Endpoint de push de Expo |
-| `EXPO_ACCESS_TOKEN` | — | Token de Expo (opcional) |
+Los valores de `.env.example` son los defaults del código. En `.env` solo
+necesitás:
 
-> La fuente completa y con comentarios es `.env.example`. La columna **Default**
-> es el fallback del código cuando la variable está vacía. Los compose de Docker
-> reenvían estas variables con los mismos defaults, salvo `DB_HOST`, `DB_PORT` y
-> `DB_SSL_MODE`, que los fija el compose por la red interna (ver
-> `docker/README.md`).
+| Variable | Cuándo |
+|---|---|
+| `JWT_SECRET` | Siempre (obligatoria) |
+| `DB_PASSWORD` | Siempre (obligatoria) |
+| `SETUP_TOKEN` | Solo con la DB vacía (mínimo 16 caracteres) |
+
+El resto podés omitirlo salvo que quieras cambiar el default. La lista completa,
+con comentarios, está en [`.env.example`](.env.example).
+
+Los compose de Docker fijan defaults propios por entorno (CORS, HSTS,
+`TRUSTED_PROXIES`, `JWT_EXPIRY_HOURS`, `GIN_MODE`, `SWAGGER_ENABLED`); ver
+[`docker/env/`](docker/env/) y [`docker/README.md`](docker/README.md).
+
+Para web y mobile: [`apps/web/.env.example`](apps/web/.env.example) y
+[`apps/mobile/.env.example`](apps/mobile/.env.example).
 
 ## 🛠️ Scripts (Makefile)
 
@@ -192,6 +177,40 @@ cp .env.example .env
 | `make mobile-typecheck` | TypeScript check |
 | `make mobile-lint` | Lint |
 | `make mobile-apk` | Preflight + APK manual en EAS cloud ([runbook](docs/mobile-apk.md)) |
+| `make mobile-apk-local` | APK release local con Gradle (sin EAS, sin cuenta Expo) |
+| `make mobile-bump` | Sube `version` (semver) y `versionCode` (+1) antes de compilar |
+
+#### APK local (Android, sin EAS)
+
+```bash
+make mobile-apk-local                             # URL: devtest.afperdomo.cloud
+make mobile-apk-local API_URL=https://otro.com    # otra URL (se hornea en el bundle)
+```
+
+Equivalente manual (requiere `~/Android/Sdk` + JDK 21):
+
+```bash
+cd apps/mobile/android
+rm -rf app/build/generated/assets app/build/intermediates/assets app/build/intermediates/compressed_assets
+ANDROID_HOME=$HOME/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 \
+EXPO_PUBLIC_API_BASE_URL=https://devtest.afperdomo.cloud ./gradlew assembleRelease
+```
+
+`EXPO_PUBLIC_API_BASE_URL` queda **compilada** en el APK: si cambia el backend,
+recompilá. Versioná antes de compilar con `make mobile-bump [VERSION=x.y.z]`
+(semver + `versionCode` +1, ver [`docs/mobile-apk.md`](docs/mobile-apk.md) → "Versionado").
+
+**APK resultante** (ruta para pegar en el gestor de archivos):
+
+```
+apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+```
+
+### Branding (iconos web + mobile)
+
+| Comando | Descripción |
+|---------|-------------|
+| `make icons` | Regenera favicon/PWA y assets de la app desde `brand/*.svg` ([detalle](docs/branding.md)) |
 
 ### Docker
 
@@ -385,7 +404,7 @@ setup queda deshabilitado (403) y el servidor solo muestra un aviso al arrancar.
 ## 📝 Notas
 
 - El esquema de DB se gestiona con **migraciones versionadas goose** (`internal/database/migrations/*.sql`, baseline `00001_init.sql`). Se aplican al arrancar el servidor (embedded) o con `make migrate-*`. Cualquier cambio de esquema es una migración nueva, nunca `AutoMigrate`.
-- `docs/` y `tmp/` son auto-generados y no se editan manualmente.
+- `docs/swagger.yaml`, `docs/swagger.json` y `docs/docs.go` son auto-generados y no se editan manualmente; el resto de `docs/` son guías versionadas. `tmp/` también es auto-generado.
 - Air se instaló como project tool (`go get -tool`), no requiere instalación global.
 - `internal/` es privado al módulo Go — no puede ser importado desde fuera del proyecto.
 

@@ -3,7 +3,8 @@
         migrate-up migrate-down migrate-status migrate-create \
         fe-install fe-dev fe-build fe-lint fe-format-check fe-format fe-check fe-test fe-test-cover \
         e2e e2e-ui e2e-report e2e-docker \
-        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint mobile-apk \
+        icons \
+        mobile-start mobile-android mobile-ios mobile-web mobile-typecheck mobile-lint mobile-apk mobile-apk-local mobile-bump \
         docker-env docker-env-prod docker-dev docker-dev-up docker-dev-down docker-dev-reset \
         docker-prod docker-prod-down docker-prod-reset docker-prod-logs \
         docker-build docker-config docker-seed docker-smoke docker-backup docker-restore
@@ -187,6 +188,12 @@ e2e-report:
 	@echo "📊 Opening Playwright report..."
 	@pnpm --filter dev-test-frontend test:e2e:report
 
+# ── Branding (iconos web + mobile) ─────────────────────
+
+# Fuente de verdad: brand/icon.svg + brand/mark.svg. Detalle: docs/branding.md.
+icons:
+	@bash scripts/generate-icons.sh
+
 # ── Mobile (apps/mobile/) ──────────────────────────────
 
 mobile-start:
@@ -220,6 +227,35 @@ mobile-apk:
 	@bash scripts/preflight-apk.sh
 	@echo "🏗️  Compilando APK en EAS cloud (perfil preview)..."
 	cd apps/mobile && npx --yes eas-cli@latest build -p android --profile preview
+
+# Build local con Gradle (sin cuenta Expo). La URL y el nombre se hornean en el
+# bundle/recursos: si cambian, hay que recompilar. Detalle: docs/mobile-apk.md.
+API_URL ?= https://devtest.afperdomo.cloud
+APP_NAME ?=
+APK_PATH ?= apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+
+mobile-apk-local:
+	@echo "🏗️  Compilando APK local (Gradle) → $(API_URL)..."
+	@if [ -n "$(APP_NAME)" ]; then \
+		echo "🏷️  Nombre de la app → $(APP_NAME) (prebuild)"; \
+		KEYSTORE="$(CURDIR)/apps/mobile/android/app/debug.keystore"; \
+		KEYSTORE_BAK="$$(mktemp)"; \
+		if [ -f "$$KEYSTORE" ]; then cp "$$KEYSTORE" "$$KEYSTORE_BAK"; fi; \
+		cd apps/mobile && CI=1 EXPO_PUBLIC_APP_NAME="$(APP_NAME)" npx expo prebuild --platform android --no-install; \
+		if [ -s "$$KEYSTORE_BAK" ]; then cp "$$KEYSTORE_BAK" "$$KEYSTORE"; fi; \
+		rm -f "$$KEYSTORE_BAK"; \
+	fi
+	cd apps/mobile/android && rm -rf app/build/generated/assets app/build/intermediates/assets app/build/intermediates/compressed_assets
+	cd apps/mobile/android && ANDROID_HOME=$${ANDROID_HOME:-$$HOME/Android/Sdk} \
+		JAVA_HOME=$${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk-amd64} \
+		EXPO_PUBLIC_APP_NAME="$(APP_NAME)" \
+		EXPO_PUBLIC_API_BASE_URL=$(API_URL) ./gradlew assembleRelease
+	@echo "✅ APK: $(CURDIR)/$(APK_PATH)"
+
+# Sube version (semver) y versionCode (+1) en app.json, y lo refleja en el
+# proyecto nativo generado. Detalle: docs/mobile-apk.md → "Versionado".
+mobile-bump:
+	@bash scripts/bump-mobile-version.sh $(VERSION)
 
 # ── Docker ────────────────────────────────────────────────
 # Guía completa: docker/README.md

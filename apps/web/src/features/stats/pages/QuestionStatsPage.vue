@@ -141,18 +141,26 @@ const topicHeaders = [
               style="cursor: pointer"
               @click="goToQuestionsByTopic(item.topicId)"
             >
-              <div class="text-body-2 text-no-wrap" style="min-width: 140px; max-width: 180px">
-                <span class="font-weight-medium">{{ item.name }}</span>
-                <span class="text-caption text-medium-emphasis ml-1">({{ item.category }})</span>
+              <div
+                class="text-body-2 font-weight-medium text-truncate"
+                style="flex: 0 1 200px; min-width: 120px"
+                :title="`${item.name} (${item.category})`"
+              >
+                {{ item.name }}
               </div>
               <v-progress-linear
+                class="flex-grow-1"
                 :model-value="(item.count / maxTopicCount) * 100"
                 color="primary"
                 height="22"
                 rounded
+              />
+              <span
+                class="text-caption font-weight-bold text-no-wrap"
+                style="min-width: 32px; text-align: right"
               >
-                <span class="text-caption font-weight-bold">{{ item.count }}</span>
-              </v-progress-linear>
+                {{ item.count }}
+              </span>
             </div>
             <div
               v-if="byTopic.length > 20"
@@ -210,21 +218,28 @@ const topicHeaders = [
                   :key="c.category"
                   class="d-flex align-center ga-3 mb-2"
                 >
-                  <div class="text-body-2 font-weight-medium" style="min-width: 110px">
+                  <div
+                    class="text-body-2 font-weight-medium text-truncate"
+                    style="flex: 0 1 220px; min-width: 120px"
+                    :title="c.category"
+                  >
                     {{ c.category }}
                   </div>
                   <v-progress-linear
+                    class="flex-grow-1"
                     :model-value="(c.count / maxCategoryCount) * 100"
                     color="#B2DFDB"
                     bg-color="#ECEFF1"
                     bg-opacity="1"
                     height="20"
                     rounded
+                  />
+                  <span
+                    class="text-caption font-weight-bold text-no-wrap"
+                    style="min-width: 32px; text-align: right"
                   >
-                    <span class="text-caption font-weight-bold" style="color: #004d40">{{
-                      c.count
-                    }}</span>
-                  </v-progress-linear>
+                    {{ c.count }}
+                  </span>
                 </div>
               </div>
               <div v-else class="text-body-2 text-medium-emphasis">No hay datos por categoría.</div>
@@ -251,7 +266,7 @@ const topicHeaders = [
                     "
                     size="small"
                     variant="tonal"
-                    style="min-width: 110px; justify-content: center"
+                    style="flex: 0 1 130px; min-width: 100px; justify-content: center"
                   >
                     {{
                       DIFFICULTY_LABELS[d.difficulty as keyof typeof DIFFICULTY_LABELS] ??
@@ -259,15 +274,20 @@ const topicHeaders = [
                     }}
                   </v-chip>
                   <v-progress-linear
+                    class="flex-grow-1"
                     :model-value="(d.count / maxDifficultyCount) * 100"
                     :color="
                       DIFFICULTY_COLORS[d.difficulty as keyof typeof DIFFICULTY_COLORS] ?? 'primary'
                     "
                     height="20"
                     rounded
+                  />
+                  <span
+                    class="text-caption font-weight-bold text-no-wrap"
+                    style="min-width: 32px; text-align: right"
                   >
-                    <span class="text-caption font-weight-bold">{{ d.count }}</span>
-                  </v-progress-linear>
+                    {{ d.count }}
+                  </span>
                 </div>
               </div>
               <div v-else class="text-body-2 text-medium-emphasis">Sin datos por dificultad.</div>
@@ -282,20 +302,31 @@ const topicHeaders = [
             <v-card-text>
               <div v-if="byType.length">
                 <div v-for="t in byType" :key="t.type" class="d-flex align-center ga-3 mb-2">
-                  <div class="d-flex align-center ga-2" style="min-width: 160px">
-                    <v-icon size="18">{{
+                  <div
+                    class="d-flex align-center ga-2"
+                    style="flex: 0 1 200px; min-width: 120px"
+                    :title="typeLabels[t.type] ?? t.type"
+                  >
+                    <v-icon size="18" class="flex-shrink-0">{{
                       TYPE_ICONS[t.type as keyof typeof TYPE_ICONS] ?? 'mdi-help'
                     }}</v-icon>
-                    <span class="text-body-2">{{ typeLabels[t.type] ?? t.type }}</span>
+                    <span class="text-body-2 text-truncate flex-grow-1" style="min-width: 0">
+                      {{ typeLabels[t.type] ?? t.type }}
+                    </span>
                   </div>
                   <v-progress-linear
+                    class="flex-grow-1"
                     :model-value="(t.count / maxTypeCount) * 100"
                     color="info"
                     height="20"
                     rounded
+                  />
+                  <span
+                    class="text-caption font-weight-bold text-no-wrap"
+                    style="min-width: 32px; text-align: right"
                   >
-                    <span class="text-caption font-weight-bold">{{ t.count }}</span>
-                  </v-progress-linear>
+                    {{ t.count }}
+                  </span>
                 </div>
               </div>
               <div v-else class="text-body-2 text-medium-emphasis">Sin datos por tipo.</div>
